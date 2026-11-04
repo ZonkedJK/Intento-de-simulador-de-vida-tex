@@ -51,10 +51,17 @@ function richGame(MV, age, variant, seed) {
   if (variant === 'pobre') { p.money = -8000; p.housing = 'calle'; p.rent = null; p.karma = -60; p.stats.health = 25; p.stats.happy = 10; p.job = null; }
   if (variant === 'santo') { p.karma = 70; p.flags.padreAusente = MV.newNPC(g, { gender: 'm', age: age + 30 }).id; }
   if (variant === 'soltero') { p.addic.alcohol = 60; }
+  if (variant === 'club') { p.club = 'basquet'; p.sportsExp = { basquet: 6 }; p.skills.deporte = 70; if (p.edu.stage) p.edu.perf = 40; if (p.job && age < 23) p.job = null; }
+  if ((variant === 'atleta' || variant === 'atleta_ind') && age >= 16) {
+    p.skills.deporte = 75; p.sportsExp = {}; p.fame = 60;
+    MV.sys.sports.sign(g, MV.sys.sports.makeOffer(g, variant === 'atleta' ? 'futbol' : 'tenis', 1));
+    p.job.perf = 70; p.job.years = 1;
+    p.flags.exAtleta = 'futbol';
+  }
   return g;
 }
 
-const VARIANTS = ['normal', 'simple', 'carcel', 'pobre', 'santo', 'soltero', 'mafia'];
+const VARIANTS = ['normal', 'simple', 'carcel', 'pobre', 'santo', 'soltero', 'mafia', 'club', 'atleta', 'atleta_ind'];
 
 test('todas las opciones de los eventos aleatorios se pueden ejecutar', () => {
   const MV = load({ seed: 21 });
@@ -96,7 +103,9 @@ test('los eventos manuales funcionan con su contexto', () => {
   const cases = [
     ['fin_secundaria', 18, {}], ['elegir_carrera', 18, {}], ['pagar_universidad', 18, { major: 'medicina', mname: 'Medicina' }],
     ['elegir_tecnica', 18, {}], ['entrevista', 25, { job: 'cajero', q: 2, order: [2, 0, 1] }], ['audicion', 22, { job: 'actor' }],
-    ['audicion', 20, { job: 'atleta' }], ['eleccion', 30, { job: 'politico' }], ['juicio', 30, { crime: 'Robo', sev: 3 }],
+    ['audicion', 20, { job: 'modelo' }], ['prueba_deportiva', 20, { sport: 'tenis', sname: 'Tenis' }], ['prueba_deportiva', 17, { sport: 'esports', sname: 'E-sports' }],
+    ['reclutamiento', 18, { sport: 'basquet', club: 'Lobos del Norte', level: 0, salary: 30000 }], ['reclutamiento', 20, { sport: 'futbol', club: 'FC Galaxia', level: 1, salary: 150000, uni: true }],
+    ['fin_secundaria', 18, { grade: '8,0', offer: { sport: 'voley', club: 'Club Remate Norte', level: 0, salary: 10000 } }], ['oferta_post_retiro', 38, {}], ['eleccion', 30, { job: 'politico' }], ['juicio', 30, { crime: 'Robo', sev: 3 }],
     ['juicio', 16, { crime: 'Hurto', sev: 1 }], ['elegir_aspiracion', 14, { opts: ['rico', 'famoso', 'amor'] }],
     ['banda_exito', 30, {}], ['cazatalentos', 18, {}], ['documento_falso_cae', 17, {}], ['venganza_mafia', 30, {}], ['prestamista_cobra', 30, {}]
   ];
@@ -138,7 +147,7 @@ test('los eventos manuales funcionan con su contexto', () => {
 test('todas las acciones de relaciones, actividades, trabajo y cárcel se ejecutan', () => {
   const MV = load({ seed: 23 });
   let n = 0;
-  [[8, 'normal'], [16, 'normal'], [30, 'normal'], [30, 'soltero'], [40, 'mafia'], [70, 'normal'], [30, 'carcel'], [35, 'pobre']].forEach(([age, v], vi) => {
+  [[8, 'normal'], [16, 'normal'], [30, 'normal'], [30, 'soltero'], [40, 'mafia'], [70, 'normal'], [30, 'carcel'], [35, 'pobre'], [14, 'club'], [24, 'atleta'], [26, 'atleta_ind']].forEach(([age, v], vi) => {
     const base = richGame(MV, age, v, 300 + vi);
     const runAll = (getList, scopeOf) => {
       getList(base).forEach((a, ai) => {

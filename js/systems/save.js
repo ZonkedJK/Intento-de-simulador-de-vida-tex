@@ -43,10 +43,29 @@
     store.set(KEY_GAME, g);
   };
 
+  /** Actualiza partidas de versiones anteriores. */
+  MV.migrate = function (g) {
+    if (!g || typeof g !== 'object' || !g.p) return g;
+    if (g.version === 1) {
+      const p = g.p;
+      p.club = p.club || null;
+      p.sportsExp = p.sportsExp || {};
+      p.talent = p.talent || MV.rollTalent();
+      if (p.job && p.job.id === 'atleta') {
+        p.job.id = 'sport_futbol'; p.job.type = 'sport'; p.job.club = MV.U.pick(MV.SPORTS.futbol.clubs);
+        p.job.level = Math.min(p.job.level, MV.SPORTS.futbol.titles.length - 1);
+        p.club = 'futbol'; p.sportsExp.futbol = Math.max(3, p.job.years || 0); p.flags.exAtleta = 'futbol';
+      }
+      (p.jobs || []).forEach((j) => { if (j.id === 'atleta') j.id = 'sport_futbol'; });
+      g.version = 2;
+    }
+    return g;
+  };
+
   MV.validGame = (g) => !!(g && typeof g === 'object' && g.version === MV.VERSION && g.p && g.people && Array.isArray(g.log) && Array.isArray(g.queue));
 
   MV.loadGame = function () {
-    const g = store.get(KEY_GAME);
+    const g = MV.migrate(store.get(KEY_GAME));
     if (!MV.validGame(g)) return null;
     MV.rng.setState(g.rng || 1);
     return g;
@@ -62,6 +81,7 @@
     let d;
     try { d = JSON.parse(text); } catch (e) { throw new Error('El archivo no es un JSON válido.'); }
     if (!d || d.type !== 'milvidas') throw new Error('Este archivo no es una partida de Mil Vidas.');
+    if (d.game) MV.migrate(d.game);
     if (d.game && !MV.validGame(d.game)) throw new Error('La partida del archivo está dañada o es de otra versión.');
     if (d.global && typeof d.global === 'object') {
       globalCache = Object.assign({ ach: {}, graveyard: [], lives: 0, settings: {} }, d.global);

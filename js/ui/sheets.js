@@ -51,12 +51,25 @@
         e.payer && e.cost ? kv('Pago', { padres: 'Tus padres', prestamo: 'Préstamo estudiantil', propio: 'Tu dinero' }[e.payer] || '-') : null),
       UI.actionList(MV.sys.edu.actions(g)));
     }
+    // Club deportivo (amateur)
+    if (p.club && !MV.sys.sports.isPro(p)) {
+      const S = MV.SPORTS[p.club];
+      body.append(title('Club deportivo'), h('div', { class: 'box' }, kv('Club', `${S.icon} ${S.club}`), kv('Años de práctica', String(MV.sys.sports.exp(p, p.club))),
+        h('div', { class: 'kv' }, h('span', null, 'Nivel deportivo'), h('span', { style: { width: '120px' } }, UI.bar(MV.sys.sports.rating(g, p.club)))),
+        h('p', { class: 'note' }, p.age < S.start[0] ? `Los profesionales empiezan desde los ${S.start[0]} años. Sigue entrenando: los cazatalentos miran a los clubes.` : 'Cuanto más alto tu nivel, más probable que te recluten.')));
+      const cl = h('div', { class: 'list' });
+      cl.append(UI.row('🚪', 'Dejar el club', '', null, () => UI.runSystem('🚪', () => MV.sys.sports.leaveClub(g))));
+      body.append(cl);
+    }
     // Trabajo
     if (p.job) {
       const J = MV.jobById(p.job.id);
       body.append(title('Trabajo'), h('div', { class: 'box' },
-        kv('Puesto', MV.sys.career.title(p)), kv('Sector', J.sector), kv('Sueldo', U.money(p.job.salary) + ' al año'),
-        kv('Años en la empresa', String(p.job.years)),
+        kv('Puesto', MV.sys.career.title(p)), kv(J.type === 'sport' ? 'Deporte' : 'Sector', J.sector),
+        p.job.club ? kv(MV.SPORTS[J.sport] && MV.SPORTS[J.sport].team ? 'Club' : 'Representante', p.job.club + (p.job.abroad ? ' (extranjero)' : '')) : null,
+        J.type === 'sport' ? kv('Nivel deportivo', MV.sys.sports.rating(g, J.sport) + ' / 100') : null,
+        kv(J.type === 'sport' && MV.SPORTS[J.sport].prize ? 'Premios del último año' : 'Sueldo', U.money(p.job.salary) + ' al año'),
+        kv(J.type === 'sport' ? 'Temporadas' : 'Años en la empresa', String(p.job.years)),
         h('div', { class: 'kv' }, h('span', null, 'Rendimiento'), h('span', { style: { width: '120px' } }, UI.bar(p.job.perf)))),
       UI.actionList(MV.sys.career.actions(g)));
     } else if (p.retired) {
@@ -77,7 +90,8 @@
     const opts = h('div', { class: 'list' });
     if (p.age >= 16) opts.append(UI.row('📰', 'Buscar empleo', 'Ofertas de trabajo a tiempo completo', null, () => UI.showJobs('full')));
     opts.append(UI.row('⏱️', 'Trabajos de medio tiempo', 'Compatibles con estudiar', null, () => UI.showJobs('part')));
-    opts.append(UI.row('🌟', 'Carreras especiales', 'Actuación, música, deporte, moda y política', null, () => UI.showFame()));
+    if (p.age >= 14) opts.append(UI.row('🏟️', 'Deporte profesional', 'Fútbol, básquet, tenis, vóley y más', null, () => UI.showSports()));
+    opts.append(UI.row('🌟', 'Carreras especiales', 'Actuación, música, moda y política', null, () => UI.showFame()));
     if (p.age >= 18 && !p.edu.stage) opts.append(UI.row('🎓', 'Estudiar', 'Universidad, técnica, posgrado o escuela nocturna', null, () => UI.showStudy()));
     if (p.age >= 18 && !p.business) opts.append(UI.row('🏪', 'Abrir un negocio', 'Sé tu propio jefe', null, () => UI.showBusiness()));
     body.append(opts);
@@ -121,6 +135,29 @@
             if (r) UI.runSystem(J.icon, () => r);
             else UI.flushQueue(() => UI.refreshSheets());
           }, !m.ok || mine));
+        });
+        body.append(list);
+      }
+    });
+  };
+
+  UI.showSports = function () {
+    UI.sheet({
+      title: 'Deporte profesional', icon: '🏟️',
+      render: (body) => {
+        const g = UI.g, p = g.p;
+        body.append(note('Haz una prueba abierta o entrena en un club (Actividades o la escuela) para que te recluten. Cuenta tu habilidad Deporte, tu salud y tus años de práctica.'));
+        const list = h('div', { class: 'list' });
+        Object.keys(MV.SPORTS).forEach((k) => {
+          const S = MV.SPORTS[k], J = MV.SPORT_JOBS['sport_' + k];
+          const m = MV.sys.career.meets(g, J);
+          const pro = MV.sys.sports.isPro(p);
+          const top = U.money(S.pay[S.pay.length - 1]);
+          const sub = pro ? `Nivel ${MV.sys.sports.rating(g, k)}/100` : m.ok ? `Tu nivel: ${MV.sys.sports.rating(g, k)}/100. Las estrellas cobran hasta ${top} al año` : 'Requiere: ' + m.why.join(', ');
+          list.append(UI.row(S.icon, S.name, sub, m.ok && !pro ? 'Probar' : '', () => {
+            const r = MV.sys.sports.tryout(g, k);
+            if (r) UI.toast(S.icon, S.name, r); else UI.flushQueue(() => UI.refreshSheets());
+          }, !m.ok || pro));
         });
         body.append(list);
       }

@@ -127,6 +127,7 @@
         if (p.age >= 23 && U.chance(0.15)) MV.log(g, 'Sigues en tu trabajo de medio tiempo. Tu jefe tiene tu edad y lo disfruta.', '😬');
         return;
       }
+      if (J.type === 'sport') { MV.sys.sports.careerYearly(g, J); return; }
       if (J.type === 'fame' || J.type === 'crime') { career.yearlySpecial(g, J); return; }
       job.salary = Math.round(job.salary * U.float(1.01, 1.05));
       if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45)) career.promote(g);
@@ -170,6 +171,7 @@
       const p = g.p;
       if (!p.job) return [];
       const J = MV.jobById(p.job.id);
+      if (J.type === 'sport') return MV.sys.sports.actions(g);
       const job = p.job;
       const list = [
         { id: 'esforzarse', icon: '💪', label: 'Esforzarte más', sub: '+rendimiento, +estrés', limit: 3,
@@ -229,6 +231,7 @@
 
     /** Prueba de ingreso a una carrera de fama. */
     audition(g, id) {
+      if (id === 'atleta') return MV.sys.sports.tryout(g, g.p.club || 'futbol');
       const J = MV.FAME[id];
       const m = career.meets(g, J);
       if (!m.ok) return `No cumples los requisitos: ${m.why.join(', ')}.`;

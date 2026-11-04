@@ -67,6 +67,7 @@
     alzheimer: { name: 'Alzheimer', icon: '🧩', drain: [3, 6], heal: 0, cure: 0.05, cost: 30000, minAge: 65, smarts: -6 },
     cirrosis: { name: 'Cirrosis', icon: '🍺', drain: [6, 12], heal: 0, cure: 0.3, cost: 40000, minAge: 30 },
     insomnio: { name: 'Insomnio', icon: '🌙', drain: [0, 2], heal: 0.4, cure: 0.7, cost: 400, stress: 5 },
+    lesion: { name: 'Lesión deportiva', icon: '🩼', drain: [2, 6], heal: 0.6, cure: 0.9, cost: 3000 },
     hipocondria: { name: 'Hipocondría', icon: '🩺', drain: [0, 1], heal: 0.2, cure: 0.5, cost: 2000, happy: -3, minAge: 20 }
   };
   // Enfermedades aleatorias por año según edad (pesos).

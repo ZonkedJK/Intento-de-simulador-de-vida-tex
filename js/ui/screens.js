@@ -42,7 +42,9 @@
     const last = h('input', { class: 'input', id: 'f-last', value: st.last, maxlength: '24', autocomplete: 'off' });
     first.addEventListener('input', () => { st.first = first.value; drawPreview(); });
     last.addEventListener('input', () => { st.last = last.value; drawPreview(); });
-    const country = h('select', { class: 'select', id: 'f-country' }, Object.keys(MV.COUNTRIES).map((k) => h('option', { value: k }, `${MV.COUNTRIES[k].flag} ${MV.COUNTRIES[k].name}`)));
+    const country = h('select', { class: 'select', id: 'f-country' }, MV.REGIONS.map((reg) => h('optgroup', { label: reg },
+      Object.keys(MV.COUNTRIES).filter((k) => MV.COUNTRIES[k].region === reg).sort((a, b) => MV.COUNTRIES[a].name.localeCompare(MV.COUNTRIES[b].name, 'es'))
+        .map((k) => h('option', { value: k }, `${MV.COUNTRIES[k].flag} ${MV.COUNTRIES[k].name}`)))));
     country.value = st.country;
     country.addEventListener('change', () => { st.country = country.value; });
     const segG = h('div', { class: 'seg', role: 'group', 'aria-label': 'Género' });
@@ -163,6 +165,12 @@
         const sk = h('div', { class: 'box' });
         Object.keys(MV.SKILLS).forEach((k) => sk.append(h('div', { class: 'skill-row' }, h('span', null, MV.SKILLS[k].icon), h('span', null, MV.SKILLS[k].name), UI.bar(p.skills[k]), h('b', null, Math.round(p.skills[k])))));
         body.append(sk, note('Las habilidades suben practicando en Actividades, en clubes, en el trabajo y con algunos eventos.'));
+        const played = Object.keys(p.sportsExp || {}).filter((k) => p.sportsExp[k] > 0 && MV.SPORTS[k]);
+        if (played.length || p.club) {
+          body.append(title('Deportes'));
+          body.append(h('div', { class: 'box' }, (played.length ? played : [p.club]).map((k) => h('div', { class: 'skill-row' }, h('span', null, MV.SPORTS[k].icon), h('span', null, MV.SPORTS[k].name), UI.bar(MV.sys.sports.rating(g, k)), h('b', null, MV.sys.sports.rating(g, k)))),
+            note(`Años de práctica: ${played.map((k) => `${MV.SPORTS[k].name.toLowerCase()} ${p.sportsExp[k]}`).join(', ') || 'recién empiezas'}.`)));
+        }
         body.append(title('Salud'));
         const hb = h('div', { class: 'box' });
         hb.append(p.conds.length ? h('p', null, p.conds.map((c) => { const Cd = MV.CONDITIONS[c.id]; return h('span', { class: 'tag' }, `${Cd.icon} ${Cd.name}`); })) : h('p', null, 'Sin enfermedades conocidas.'));

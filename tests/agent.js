@@ -38,7 +38,8 @@ function special(MV, g) {
     const J = U.pick(pool);
     if (J) MV.sys.career.apply(g, J.id);
   } else if (r < 0.2 && p.age >= 16) {
-    MV.sys.career.audition(g, U.pick(Object.keys(MV.FAME)));
+    if (U.chance(0.5)) MV.sys.career.audition(g, U.pick(Object.keys(MV.FAME)));
+    else MV.sys.sports.tryout(g, U.pick(Object.keys(MV.SPORTS)));
   } else if (r < 0.28 && p.age >= 18) {
     const kind = U.pick(['casa', 'auto', 'lujo']);
     const it = U.pick(MV.sys.money.listings(g, kind));

@@ -20,17 +20,20 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Estadísticas | Felicidad, salud, inteligencia y apariencia, más estrés, karma y fama visibles |
 | Habilidades | Música, deporte, cocina, programación, arte, carisma, idiomas y crimen; suben con la práctica |
 | Educación | Primaria, secundaria, 17 carreras universitarias, 6 técnicas, 4 posgrados, escuela nocturna, clubes, becas y préstamos estudiantiles |
-| Trabajo | 44 empleos con requisitos y ascensos, 10 de medio tiempo, entrevistas con preguntas, jubilación y pensión |
-| Fama | Actor/actriz, música, deporte, moda y política (con elecciones), más redes sociales con seguidores y patrocinios |
+| Trabajo | 46 empleos con requisitos y ascensos (incluye entrenador y comentarista para exdeportistas), 10 de medio tiempo, entrevistas con preguntas, jubilación y pensión |
+| Deporte profesional | 11 deportes (fútbol, básquet con draft en una liga norteamericana, tenis, vóley, béisbol, boxeo, golf, atletismo, natación, automovilismo y e-sports), con sueldos de hasta decenas de millones, contratos, traspasos, lesiones, títulos y retiro |
+| Reclutamiento | Clubes por deporte desde la escuela, cazatalentos al terminar la secundaria, beca deportiva, reclutadores universitarios y pruebas abiertas; cuentan la habilidad Deporte, la salud, los años de práctica y un talento natural oculto |
+| Fama | Actor/actriz, música, moda y política (con elecciones), más redes sociales con seguidores y patrocinios |
 | Mafia | Carrera criminal con encargos, ascensos y riesgo de arresto |
 | Dinero | Impuestos, gastos de vida, alquiler, hipotecas, préstamos, 4 tipos de inversión y 8 negocios propios |
 | Bienes | Mercado anual de casas, autos y lujos (con estado, mantenimiento y valorización) |
 | Relaciones | Padres, hermanos, abuelos, parejas, cónyuges, amantes, hijos, amigos, enemigos, ex y 12 especies de mascotas, cada uno con sus acciones |
 | Salud | 21 enfermedades, 4 niveles de tratamiento (del curandero al tratamiento experimental), adicciones y rehabilitación |
 | Crimen | 11 delitos, juicio con elección de abogado (o soborno), cárcel con pandillas, motines, fuga, apelación y libertad condicional |
-| Actividades | 58: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, demandas, emigrar a 12 países y más |
-| Eventos | 166 eventos con decisiones, más 19 encadenados (decisiones que vuelven años después) |
-| Metas | 16 aspiraciones de vida y 47 logros que se conservan entre vidas |
+| Actividades | 58: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, demandas, emigrar a 28 países y más |
+| Países | 28 países de Latinoamérica, Norteamérica, Europa y Asia, cada uno con sus nombres, ciudades y un deporte popular |
+| Eventos | 184 eventos al azar (132 con decisiones), más 22 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
+| Metas | 16 aspiraciones de vida y 53 logros que se conservan entre vidas |
 | Legado | Muerte con epitafio y veredicto, testamento, herencia, árbol genealógico y cementerio de todas tus vidas |
 | Imágenes | Avatares SVG que cambian con la edad, el aspecto y el ánimo, y 16 escenas ilustradas; tema claro (cuaderno) y oscuro (pizarrón) |
 
@@ -40,9 +43,9 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 index.html            carga los scripts en orden (sin compilación)
 css/styles.css        estética de cuaderno cuadriculado y modo pizarrón
 js/core/              utilidades y azar con semilla, estado, efectos, motor de eventos
-js/data/              países, educación, empleos, mundo (bienes, salud, crimen...), logros, actividades
-js/data/events/       eventos por etapa: infancia, adolescencia, adultez, vejez y generales
-js/systems/           bucle anual: personas, salud, educación, trabajo, dinero, crimen, relaciones, legado, guardado
+js/data/              países, educación, empleos, deportes, mundo (bienes, salud, crimen...), logros, actividades
+js/data/events/       eventos por etapa: infancia, adolescencia, adultez, vejez, generales y deportes
+js/systems/           bucle anual: personas, salud, educación, trabajo, deportes, dinero, crimen, relaciones, legado, guardado
 js/ui/                interfaz: avatares, escenas, pantalla principal, pestañas y pantallas
 tests/                pruebas con node --test y prueba de interfaz con Playwright
 ```

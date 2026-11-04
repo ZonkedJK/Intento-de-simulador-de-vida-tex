@@ -3,7 +3,7 @@
   'use strict';
   const U = MV.U;
 
-  MV.VERSION = 1;
+  MV.VERSION = 2;
 
   MV.LOOK = {
     SKIN: ['#f7dcc8', '#efc6a4', '#dfab84', '#c48b62', '#9c6644', '#6e4529', '#4a2e1c'],
@@ -196,7 +196,7 @@
       record: [], prison: null, wanted: 0,
       license: false, aspiration: null,
       counters: {}, flags: {}, yearActs: {},
-      rels: [], heirId: null, followers: 0,
+      rels: [], heirId: null, followers: 0, club: null, sportsExp: {}, talent: MV.rollTalent ? MV.rollTalent() : {},
       orientation: o.orientation || (U.chance(0.88) ? 'hetero' : U.pick(['homo', 'bi']))
     };
   }

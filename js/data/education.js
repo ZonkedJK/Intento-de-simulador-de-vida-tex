@@ -49,7 +49,6 @@
       especialidad: { name: 'Especialidad médica', years: 3, cost: 0, icon: '🩻', major: 'medicina' }
     },
     clubs: [
-      { id: 'futbol', name: 'Equipo de fútbol', icon: '⚽', skill: 'deporte', stat: 'health' },
       { id: 'banda', name: 'Banda de música', icon: '🥁', skill: 'musica', stat: 'happy' },
       { id: 'teatro', name: 'Taller de teatro', icon: '🎭', skill: 'carisma', stat: 'looks' },
       { id: 'ajedrez', name: 'Club de ajedrez', icon: '♟️', skill: 'idiomas', stat: 'smarts' },
@@ -57,7 +56,6 @@
       { id: 'arte', name: 'Taller de arte', icon: '🖌️', skill: 'arte', stat: 'happy' },
       { id: 'debate', name: 'Club de debate', icon: '🎤', skill: 'carisma', stat: 'smarts' },
       { id: 'cocina', name: 'Club de cocina', icon: '🧁', skill: 'cocina', stat: 'happy' },
-      { id: 'atletismo', name: 'Atletismo', icon: '🏃', skill: 'deporte', stat: 'health' }
     ]
   };
 

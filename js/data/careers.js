@@ -62,6 +62,10 @@
   J('orquesta', 'Música clásica', '🎻', ['Profesor de música|Profesora de música', 'Músico de orquesta|Música de orquesta', 'Director de orquesta|Directora de orquesta'], [16000, 35000, 92000], { major: ['musica'], skill: { musica: 35 } }, { stress: 4, skillUp: 'musica' });
   J('traductor', 'Idiomas', '🌍', ['Traductor|Traductora', 'Intérprete', 'Intérprete de la ONU'], [24000, 40000, 88000], { major: ['idiomas'], alt: (g) => g.p.skills.idiomas >= 65 && MV.eduLevel(g.p) >= 2 }, { stress: 4, skillUp: 'idiomas' });
 
+  // — Después del deporte profesional —
+  J('entrenador', 'Cuerpo técnico', '📋', ['Entrenador asistente|Entrenadora asistente', 'Entrenador|Entrenadora', 'Director técnico|Directora técnica', 'Seleccionador nacional|Seleccionadora nacional'], [28000, 60000, 180000, 650000], { edu: 'secundaria', skill: { deporte: 60 }, alt: (g) => !!g.p.flags.exAtleta }, { stress: 7, skillUp: 'carisma' });
+  J('comentarista', 'Televisión deportiva', '🎙️', ['Comentarista deportivo|Comentarista deportiva', 'Analista estrella de TV', 'Voz oficial del Mundial'], [45000, 220000, 700000], { edu: 'secundaria', skill: { carisma: 55 }, major: ['periodismo'], alt: (g) => !!g.p.flags.exAtleta && g.p.fame >= 30 }, { stress: 4, skillUp: 'carisma' });
+
   // — Posgrado —
   J('cirujano', 'Cirugía', '🔪', ['Cirujano|Cirujana', 'Cirujano jefe|Cirujana jefa', 'Eminencia de la cirugía'], [160000, 260000, 420000], { major: ['medicina'], post: true, smarts: 70 }, { stress: 9 });
   J('juez', 'Poder Judicial', '👨‍⚖️', ['Juez|Jueza', 'Juez de cámara|Jueza de cámara', 'Juez de la Corte Suprema|Jueza de la Corte Suprema'], [120000, 175000, 265000], { major: ['derecho'], post: true, smarts: 65, clean: true, age: 35 }, { stress: 6 });
@@ -94,11 +98,6 @@
       titles: ['Músico callejero|Música callejera', 'Músico de bar|Música de bar', 'Artista con contrato', 'Estrella del pop', 'Ícono musical'],
       pay: [6000, 18000, 95000, 850000, 2600000], req: { age: 14 }, stress: 5, skillUp: 'musica', audition: 'demo'
     },
-    atleta: {
-      id: 'atleta', sector: 'Deporte profesional', icon: '🏅', type: 'fame', key: (p) => p.skills.deporte * 0.7 + p.stats.health * 0.3,
-      titles: ['Jugador amateur|Jugadora amateur', 'Deportista profesional', 'Titular de la selección', 'Estrella del deporte'],
-      pay: [9000, 62000, 420000, 2100000], req: { age: 16, maxAge: 32, health: 65 }, stress: 5, skillUp: 'deporte', audition: 'prueba', retireAge: 38
-    },
     modelo: {
       id: 'modelo', sector: 'Moda', icon: '📸', type: 'fame', key: (p) => p.stats.looks,
       titles: ['Modelo de catálogo', 'Modelo de pasarela', 'Supermodelo'],
@@ -119,7 +118,10 @@
   MV.JOBS = JOBS;
   MV.PARTTIME = PART;
   MV.FAME = FAME;
-  MV.jobById = (id) => JOBS.find((j) => j.id === id) || PART.find((j) => j.id === id) || FAME[id] || null;
+  MV.jobById = (id) => {
+    if (id === 'atleta') id = 'sport_futbol'; // partidas anteriores a los deportes
+    return JOBS.find((j) => j.id === id) || PART.find((j) => j.id === id) || FAME[id] || (MV.SPORT_JOBS && MV.SPORT_JOBS[id]) || null;
+  };
 
   /** Título aleatorio para NPC adultos (padres, parejas...). */
   MV.randomJobTitle = function (n) {

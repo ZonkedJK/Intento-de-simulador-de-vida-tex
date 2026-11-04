@@ -76,7 +76,7 @@
   ev({ id: 'talento_deportivo', age: [13, 17], once: true, when: (g) => g.p.skills.deporte >= 25, icon: '🏅', title: 'Tienes talento',
     text: 'El entrenador del club dice que podrías llegar a profesional si entrenas en serio.',
     choices: [
-      { t: 'Entrenar en serio', eff: { skills: { deporte: 10 }, health: 4, stress: 4, then: (g) => { MV.EV.later(g, 'cazatalentos', U.int(1, 3)); return 'Entrenas todos los días. Comes pollo y arroz. Sueñas con estadios.'; } } },
+      { t: 'Entrenar en serio', eff: { skills: { deporte: 10 }, health: 4, stress: 4, then: (g) => { if (!g.p.club) MV.sys.sports.joinClub(g, (MV.COUNTRIES[g.p.country] || {}).sport || 'futbol'); g.p.sportsExp[g.p.club] = (g.p.sportsExp[g.p.club] || 0) + 1; MV.EV.later(g, 'cazatalentos', U.int(1, 3)); return 'Entrenas todos los días. Comes pollo y arroz. Sueñas con estadios.'; } } },
       { t: 'Prefiero estudiar', eff: { smarts: 2, msg: 'Elegiste los libros. El entrenador te miró con decepción profunda.' } }
     ] });
   ev({ id: 'grafiti_muro', age: [13, 17], icon: '🎨', title: 'El muro de la escuela',

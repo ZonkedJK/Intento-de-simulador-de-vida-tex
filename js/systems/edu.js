@@ -77,7 +77,7 @@
           MV.EV.info(g, { title: '¡Lo lograste!', text: `Terminaste la secundaria en la escuela nocturna con promedio ${grade}. Nunca es tarde.`, icon: '🎓', scene: 'escuela' });
         } else {
           MV.log(g, `Terminaste la secundaria con promedio ${grade}.`, '🎓', 'good');
-          MV.EV.push(g, 'fin_secundaria', { grade });
+          MV.EV.push(g, 'fin_secundaria', { grade, offer: MV.sys.sports.scoutAtGraduation(g) });
         }
         return;
       }
@@ -188,9 +188,13 @@
             e.perf = U.clamp(e.perf - 15, 0, 100); MV.fx.stat(g, 'happy', -8);
             return 'Te atraparon con un machete escrito en el brazo. Cero y citación a tus padres.';
           } },
-        { id: 'club', icon: '🏅', label: 'Unirte a un club', sub: 'Entrena una habilidad', limit: 1,
-          opts: () => E.clubs.map((c) => ({ id: c.id, icon: c.icon, label: c.name, sub: MV.SKILLS[c.skill].name })),
+        { id: 'club', icon: '🏅', label: higher ? 'Unirte a un equipo o club' : 'Unirte a un club', sub: 'Deportes y talleres', limit: 1,
+          opts: () => Object.keys(MV.SPORTS).map((k) => {
+            const S = MV.SPORTS[k];
+            return { id: 'sport:' + k, icon: S.icon, label: (higher ? S.club.replace('Equipo', 'Equipo universitario') : S.club), sub: p.club === k ? 'Ya entrenas aquí' : `Deporte. Años de práctica: ${MV.sys.sports.exp(p, k)}${S.clubCost ? `, cuota ${U.money(S.clubCost)}/año` : ''}` };
+          }).concat(E.clubs.map((c) => ({ id: c.id, icon: c.icon, label: c.name, sub: MV.SKILLS[c.skill].name }))),
           run: (g, opt) => {
+            if (String(opt).startsWith('sport:')) return MV.sys.sports.joinClub(g, String(opt).slice(6));
             const c = E.clubs.find((x) => x.id === opt) || E.clubs[0];
             MV.fx.skill(g, c.skill, U.int(5, 10)); MV.fx.stat(g, c.stat, U.int(2, 5)); MV.fx.stat(g, 'happy', 3);
             if (U.chance(0.35)) {
@@ -231,8 +235,14 @@
   // — Eventos de decisión educativa (manuales: los encolan los sistemas) —
   MV.ev({
     id: 'fin_secundaria', manual: true, prison: 'any', icon: '🎓', scene: 'escuela', title: 'Terminaste la secundaria',
-    text: (g, ctx) => `Promedio final: ${ctx.grade || '?'}. Todo el mundo te pregunta qué vas a hacer con tu vida. ¿Qué decides?`,
+    text: (g, ctx) => {
+      let t = `Promedio final: ${ctx.grade || '?'}. Todo el mundo te pregunta qué vas a hacer con tu vida.`;
+      if (ctx.offer) { const S = MV.SPORTS[ctx.offer.sport]; t += ` Además, ${S.scout} de ${ctx.offer.club} te vio en ${S.club.toLowerCase()} y te ofrece un contrato profesional de ${U.money(ctx.offer.salary)} al año.`; }
+      return t + ' ¿Qué decides?';
+    },
     choices: [
+      { t: (g, ctx) => `${MV.SPORTS[ctx.offer.sport].icon} Firmar con ${ctx.offer.club}`, when: (g, ctx) => !!ctx.offer, eff: (g, ctx) => MV.sys.sports.sign(g, ctx.offer) },
+      { t: '🏅 Universidad con beca deportiva', when: (g, ctx) => !!ctx.offer, eff: (g, ctx) => { MV.EV.push(g, 'elegir_carrera', { becaDep: ctx.offer.sport }, true); return 'Elegiste estudiar y seguir jugando: la universidad te quiere en su equipo.'; } },
       { t: '🎓 Ir a la universidad', eff: (g) => { MV.EV.push(g, 'elegir_carrera', {}, true); return 'Decidiste ir a la universidad.'; } },
       { t: '🔧 Estudiar una carrera técnica', eff: (g) => { MV.EV.push(g, 'elegir_tecnica', {}, true); return 'Decidiste estudiar algo práctico.'; } },
       { t: '💼 Ponerme a trabajar', eff: { happy: 2, msg: 'Decidiste salir a trabajar. Mira las ofertas en la pestaña Ocupación.' } },
@@ -247,7 +257,7 @@
     text: (g) => `Tu inteligencia es ${g.p.stats.smarts}. Las carreras exigentes tienen examen de ingreso en la universidad pública.`,
     choices: Object.keys(E.majors).map((k) => ({
       t: `${E.majors[k].icon} ${E.majors[k].name} · ${E.majors[k].years} años`,
-      eff: (g) => { MV.EV.push(g, 'pagar_universidad', { major: k, mname: E.majors[k].name }, true); return `Elegiste ${E.majors[k].name}.`; }
+      eff: (g, ctx) => { MV.EV.push(g, 'pagar_universidad', { major: k, mname: E.majors[k].name, becaDep: ctx.becaDep || null }, true); return `Elegiste ${E.majors[k].name}.`; }
     })).concat([{ t: '❌ Mejor no', eff: { msg: 'Lo pensaste mejor. La universidad puede esperar.' } }])
   });
 
@@ -277,6 +287,8 @@
           MV.EV.push(g, 'pagar_universidad', Object.assign({}, ctx, { noBeca: true }), true);
           return 'No te dieron la beca. Se la dieron al sobrino del rector.';
         } },
+      { t: (g, ctx) => `🏅 Beca deportiva (${MV.SPORTS[ctx.becaDep || g.p.flags.becaOfrecida || g.p.club].name.toLowerCase()})`, when: (g, ctx) => !!ctx.becaDep || !!g.p.flags.becaOfrecida || (!!g.p.club && MV.sys.sports.rating(g, g.p.club) >= 60),
+        eff: (g, ctx) => { const sp = ctx.becaDep || g.p.flags.becaOfrecida || g.p.club; delete g.p.flags.becaOfrecida; g.p.club = sp; return edu.enrollUni(g, ctx.major, 'beca').replace('¡Con beca completa!', `¡Con beca deportiva! Jugarás en el equipo de ${MV.SPORTS[sp].name.toLowerCase()} de la universidad.`); } },
       { t: '❌ Olvídalo', eff: { msg: 'Decidiste no estudiar por ahora.' } }
     ]
   });

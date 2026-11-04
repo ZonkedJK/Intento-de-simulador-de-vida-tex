@@ -150,9 +150,15 @@
       { t: 'Negar que eras tú', eff: { happy: -1, msg: 'Negaste ser la voz de esa canción. Tu madre te delató en los comentarios.' } }
     ] });
   ev({ id: 'cazatalentos', manual: true, icon: '🔭', title: 'Cazatalentos',
-    text: 'Un cazatalentos te vio entrenar y quiere hacerte una prueba para el deporte profesional.',
+    text: (g) => `Un cazatalentos te vio entrenar ${g.p.club ? MV.SPORTS[g.p.club].name.toLowerCase() : 'en la plaza'} y quiere hacerte una prueba para el deporte profesional.`,
     choices: [
-      { t: 'Hacer la prueba', eff: (g) => MV.sys.career.audition(g, 'atleta') || 'Aceptaste la prueba.' },
+      { t: 'Hacer la prueba', eff: (g) => {
+        const sp = g.p.club || 'futbol';
+        if (MV.sys.sports.isPro(g.p)) return 'Ya eres profesional. El cazatalentos te pidió un autógrafo.';
+        const S = MV.SPORTS[sp];
+        if (g.p.age < S.start[0]) { MV.EV.later(g, 'cazatalentos', S.start[0] - g.p.age); return `Le gustó lo que vio. Volverá cuando tengas ${S.start[0]} años.`; }
+        return MV.sys.sports.tryout(g, sp) || 'Aceptaste la prueba.';
+      } },
       { t: 'No me interesa', eff: { msg: 'Lo rechazaste. Seguirás jugando los domingos con tus amigos.' } }
     ] });
   ev({ id: 'documento_falso_cae', manual: true, icon: '🚔', text: 'La policía te encontró el documento falso en un control. Multa de {amount} y una llamada a tus padres.', auto: { money: [-300, -100], happy: -6, then: (g) => { MV.rels(g, 'padre').forEach((x) => { x.r.rel = U.clamp(x.r.rel - 10, 0, 100); }); } } });
