@@ -32,7 +32,7 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Crimen | 11 delitos, juicio con elección de abogado (o soborno), cárcel con pandillas, motines, fuga, apelación y libertad condicional |
 | Actividades | 58: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, demandas, emigrar a 28 países y más |
 | Países | 28 países de Latinoamérica, Norteamérica, Europa y Asia, cada uno con sus nombres, ciudades y un deporte popular |
-| Eventos | 184 eventos al azar (132 con decisiones), más 22 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
+| Eventos | 184 eventos al azar (130 con decisiones), más 22 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
 | Metas | 16 aspiraciones de vida y 53 logros que se conservan entre vidas |
 | Legado | Muerte con epitafio y veredicto, testamento, herencia, árbol genealógico y cementerio de todas tus vidas |
 | Imágenes | Avatares SVG que cambian con la edad, el aspecto y el ánimo, y 16 escenas ilustradas; tema claro (cuaderno) y oscuro (pizarrón) |
