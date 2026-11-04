@@ -92,11 +92,12 @@ button { cursor: pointer; }
 
 /* ——— Estructura principal ——— */
 #app { max-width: 620px; margin: 0 auto; min-height: 100%; position: relative; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--card); }
 .screen-main { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); }
 
 /* Cabecera: carnet del personaje */
 .idcard {
-  position: sticky; top: 0; z-index: 5;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center;
   padding: 10px 16px; background: var(--card);
   border-bottom: 2px solid var(--ink);
