@@ -1,0 +1,11 @@
+{
+  "name": "mil-vidas",
+  "version": "1.0.0",
+  "description": "Mil Vidas: simulador de vida de texto en el navegador (español).",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:ui": "node tests/ui-smoke.js"
+  },
+  "license": "MIT"
+}

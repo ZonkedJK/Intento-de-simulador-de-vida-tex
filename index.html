@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Mil Vidas: un simulador de vida de texto. Nace, estudia, ama, delinque, envejece y deja un legado.">
+  <meta name="theme-color" content="#f7f9fc">
+  <title>Mil Vidas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%23ffe34d' stroke='%231f3a93' stroke-width='5'/%3E%3Ctext x='32' y='45' font-size='34' font-weight='700' text-anchor='middle' font-family='Arial' fill='%231f3a93'%3E%2B1%3C/text%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shantell+Sans:wght@400;500;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app">
+    <noscript>Mil Vidas necesita JavaScript para funcionar.</noscript>
+  </div>
+  <div id="layer"></div>
+  <div id="toasts" aria-live="polite"></div>
+
+  <!-- Núcleo -->
+  <script src="js/core/util.js"></script>
+  <script src="js/core/state.js"></script>
+  <script src="js/core/fx.js"></script>
+  <script src="js/core/events.js"></script>
+  <!-- Datos -->
+  <script src="js/data/countries.js"></script>
+  <script src="js/data/education.js"></script>
+  <script src="js/data/careers.js"></script>
+  <script src="js/data/world.js"></script>
+  <script src="js/data/goals.js"></script>
+  <!-- Sistemas -->
+  <script src="js/systems/people.js"></script>
+  <script src="js/systems/health.js"></script>
+  <script src="js/systems/edu.js"></script>
+  <script src="js/systems/career.js"></script>
+  <script src="js/systems/money.js"></script>
+  <script src="js/systems/crime.js"></script>
+  <script src="js/systems/rels.js"></script>
+  <script src="js/systems/save.js"></script>
+  <script src="js/systems/legacy.js"></script>
+  <script src="js/systems/year.js"></script>
+  <!-- Contenido -->
+  <script src="js/data/activities.js"></script>
+  <script src="js/data/events/infancia.js"></script>
+  <script src="js/data/events/adolescencia.js"></script>
+  <script src="js/data/events/adultez.js"></script>
+  <script src="js/data/events/vejez.js"></script>
+  <script src="js/data/events/general.js"></script>
+  <!-- Interfaz -->
+  <script src="js/ui/dom.js"></script>
+  <script src="js/ui/avatar.js"></script>
+  <script src="js/ui/scenes.js"></script>
+  <script src="js/ui/main.js"></script>
+  <script src="js/ui/sheets.js"></script>
+  <script src="js/ui/screens.js"></script>
+  <script src="js/ui/app.js"></script>
+</body>
+</html>
