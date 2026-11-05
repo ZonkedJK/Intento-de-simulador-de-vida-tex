@@ -132,6 +132,7 @@
       job.salary = Math.round(job.salary * U.float(1.01, 1.05));
       if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45)) career.promote(g);
       else if (job.perf <= 22 && U.chance(0.4)) career.fire(g, 'Tu rendimiento fue "decepcionante", según el correo de Recursos Humanos.');
+      else if (U.chance(MV.sys.world.mods(g).layoff * (job.perf < 60 ? 1.5 : 0.6))) career.fire(g, `Recorte de personal por la crisis: "${MV.sys.world.current(g).title.toLowerCase()}", decía el correo.`);
       if (p.job && p.age >= 72 && U.chance(0.3)) MV.log(g, 'En el trabajo te preguntan "sutilmente" cuándo piensas jubilarte.', '👴');
     },
 
@@ -260,6 +261,7 @@
         if (p.record.length) chance -= 0.15;
         if (p.flags.tatuajeCara) chance -= 0.08;
         if (J.type === 'part') chance += 0.2;
+        chance += MV.sys.world.mods(g).hire;
         if (quality === 2 && U.chance(0.1)) chance = 1;
         if (U.chance(U.clamp(chance, 0.05, 0.95))) {
           career.hire(g, J);

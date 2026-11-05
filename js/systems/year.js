@@ -11,6 +11,7 @@
     p.age++;
     p.yearActs = {};
     g.log.push({ age: p.age, year: g.year, items: [] });
+    MV.sys.world.yearly(g);
     MV.sys.people.yearly(g);
     MV.sys.health.yearly(g);
     if (!p.prison) MV.sys.edu.yearly(g);

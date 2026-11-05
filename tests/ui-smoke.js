@@ -105,6 +105,11 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   await shot('novedades');
   await page.evaluate(() => MV.UI.closeSheets());
+  // Noticias del mundo en Bienes y dinero
+  await page.evaluate(() => { const g = MV.UI.g; g.log.push({ age: g.p.age, year: g.year, items: [] }); MV.sys.world.set(g, 'recesion'); MV.UI.showAssets(); });
+  const newsText = await page.$eval('#world-news', (e) => e.textContent).catch(() => '');
+  if (!/Recesión mundial/.test(newsText)) errors.push('Bienes y dinero no muestra el clima económico: ' + newsText);
+  await page.evaluate(() => MV.UI.closeSheets());
 
   // Recargar: la partida debe continuar
   const state = await page.evaluate(() => ({ age: MV.UI.g.p.age, over: MV.UI.g.over }));

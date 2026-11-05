@@ -205,6 +205,8 @@
     const debt = U.sum(p.loans, (l) => l.left);
     body.append(title('Dinero'), h('div', { class: 'box' }, kv('Efectivo', U.money(p.money)), kv('Patrimonio neto', U.money(MV.netWorth(g))), debt ? kv('Deudas', U.money(debt)) : null,
       p.loans.length ? h('div', null, p.loans.map((l) => h('p', { class: 'note' }, `${l.name}: debes ${U.money(l.left)} (${l.start > p.age ? 'empiezas a pagar a los ' + l.start : U.money(l.pay) + ' al año'})`))) : null));
+    const news = MV.sys.world.current(g);
+    body.append(h('div', { class: 'box news', id: 'world-news' }, h('b', null, `${news ? news.icon : '🌤️'} Clima económico: ${news ? news.title : 'año tranquilo'}`), h('p', { class: 'note', style: { margin: '4px 0 0' } }, MV.sys.world.describe(news))));
     if (p.age < 18) { body.append(note('Eres menor de edad: todavía no puedes comprar casas, autos ni invertir.')); return; }
     // Vivienda
     body.append(title('Vivienda'));
