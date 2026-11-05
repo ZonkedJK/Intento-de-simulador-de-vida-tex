@@ -180,6 +180,17 @@
       { t: 'Pedir protección policial', eff: { p: 0.6, ok: { msg: 'La policía te protegió. La familia perdió interés.' }, ko: { health: -25, msg: 'La protección policial duró dos días. La familia, más.' } } },
       { t: 'Cocinar el pescado', eff: { happy: 2, skills: { cocina: 2 }, msg: 'Lo cocinaste a la parrilla con limón. Si la mafia te va a amenazar, al menos que sea con proteína.' } }
     ] });
+  ev({ id: 'contraoferta', manual: true, prison: 'any', icon: '🤝', scene: 'ciudad', title: 'Contraoferta',
+    text: (g, ctx) => `Pediste ${U.money(ctx.asking)} por ${ctx.aname}. El comprador dice que es mucho y ofrece ${U.money(ctx.offer)}.`,
+    choices: [
+      { t: (g, ctx) => `✅ Aceptar ${U.money(ctx.offer)}`, eff: (g, ctx) => MV.sys.money.sellFor(g, ctx.asset, ctx.offer) },
+      { t: (g, ctx) => `🤏 Proponer ${U.money(Math.round((ctx.asking + ctx.offer) / 2))}`, eff: (g, ctx) => {
+        const mid = Math.round((ctx.asking + ctx.offer) / 2);
+        if (U.chance(0.45 + g.p.skills.carisma / 300)) { fx.skill(g, 'carisma', 1); return 'El comprador aceptó partir la diferencia. ' + MV.sys.money.sellFor(g, ctx.asset, mid); }
+        return 'El comprador se ofendió y se fue. Te quedas con tu bien (por ahora).';
+      } },
+      { t: '❌ Rechazar', eff: { msg: 'Rechazaste la oferta. Te quedas con tu bien.' } }
+    ] });
   ev({ id: 'prestamista_cobra', manual: true, icon: '🦈', title: 'Día de cobro',
     text: 'El prestamista volvió. Quiere $15.000. Hoy.',
     choices: [

@@ -15,6 +15,25 @@
     { kind: 'Mansión', icon: '🏰', price: [2000000, 9000000] },
     { kind: 'Castillo medieval', icon: '🏯', price: [8000000, 30000000] }
   ];
+  /** Mejoras de casas. cost = fixed + pct·valor; back = fracción del costo que suma al valor (negativa resta);
+      upkeep anual; house: solo casas (no departamentos); minValue: solo propiedades caras; eff: efecto anual si es tu hogar. */
+  MV.HOUSE_UPGRADES = [
+    { id: 'piscina', name: 'Piscina', icon: '🏊', fixed: 25000, pct: 0.03, back: 0.8, upkeep: 1500, house: true, demand: true, eff: { happy: 2, health: 1 }, desc: 'Felicidad y salud' },
+    { id: 'sauna', name: 'Sauna', icon: '🧖', fixed: 12000, pct: 0.01, back: 0.6, upkeep: 600, eff: { stress: -4, health: 1 }, desc: 'Baja el estrés' },
+    { id: 'tenis', name: 'Cancha de tenis', icon: '🎾', fixed: 40000, pct: 0.02, back: 0.7, upkeep: 1200, house: true, demand: true, sport: 'tenis', eff: { skills: { deporte: 1 } }, desc: 'Entrena Deporte y suma práctica de tenis' },
+    { id: 'gimnasio', name: 'Gimnasio en casa', icon: '🏋️', fixed: 15000, pct: 0.01, back: 0.5, upkeep: 400, eff: { health: 2 }, desc: 'Más salud cada año' },
+    { id: 'jardin', name: 'Jardín paisajista', icon: '🌷', fixed: 8000, pct: 0.015, back: 1, upkeep: 900, house: true, demand: true, eff: { happy: 1, stress: -2 }, desc: 'Felicidad y paz' },
+    { id: 'cine', name: 'Cine en casa', icon: '🎬', fixed: 20000, pct: 0.01, back: 0.5, upkeep: 300, eff: { happy: 2 }, desc: 'Noches de película' },
+    { id: 'bodega', name: 'Bodega de vinos', icon: '🍷', fixed: 18000, pct: 0.01, back: 0.6, upkeep: 300, eff: { happy: 1, addic: { alcohol: 2 } }, desc: 'Felicidad (y tentación)' },
+    { id: 'cocina', name: 'Cocina gourmet', icon: '👨‍🍳', fixed: 30000, pct: 0.02, back: 0.9, upkeep: 200, demand: true, eff: { skills: { cocina: 2 } }, desc: 'Entrena Cocina' },
+    { id: 'estudio', name: 'Estudio de música', icon: '🎙️', fixed: 25000, pct: 0.01, back: 0.5, upkeep: 300, eff: { skills: { musica: 2 } }, desc: 'Entrena Música' },
+    { id: 'gamer', name: 'Sala gamer', icon: '🎮', fixed: 10000, pct: 0.005, back: 0.3, upkeep: 200, eff: { happy: 1, stress: -2, skills: { programacion: 1 } }, desc: 'Diversión y Programación' },
+    { id: 'solar', name: 'Paneles solares', icon: '☀️', fixed: 15000, pct: 0.01, back: 1.1, upkeep: -800, demand: true, eff: { karma: 1 }, desc: 'Ahorran mantenimiento y suman valor' },
+    { id: 'ascensor', name: 'Ascensor', icon: '🛗', fixed: 35000, pct: 0, back: 0.7, upkeep: 500, minValue: 600000, eff: {}, elderHealth: 1, desc: 'Ayuda a la salud desde los 70 años' },
+    { id: 'bunker', name: 'Búnker antiapocalipsis', icon: '☢️', fixed: 120000, pct: 0, back: 0.2, upkeep: 1000, house: true, eff: { stress: -1 }, desc: 'Paz mental para el fin del mundo' },
+    { id: 'tobogan', name: 'Tobogán del segundo piso al living', icon: '🛝', fixed: 6000, pct: 0, back: -0.3, upkeep: 100, eff: { happy: 3 }, desc: 'Muy divertido. A los compradores no les gusta' }
+  ];
+
   MV.STREETS = ['Calle de los Olmos', 'Pasaje Sin Salida', 'Av. del Libertador', 'Calle Falsa', 'Barrio Jardín',
     'Camino del Puerto', 'Calle del Sol', 'Barrio Alto', 'Av. de las Américas', 'Calle Esperanza', 'Callejón del Gato'];
 

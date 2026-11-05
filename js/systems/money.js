@@ -120,22 +120,23 @@
       p.loans.filter((l) => l.left <= 0 && l.pay > 0).forEach((l) => MV.log(g, `¡Terminaste de pagar: ${l.name}!`, '🎉', 'good'));
       p.loans = p.loans.filter((l) => l.left > 0 || l.start > p.age);
       // Bienes: mantenimiento, valor y estado
+      let maint = 0;
       p.assets.forEach((a) => {
+        maint += money.upkeep(g, a);
         if (a.type === 'casa') {
-          out += Math.round(a.value * 0.01);
           a.value = Math.round(a.value * (1 + U.float(-0.04, 0.08)));
           a.cond = U.clamp(a.cond - U.int(1, 4), 0, 100);
           if (a.rented) { income += Math.round(a.value * 0.045); }
         } else if (a.type === 'auto') {
-          out += Math.round(a.value * 0.05) + 400;
           a.value = Math.round(a.value * (a.classic ? U.float(0.98, 1.08) : U.float(0.82, 0.92)));
           a.cond = U.clamp(a.cond - U.int(3, 9), 0, 100);
         } else {
           const L = MV.LUXURY.find((x) => x.kind === a.kind) || { vol: 0.1 };
           a.value = Math.max(50, Math.round(a.value * (1 + U.float(-L.vol, L.vol * 1.1))));
-          if (L.upkeep) out += Math.round(a.value * L.upkeep);
         }
       });
+      out += maint;
+      money.homeYearly(g);
       // Inversiones
       Object.keys(INV).forEach((k) => {
         if (p.inv[k] > 0) {
@@ -165,7 +166,7 @@
       }
       MV.fx.money(g, income - out);
       if (p.age >= 16 && (income || out)) {
-        MV.log(g, `Balance del año: ${income ? '+' + U.money(income) : '$0'} de ingresos${lines.length ? ' (' + lines.join(', ') + ')' : ''} y −${U.money(out)} de gastos.`, '🧾');
+        MV.log(g, `Balance del año: ${income ? '+' + U.money(income) : '$0'} de ingresos${lines.length ? ' (' + lines.join(', ') + ')' : ''} y −${U.money(out)} de gastos${maint > 0 ? ` (incluye mantenimiento de bienes ${U.money(maint)})` : ''}.`, '🧾');
       }
       // Deudas
       if (p.money < 0) {
@@ -225,11 +226,34 @@
       return `Compraste ${a.name}${mortgage ? ' con hipoteca' : ''} por ${U.money(item.value)}.`;
     },
 
+    /** Precio estimado de venta de un bien. */
+    estimate(a) { return Math.round(a.value * (0.75 + a.cond / 400)); },
+
     sell(g, assetId) {
+      const a = g.p.assets.find((x) => x.id === assetId);
+      return a ? money.sellFor(g, assetId, money.estimate(a)) : 'No tienes eso.';
+    },
+
+    /** Vende pidiendo un precio (factor −0,2…+0,5 sobre el estimado). Si piden de más, llega una contraoferta. */
+    sellAt(g, assetId, factor) {
+      const a = g.p.assets.find((x) => x.id === assetId);
+      if (!a) return 'No tienes eso.';
+      const f = U.clamp(Number(factor) || 0, -0.2, 0.5);
+      const est = money.estimate(a);
+      const asking = Math.round(est * (1 + f));
+      const appeal = (a.upgrades || []).filter((u) => (MV.HOUSE_UPGRADES.find((x) => x.id === u.id) || {}).demand).length;
+      const willing = est * U.float(0.85, 1.25) * (1 + 0.04 * appeal);
+      if (asking <= willing) return money.sellFor(g, assetId, asking);
+      const offer = Math.round(willing * U.float(0.92, 1));
+      MV.EV.push(g, 'contraoferta', { asset: a.id, aname: a.name, offer, asking }, true);
+      return `Pediste ${U.money(asking)} por ${a.name}. Un comprador lo pensó...`;
+    },
+
+    sellFor(g, assetId, price) {
       const p = g.p;
       const a = p.assets.find((x) => x.id === assetId);
       if (!a) return 'No tienes eso.';
-      const price = Math.round(a.value * (0.75 + a.cond / 400));
+      price = Math.round(price);
       const loan = p.loans.find((l) => l.assetId === a.id);
       let net = price;
       if (loan) { net -= loan.left; p.loans = p.loans.filter((l) => l !== loan); }
@@ -241,6 +265,74 @@
         if (other) p.home = other.id; else { p.housing = 'alquiler'; p.rent = RENTALS[1]; }
       }
       return `Vendiste ${a.name} por ${U.money(price)}${loan ? ` (pagaste la hipoteca y te quedaron ${U.money(net)})` : ''}.`;
+    },
+
+    /** Mantenimiento anual de un bien (incluye mejoras). */
+    upkeep(g, a) {
+      if (a.type === 'casa') return Math.max(0, Math.round(a.value * 0.01 + U.sum(a.upgrades || [], (u) => (MV.HOUSE_UPGRADES.find((x) => x.id === u.id) || {}).upkeep || 0)));
+      if (a.type === 'auto') return Math.round(a.value * 0.05) + 400;
+      const L = MV.LUXURY.find((x) => x.kind === a.kind) || {};
+      return Math.round(a.value * (L.upkeep || 0));
+    },
+
+    isApartment(a) { return /Monoambiente|Departamento|Penthouse|Casa rodante/.test(a.kind || a.name || ''); },
+
+    upgradeCost(a, U2) { return Math.round(U2.fixed + U2.pct * a.value); },
+
+    upgradeOptions(g, assetId) {
+      const a = g.p.assets.find((x) => x.id === assetId);
+      if (!a || a.type !== 'casa') return [];
+      return MV.HOUSE_UPGRADES.map((U2) => {
+        const cost = money.upgradeCost(a, U2);
+        const why = [];
+        if ((a.upgrades || []).some((u) => u.id === U2.id)) why.push('Ya la tienes');
+        if (U2.house && money.isApartment(a)) why.push('Solo en casas');
+        if (U2.minValue && a.value < U2.minValue) why.push(`Solo en propiedades de ${U.money(U2.minValue)} o más`);
+        if (g.p.money < cost) why.push(`Cuesta ${U.money(cost)}`);
+        const delta = Math.round(cost * U2.back);
+        return { id: U2.id, icon: U2.icon, label: U2.name, cost, ok: !why.length, why,
+          sub: why.length ? why.join('. ') : `${U.money(cost)}. ${U2.desc}. Valor ${delta >= 0 ? '+' : '−'}${U.money(Math.abs(delta))}${U2.upkeep ? `, mantenimiento ${U2.upkeep > 0 ? '+' : '−'}${U.money(Math.abs(U2.upkeep))}/año` : ''}` };
+      });
+    },
+
+    addUpgrade(g, assetId, upId) {
+      const a = g.p.assets.find((x) => x.id === assetId);
+      const U2 = MV.HOUSE_UPGRADES.find((x) => x.id === upId);
+      const o = money.upgradeOptions(g, assetId).find((x) => x.id === upId);
+      if (!a || !U2 || !o) return 'Esa mejora no existe.';
+      if (!o.ok) return `No se puede: ${o.why.join(', ').toLowerCase()}.`;
+      const added = Math.round(o.cost * U2.back);
+      MV.fx.money(g, -o.cost);
+      a.value = Math.max(1000, a.value + added);
+      a.upgrades = (a.upgrades || []).concat([{ id: U2.id, added, cost: o.cost }]);
+      MV.fx.stat(g, 'happy', 4);
+      return `Instalaste ${U2.name.toLowerCase()} en ${a.name} por ${U.money(o.cost)}. ${added >= 0 ? `La propiedad vale ${U.money(added)} más.` : `Los tasadores no lo aprecian: la propiedad vale ${U.money(-added)} menos.`}`;
+    },
+
+    removeUpgrade(g, assetId, upId) {
+      const a = g.p.assets.find((x) => x.id === assetId);
+      const u = a && (a.upgrades || []).find((x) => x.id === upId);
+      if (!u) return 'Esa mejora no está instalada.';
+      const U2 = MV.HOUSE_UPGRADES.find((x) => x.id === upId) || { name: 'la mejora' };
+      const demo = Math.round((u.cost || 5000) * 0.2);
+      MV.fx.money(g, -demo);
+      a.value = Math.max(1000, a.value - u.added);
+      a.upgrades = a.upgrades.filter((x) => x !== u);
+      return `Quitaste ${U2.name.toLowerCase()} (demolición: ${U.money(demo)}). ${u.added >= 0 ? `La propiedad vale ${U.money(u.added)} menos.` : `¡La propiedad recuperó ${U.money(-u.added)} de valor!`}`;
+    },
+
+    /** Efectos anuales de las mejoras de la casa en la que vives. */
+    homeYearly(g) {
+      const p = g.p;
+      const home = p.home && p.housing === 'propia' && p.assets.find((x) => x.id === p.home);
+      if (!home || p.prison) return;
+      (home.upgrades || []).forEach((u) => {
+        const U2 = MV.HOUSE_UPGRADES.find((x) => x.id === u.id);
+        if (!U2) return;
+        MV.fx.apply(g, U2.eff);
+        if (U2.sport && p.age >= 6) { p.sportsExp = p.sportsExp || {}; p.sportsExp[U2.sport] = (p.sportsExp[U2.sport] || 0) + 1; }
+        if (U2.elderHealth && p.age >= 70) MV.fx.stat(g, 'health', U2.elderHealth);
+      });
     },
 
     repair(g, assetId) {
