@@ -135,3 +135,46 @@ test('un tatuaje en la cara baja la chance de quedar en una entrevista', () => {
   const a = rate(false), b = rate(true);
   assert.ok(a - b > 0.03, `sin tatuaje ${a}, con tatuaje ${b}`);
 });
+
+test('la acción de tatuaje abre el minijuego en la interfaz y acepta un diseño', () => {
+  const MV = load({ seed: 11 });
+  const g = adult(MV);
+  const a = MV.ACTS.find((x) => x.id === 'tatuaje');
+  assert.equal(a.ui, 'tattoo');
+  MV.doAction(g, a, { design: richDesign(), artist: 'famoso', place: 'pierna' });
+  assert.equal(g.p.tattoos.length, 1);
+  assert.equal(g.p.tattoos[0].artist, 'famoso');
+  // sin diseño (jugador automático): usa una plantilla al azar
+  const g2 = adult(MV, 2);
+  MV.doAction(g2, a);
+  assert.equal(g2.p.tattoos.length, 1);
+});
+
+test('el nombre de una ex tatuado dispara un evento para taparlo o borrarlo', () => {
+  const MV = load({ seed: 12 });
+  const g = adult(MV);
+  const pt = MV.sys.rels.candidate(g); MV.addRel(g, pt, 'pareja', 70);
+  const d = richDesign(); d.texts.push({ t: pt.first, x: 40, y: 80, c: 1 });
+  MV.sys.tattoo.apply(g, d, 'estudio', 'brazo');
+  const ev = MV.EV.byId.tatuaje_ex;
+  assert.ok(ev, 'falta el evento tatuaje_ex');
+  assert.equal(MV.EV.eligible(g, ev), null, 'no debe aparecer mientras siguen juntos');
+  MV.sys.rels.breakUp(g, pt);
+  assert.ok(MV.EV.eligible(g, ev), 'debe aparecer después de terminar');
+  // tapar marca el tatuaje para cubrirlo en el estudio
+  MV.EV.fire(g, ev, MV.EV.eligible(g, ev));
+  const v = MV.EV.view(g);
+  const cover = v.choices.find((c) => /Tapar/.test(c.label));
+  MV.EV.choose(g, cover.i);
+  assert.equal(g.p.flags.taparTatuaje, g.p.tattoos[0].id);
+  // láser lo borra
+  const g2 = adult(MV, 5);
+  const pt2 = MV.sys.rels.candidate(g2); MV.addRel(g2, pt2, 'pareja', 70);
+  const d2 = richDesign(); d2.texts.push({ t: pt2.first, x: 40, y: 80, c: 1 });
+  MV.sys.tattoo.apply(g2, d2, 'estudio', 'brazo');
+  MV.sys.rels.breakUp(g2, pt2);
+  MV.EV.fire(g2, ev, MV.EV.eligible(g2, ev));
+  const v2 = MV.EV.view(g2);
+  MV.EV.choose(g2, v2.choices.find((c) => /láser/i.test(c.label)).i);
+  assert.equal(g2.p.tattoos.length, 0);
+});

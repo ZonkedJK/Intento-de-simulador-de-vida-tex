@@ -191,9 +191,9 @@
     run: (g) => { fx.money(g, -U.int(20, 80)); fx.addic(g, 'alcohol', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5)); fx.skill(g, 'carisma', 1); if (U.chance(0.12)) { fx.stat(g, 'health', -U.int(5, 12)); return 'Te metiste en una pelea de bar por un partido de fútbol. Perdiste un diente.'; } return U.pick(['Le contaste tu vida al bartender. Te cobró igual.', 'Ganaste un torneo de dardos. Premio: más cerveza.', 'Cantaste en el karaoke. El bar se vació.']); } });
   A({ id: 'fumar', cat: 'ocio', icon: '🚬', label: 'Fumar un cigarrillo', sub: 'Mala idea', minAge: 14, limit: 3,
     run: (g) => { fx.addic(g, 'tabaco', U.int(4, 8)); fx.stat(g, 'stress', -3); fx.stat(g, 'health', -1); return U.pick(['Fumaste a escondidas. Tosiste como abuelo.', 'Fumaste para parecer cool. No funcionó.', 'Fumaste uno. Después otro. Tu madre lo olió desde otro país.']); } });
-  A({ id: 'tatuaje', cat: 'ocio', icon: '🖋️', label: 'Hacerte un tatuaje', sub: '$300', minAge: 18, limit: 1,
-    opts: (g) => { const pt = MV.partner(g); return [{ id: 'dragon', icon: '🐉', label: 'Un dragón en la espalda' }, { id: 'frase', icon: '✍️', label: 'Una frase en un idioma que no hablas' }, { id: 'madre', icon: '❤️', label: '"Mamá" en un corazón' }].concat(pt ? [{ id: 'pareja', icon: '💑', label: `El nombre de ${pt.n.first}` }] : []); },
-    run: (g, o) => { fx.money(g, -300); fx.stat(g, 'happy', 4); if (o === 'pareja') { g.p.flags.tatuajePareja = MV.partner(g).n.first; fx.stat(g, 'looks', 1); return `Te tatuaste "${g.p.flags.tatuajePareja}". Qué podría salir mal.`; } if (o === 'frase') return 'Te tatuaste una frase "profunda" en otro idioma. Un turista te dijo que dice "sopa de pollo".'; fx.stat(g, 'looks', U.int(-2, 3)); return o === 'dragon' ? 'Te tatuaste un dragón. Parece una lagartija con ganas.' : 'Te tatuaste "Mamá". Tu madre lloró de emoción.'; } });
+  A({ id: 'tatuaje', cat: 'ocio', icon: '🖋️', label: 'Hacerte un tatuaje', sub: 'Minijuego: dibuja tu diseño', minAge: 18, limit: 1, ui: 'tattoo',
+    run: (g, o) => (o && o.design ? MV.sys.tattoo.apply(g, o.design, o.artist, o.place, { cover: o.cover })
+      : MV.sys.tattoo.apply(g, MV.sys.tattoo.randomDesign(), U.pick(Object.keys(MV.TATTOO_ARTISTS)), U.pick(Object.keys(MV.TATTOO_PLACES)))) });
 
   // ——— Azar ———
   A({ id: 'ruleta', cat: 'azar', icon: '🎡', label: 'Ruleta (rojo o negro)', sub: 'x2 · 47%', limit: 4, opts: bets,

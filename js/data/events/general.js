@@ -38,6 +38,16 @@
     ] });
   ev({ id: 'mascota_truco', age: [3, 110], when: H.has('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), target: H.rel('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), icon: '🎪', text: (g, ctx) => H.t(g, ctx).species === 'loro' ? '{t} aprendió a decir una grosería. Solo la dice cuando viene la abuela.' : '{t} aprendió un truco nuevo: hacerse el muerto cuando le hablas de bañarse.', auto: { happy: 3, rel: 4 } });
 
+  // — Tatuajes —
+  const exTattoo = (g) => (g.p.tattoos || []).find((t) => t.partnerName && !MV.rels(g, ['pareja', 'conyuge', 'amante']).some((x) => x.n.first === t.partnerName));
+  ev({ id: 'tatuaje_ex', age: [18, 110], cd: 3, w: 3, when: (g) => !!exTattoo(g), icon: '🖋️', title: 'Un nombre en la piel',
+    text: (g) => `Tienes "${exTattoo(g).partnerName}" tatuado en el cuerpo. Ya no están juntos. Cada vez que te miras al espejo, te acuerdas.`,
+    choices: [
+      { t: 'Taparlo con otro diseño', eff: (g) => { g.p.flags.taparTatuaje = exTattoo(g).id; return 'Pediste turno para taparlo. En Actividades → Ocio y vicios → Hacerte un tatuaje podrás dibujar encima.'; } },
+      { t: 'Borrarlo con láser ($1.500)', eff: (g) => MV.sys.tattoo.laser(g, exTattoo(g).id) },
+      { t: 'Dejarlo: es parte de mi historia', eff: { happy: -2, karma: 1, msg: 'Lo dejaste. Ahora tienes una historia incómoda para cada playa.' } }
+    ] });
+
   // — Fama —
   ev({ id: 'paparazzi', age: [16, 110], when: (g) => g.p.fame >= 45, icon: '📸', scene: 'ciudad', title: 'Paparazzi',
     text: 'Un paparazzi te sigue a todas partes, incluso al supermercado.',

@@ -283,8 +283,9 @@
     card = UI.card(content);
   };
 
-  UI.showResult = function (res, next, icon) {
+  UI.showResult = function (res, next, icon, extra) {
     const c = UI.card([
+      extra || null,
       h('p', { class: 'result' }, h('span', { 'aria-hidden': 'true' }, (res.icon || icon || '📖') + ' '), res.msg),
       UI.deltas(res.deltas),
       h('button', { class: 'btn primary block', onclick: () => { c.close(); if (next) next(); } }, 'Continuar')
@@ -292,34 +293,49 @@
   };
 
   /** Ejecuta una acción con opciones, confirmación y resultado. */
+  /** Ejecuta una acción ya elegida y muestra el resultado (lo usan las listas, el estudio de tatuajes, etc.). */
+  UI.execAction = function (a, opt, scope, relRef, opt2, extra) {
+    const g = UI.g;
+    let res;
+    const before = relRef ? relRef.rel : 0;
+    try { res = MV.doAction(g, a, opt, scope, opt2); } catch (e) { console.error(e); UI.toast('⚠️', 'Error', 'Esa acción falló. Prueba otra.'); return null; }
+    if (res.blocked) { UI.toast(res.icon || '⏳', '', res.msg); UI.refreshSheets(); return res; }
+    if (relRef && Math.round(relRef.rel - before)) res.deltas.unshift({ k: 'rel', d: Math.round(relRef.rel - before) });
+    afterChange();
+    const finish = () => {
+      if (g.over) { UI.closeSheets(); UI.showDeath(); return; }
+      if (g.queue.length) UI.flushQueue(() => UI.refreshSheets());
+      else UI.refreshSheets();
+    };
+    if (res.msg) UI.showResult(res, finish, a.icon, typeof extra === 'function' ? extra(res) : extra);
+    else finish();
+    return res;
+  };
+
+  /** Ejecuta una acción con opciones, confirmación y resultado. */
   UI.runAction = function (a, scope, relRef) {
     const g = UI.g;
-    const exec = (opt) => {
-      let res;
-      const before = relRef ? relRef.rel : 0;
-      try { res = MV.doAction(g, a, opt, scope); } catch (e) { console.error(e); UI.toast('⚠️', 'Error', 'Esa acción falló. Prueba otra.'); return; }
-      if (res.blocked) { UI.toast(res.icon || '⏳', '', res.msg); UI.refreshSheets(); return; }
-      if (relRef && Math.round(relRef.rel - before)) res.deltas.unshift({ k: 'rel', d: Math.round(relRef.rel - before) });
-      afterChange();
-      const finish = () => {
-        if (g.over) { UI.closeSheets(); UI.showDeath(); return; }
-        if (g.queue.length) UI.flushQueue(() => UI.refreshSheets());
-        else UI.refreshSheets();
-      };
-      if (res.msg) UI.showResult(res, finish, a.icon);
-      else finish();
-    };
-    const go = (opt) => (a.confirm ? UI.confirm(a.confirm, () => exec(opt)) : exec(opt));
+    if (a.ui === 'tattoo') { UI.showTattooStudio(a); return; }
+    if (a.ui === 'gift' && UI.showGiftPicker) { UI.showGiftPicker(a, scope, relRef); return; }
+    const go = (opt, opt2) => (a.confirm ? UI.confirm(a.confirm, () => UI.execAction(a, opt, scope, relRef, opt2)) : UI.execAction(a, opt, scope, relRef, opt2));
+    const pickList = (title, os, onPick) => UI.sheet({
+      title, icon: a.icon,
+      render: (body) => {
+        const list = h('div', { class: 'list' });
+        os.forEach((o) => list.append(UI.row(o.icon || a.icon, o.label, o.sub, null, () => onPick(o))));
+        body.append(list);
+      }
+    });
     if (a.opts) {
       const os = a.opts(g) || [];
       if (!os.length) { UI.toast('🤷', a.label, 'Ahora mismo no tienes opciones para esto (¿falta dinero?).'); return; }
-      UI.sheet({
-        title: a.label, icon: a.icon,
-        render: (body) => {
-          const list = h('div', { class: 'list' });
-          os.forEach((o) => list.append(UI.row(o.icon || a.icon, o.label, o.sub, null, () => { UI.popSheet(); go(o.id); })));
-          body.append(list);
+      pickList(a.label, os, (o) => {
+        if (a.opts2) {
+          const os2 = a.opts2(g, o.id) || [];
+          pickList(a.opts2Title || a.label, os2, (o2) => { UI.popSheet(); UI.popSheet(); go(o.id, o2.id); });
+          return;
         }
+        UI.popSheet(); go(o.id);
       });
       return;
     }

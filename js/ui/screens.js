@@ -176,6 +176,8 @@
         hb.append(p.conds.length ? h('p', null, p.conds.map((c) => { const Cd = MV.CONDITIONS[c.id]; return h('span', { class: 'tag' }, `${Cd.icon} ${Cd.name}`); })) : h('p', null, 'Sin enfermedades conocidas.'));
         Object.keys(p.addic).forEach((k) => { if (p.addic[k] >= 5) hb.append(h('div', { class: 'skill-row' }, h('span', null, { alcohol: '🍺', drogas: '💊', apuestas: '🎰', tabaco: '🚬' }[k]), h('span', null, 'Adicción: ' + k), UI.bar(p.addic[k], 100, true), h('b', null, Math.round(p.addic[k])))); });
         body.append(hb);
+        body.append(title('Tatuajes'));
+        body.append(h('div', { class: 'box' }, UI.tattooAlbum()));
         body.append(title('Aspiración de vida'));
         const A = p.aspiration && MV.ASPIRATIONS.find((a) => a.id === p.aspiration.id);
         body.append(h('div', { class: 'box' }, A ? h('p', null, `${A.icon} ${A.name}: ${A.desc} ${p.aspiration.done ? '¡Cumplida!' : ''}`) : h('p', null, p.age < 14 ? 'La elegirás a los 14 años.' : 'Sin aspiración. Vives al día.')));
