@@ -31,6 +31,7 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Casas | 14 mejoras (piscina, sauna, cancha de tenis, gimnasio, cine, paneles solares, búnker, tobogán…) que suben o bajan el valor, cuestan mantenimiento y dan beneficios si vives ahí |
 | Tatuajes | Minijuego: elige tatuador y lugar, dibuja sobre la piel con 6 tintas, plantillas y texto; el tatuador lo califica y queda en tu álbum (se puede borrar con láser) |
 | Relaciones | Padres, hermanos, abuelos, parejas, cónyuges, amantes, hijos, nietos, amigos, enemigos, ex y 12 especies de mascotas, con más de 40 acciones (cenas, poemas, mudarse juntos, renovar votos, tareas con los hijos, malcriar a los nietos, llevar a los mayores al médico…) |
+| Citas y ligues | Después de un match o de una noche decides qué son (pareja, aventura en secreto, amigos o nada); antes de la intimidad eliges con protección (0 % de embarazo) o sin protección (60 %) |
 | Familia | Los hijos adultos se casan (con boda incluida), cambian de trabajo y te dan nietos de verdad; si no quedan hijos, heredan los nietos |
 | Mascotas | Trucos propios de cada especie y concursos con premios, trofeos y logro |
 | Obras | Escribe libros, compone canciones y pinta cuadros con título y género propios; la crítica da estrellas, y los éxitos pagan regalías |
