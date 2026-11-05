@@ -3,7 +3,7 @@
   'use strict';
   const U = MV.U, ev = MV.ev, fx = MV.fx, H = MV.EVH;
 
-  ev({ id: 'nietos_celular', age: [62, 110], when: H.has('hijo', (n) => n.age >= 25), icon: '📱', text: 'Tus nietos vinieron de visita y te enseñaron a usar el celular. Otra vez. Mandaste un audio de 8 minutos sin querer.', auto: { happy: 4, then: (g) => { g.p.counters.nietos = Math.max(g.p.counters.nietos || 0, 1); } } });
+  ev({ id: 'nietos_celular', age: [55, 110], when: H.has('nieto', (n) => n.age >= 8), icon: '📱', text: 'Tus nietos vinieron de visita y te enseñaron a usar el celular. Otra vez. Mandaste un audio de 8 minutos sin querer.', auto: { happy: 4, then: (g) => { g.p.counters.nietos = Math.max(g.p.counters.nietos || 0, 1); } } });
   ev({ id: 'lentes_puestos', age: [60, 110], icon: '👓', text: 'Buscaste los lentes durante una hora. Los tenías puestos.', auto: { happy: -1, smarts: -1 } });
   ev({ id: 'geriatrico', age: [75, 110], once: true, when: H.has('hijo', (n) => n.age >= 30), target: H.rel('hijo', (n) => n.age >= 30), icon: '🏥', scene: 'hospital', title: 'La conversación difícil',
     text: '{t} sugiere "con todo cariño" que te mudes a una residencia para mayores.',

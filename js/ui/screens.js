@@ -123,9 +123,10 @@
       root.append(grid);
     }
     if (heirs.length) {
-      root.append(title('Continuar la dinastía'), note('Juega como uno de tus hijos. Heredará tu patrimonio (menos impuestos).'));
+      const grandHeirs = (MV.relOf(g, heirs[0].id) || {}).type === 'nieto';
+      root.append(title('Continuar la dinastía'), note(`Juega como uno de tus ${grandHeirs ? 'nietos' : 'hijos'}. Heredará tu patrimonio (menos impuestos).`));
       const l = h('div', { class: 'list' });
-      heirs.forEach((n) => l.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${MV.relLabel('hijo', n)}, ${n.age} años${g.p.heirId === n.id ? ', heredero principal' : ''}`, 'Continuar', () => {
+      heirs.forEach((n) => l.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${MV.relLabel((MV.relOf(g, n.id) || {}).type || 'hijo', n)}, ${n.age} años${g.p.heirId === n.id ? ', heredero principal' : ''}`, 'Continuar', () => {
         const ng = MV.sys.legacy.continueAs(g, n.id);
         UI.startGame(ng);
       })));

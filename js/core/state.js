@@ -38,11 +38,11 @@
   const REL_LABEL = {
     padre: ['Padre', 'Madre'], hermano: ['Hermano', 'Hermana'], abuelo: ['Abuelo', 'Abuela'],
     pareja: ['Novio', 'Novia'], conyuge: ['Esposo', 'Esposa'], ex: ['Ex', 'Ex'],
-    hijo: ['Hijo', 'Hija'], amigo: ['Amigo', 'Amiga'], enemigo: ['Enemigo', 'Enemiga'],
+    hijo: ['Hijo', 'Hija'], nieto: ['Nieto', 'Nieta'], amigo: ['Amigo', 'Amiga'], enemigo: ['Enemigo', 'Enemiga'],
     amante: ['Amante', 'Amante'], companero: ['Compañero', 'Compañera'], mascota: ['Mascota', 'Mascota']
   };
-  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'hermano', 'abuelo', 'mascota', 'amigo', 'companero', 'enemigo', 'ex'];
-  MV.FAMILY = ['padre', 'hermano', 'abuelo', 'hijo'];
+  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'nieto', 'hermano', 'abuelo', 'mascota', 'amigo', 'companero', 'enemigo', 'ex'];
+  MV.FAMILY = ['padre', 'hermano', 'abuelo', 'hijo', 'nieto'];
 
   MV.relLabel = function (type, person) {
     if (type === 'mascota' && person) return MV.SPECIES[person.species] ? MV.SPECIES[person.species].name : 'Mascota';

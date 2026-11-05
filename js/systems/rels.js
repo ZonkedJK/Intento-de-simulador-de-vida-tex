@@ -339,12 +339,22 @@
         n.health = U.clamp(n.health + U.int(8, 18), 0, 100); bump(4, 8); MV.fx.stat(g, 'karma', 2);
         return `Llevaste a ${n.first} al médico. Le ajustaron las pastillas y se quejó de la sala de espera todo el viaje.`;
       } });
+      if (t === 'nieto') A({ id: 'consentir', icon: '🍭', label: 'Malcriarl' + U.gw(n.gender, 'o', 'a'), sub: '$100. Golosinas y permisos', limit: 1, when: () => p.money >= 100, run: (g) => {
+        MV.fx.money(g, -100); bump(6, 12); MV.fx.stat(g, 'happy', 3);
+        const par = n.parentId && g.people[n.parentId], pr = par && MV.relOf(g, par.id);
+        if (pr && par.alive && U.chance(0.3)) { pr.rel = U.clamp(pr.rel - 3, 0, 100); return `Le diste a ${n.first} tres helados antes de cenar. ${par.first} te miró con odio.`; }
+        return U.pick([`Llevaste a ${n.first} a comprar juguetes. Salieron con la mitad del negocio.`, `Le dejaste a ${n.first} quedarse despiert${U.gw(n.gender, 'o', 'a')} hasta las 2. Es tu secreto.`, `${n.first} te dijo "sos ${U.gw(g.p.gender, 'el mejor abuelo', 'la mejor abuela')} del mundo". Valió cada peso.`]);
+      } });
+      if (t === 'nieto' && n.age >= 4 && n.age <= 16) A({ id: 'historias_nieto', icon: '🪑', label: 'Contarle historias de tu vida', sub: '+relación', limit: 1, run: (g) => {
+        bump(4, 9); n.smarts = U.clamp(n.smarts + 1, 0, 100);
+        return U.pick([`Le contaste a ${n.first} cómo era el mundo sin internet. No te creyó.`, `Le contaste a ${n.first} tus aventuras de juventud. Exageraste un 300 %.`, `${n.first} escuchó tus historias con la boca abierta. Después preguntó si eras un dinosaurio.`]);
+      } });
       if (t === 'hijo' && n.age >= 6 && n.age <= 15) A({ id: 'tarea', icon: '✏️', label: 'Ayudar con la tarea', sub: '+inteligencia del niño', limit: 1, run: (g) => {
         n.smarts = U.clamp(n.smarts + U.int(2, 5), 0, 100); bump(3, 7);
         return U.pick([`Ayudaste a ${n.first} con la tarea de matemáticas. Descubriste que no recordabas nada.`, `Hicieron una maqueta del sistema solar. Plutón quedó como planeta, por las dudas.`]);
       } });
-      if (t === 'hijo' && n.age >= 2 && n.age <= 12) A({ id: 'parque', icon: '🛝', label: 'Llevarl' + U.gw(n.gender, 'o', 'a') + ' al parque', sub: '+relación, +felicidad', limit: 1, run: (g) => { bump(4, 9); MV.fx.stat(g, 'happy', 3); n.health = U.clamp(n.health + 2, 0, 100); return `Fueron al parque. ${n.first} se tiró del tobogán 47 veces. Tú una, y te trabaste.`; } });
-      if (t === 'hijo' && n.age >= 5 && n.age <= 17 && (p.skills.deporte >= 40 || Object.values(p.sportsExp || {}).some((x) => x >= 3))) A({ id: 'ensenar_deporte', icon: '⚽', label: 'Enseñarle tu deporte', sub: '+salud y relación', limit: 1, run: (g) => {
+      if ((t === 'hijo' || t === 'nieto') && n.age >= 2 && n.age <= 12) A({ id: 'parque', icon: '🛝', label: 'Llevarl' + U.gw(n.gender, 'o', 'a') + ' al parque', sub: '+relación, +felicidad', limit: 1, run: (g) => { bump(4, 9); MV.fx.stat(g, 'happy', 3); n.health = U.clamp(n.health + 2, 0, 100); return `Fueron al parque. ${n.first} se tiró del tobogán 47 veces. Tú una, y te trabaste.`; } });
+      if ((t === 'hijo' || t === 'nieto') && n.age >= 5 && n.age <= 17 && (p.skills.deporte >= 40 || Object.values(p.sportsExp || {}).some((x) => x >= 3))) A({ id: 'ensenar_deporte', icon: '⚽', label: 'Enseñarle tu deporte', sub: '+salud y relación', limit: 1, run: (g) => {
         n.health = U.clamp(n.health + U.int(2, 5), 0, 100); bump(4, 9); MV.fx.skill(g, 'deporte', 1);
         return `Le enseñaste a ${n.first} a jugar. ${U.pick(['Tiene talento: ya te gana.', 'Pateó la pelota al techo del vecino. Dos veces.', 'Dice que de grande quiere ser como tú.'])}`;
       } });

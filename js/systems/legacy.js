@@ -109,12 +109,17 @@
       return summary;
     },
 
-    heirs(g) { return MV.rels(g, 'hijo').map((x) => x.n); },
+    /** Herederos: los hijos vivos; si no queda ninguno, los nietos vivos. */
+    heirs(g) {
+      const kids = MV.rels(g, 'hijo').map((x) => x.n);
+      return kids.length ? kids : MV.rels(g, 'nieto').map((x) => x.n);
+    },
 
     /** Crea una nueva partida jugando como uno de los hijos. */
     continueAs(g, kidId) {
       const old = g.p, c = g.people[kidId];
       if (!c || !c.alive) throw new Error('Ese heredero no está disponible.');
+      const grand = (MV.relOf(g, kidId) || {}).type === 'nieto';
       const ng = {
         version: MV.VERSION, year: g.year, startYear: g.year - c.age, people: {}, log: [], queue: [], evDone: {},
         generation: (g.generation || 1) + 1, dynasty: g.dynasty, over: false, achLife: [], rng: 0
@@ -131,16 +136,22 @@
         id: old.id, first: old.first, last: old.last, gender: old.gender, age: old.age, alive: false, species: 'humano', look: old.look,
         looks: old.stats.looks, smarts: old.stats.smarts, health: 0, money: 0, job: g.summary ? g.summary.job : '', traits: [], deathAge: old.age, cause: old.cause
       };
-      p.rels.push({ id: old.id, type: 'padre', rel: oldRel ? oldRel.rel : 60, since: 0 });
+      p.rels.push({ id: old.id, type: grand ? 'abuelo' : 'padre', rel: oldRel ? oldRel.rel : 60, since: 0 });
       const copy = (n) => { ng.people[n.id] = U.deepClone(n); return ng.people[n.id]; };
-      const other = c.otherParent && g.people[c.otherParent];
-      if (other && other.alive) { copy(other); const orr = MV.relOf(g, other.id); p.rels.push({ id: other.id, type: 'padre', rel: orr ? U.clamp(orr.rel, 40, 90) : 60, since: 0 }); }
-      const siblings = MV.rels(g, 'hijo').filter((x) => x.n.id !== kidId);
+      if (grand) {
+        // Como nieto: tu padre o madre es el hijo del jugador anterior (vivo o no).
+        const par = c.parentId && g.people[c.parentId];
+        if (par) { copy(par); p.rels.push({ id: par.id, type: 'padre', rel: par.alive ? U.int(50, 90) : 60, since: 0 }); }
+      } else {
+        const other = c.otherParent && g.people[c.otherParent];
+        if (other && other.alive) { copy(other); const orr = MV.relOf(g, other.id); p.rels.push({ id: other.id, type: 'padre', rel: orr ? U.clamp(orr.rel, 40, 90) : 60, since: 0 }); }
+      }
+      const siblings = grand ? MV.rels(g, 'nieto').filter((x) => x.n.id !== kidId && x.n.parentId === c.parentId) : MV.rels(g, 'hijo').filter((x) => x.n.id !== kidId);
       siblings.forEach(({ n }) => { copy(n); p.rels.push({ id: n.id, type: 'hermano', rel: U.int(35, 85), since: 0 }); });
       MV.rels(g, 'mascota').forEach(({ n, r }) => { if (c.age < 30) { copy(n); p.rels.push({ id: n.id, type: 'mascota', rel: r.rel, since: c.age }); } });
 
       // Herencia
-      const nKids = siblings.length + 1;
+      const nKids = Math.max(1, legacy.heirs(g).length);
       let share = old.heirId ? (old.heirId === kidId ? 0.85 : 0.15 / Math.max(1, nKids - 1)) : 1 / nKids;
       if (nKids === 1) share = 1;
       const estate = Math.max(0, g.summary ? g.summary.worth : MV.netWorth(g));
@@ -171,7 +182,23 @@
           if (J) { MV.sys.career.hire(ng, J, U.clamp(Math.floor((c.age - 20) / 9), 0, J.titles.length - 1)); p.job.start = Math.max(18, c.age - 3); }
         } else { p.retired = true; p.pension = U.int(9000, 25000); }
         if (p.housing !== 'propia') { p.housing = 'alquiler'; p.rent = MV.RENTALS[1]; }
-        if (c.age >= 25 && U.chance(0.55)) {
+        const ownKids = grand ? [] : MV.sys.people.grandkidsOf(g, kidId).filter((x) => x.n.alive);
+        if (!grand && (c.spouseName || ownKids.length)) {
+          // Su familia real: la pareja con la que se casó y sus hijos (los nietos del jugador anterior).
+          let sp = null;
+          if (c.spouseName) {
+            const [first, ...rest] = c.spouseName.split(' ');
+            sp = MV.newNPC(ng, { gender: c.spouseGender || (c.gender === 'm' ? 'f' : 'm'), age: U.clamp(c.age + U.int(-4, 4), 18, 110), first, last: rest.join(' ') || undefined });
+            p.rels.push({ id: sp.id, type: 'conyuge', rel: U.int(50, 85), since: c.marriedAge || Math.max(18, c.age - 3) });
+            p.counters.bodas = 1;
+          }
+          ownKids.forEach(({ n, r }) => {
+            const k = copy(n);
+            delete k.parentId;
+            k.otherParent = sp ? sp.id : null;
+            p.rels.push({ id: k.id, type: 'hijo', rel: U.clamp(r.rel + 15, 40, 100), since: Math.max(0, c.age - k.age) });
+          });
+        } else if (c.age >= 25 && U.chance(0.55)) {
           const sp = MV.sys.rels.candidate(ng);
           p.rels.push({ id: sp.id, type: 'conyuge', rel: U.int(45, 85), since: c.age - U.int(1, Math.max(1, c.age - 22)) });
           p.counters.bodas = 1;
@@ -188,7 +215,7 @@
       if (c.age >= 18 && U.chance(0.7)) p.license = true;
       if (c.age >= 15) p.aspiration = null;
       ng.log.push({ age: c.age, year: ng.year, items: [] });
-      MV.log(ng, `Ahora eres ${MV.fullName(p)}, ${U.gw(p.gender, 'hijo', 'hija')} de ${MV.fullName(old)}. Generación ${ng.generation} de la dinastía ${ng.dynasty.name}.`, '🌳');
+      MV.log(ng, `Ahora eres ${MV.fullName(p)}, ${grand ? U.gw(p.gender, 'nieto', 'nieta') : U.gw(p.gender, 'hijo', 'hija')} de ${MV.fullName(old)}. Generación ${ng.generation} de la dinastía ${ng.dynasty.name}.`, '🌳');
       MV.log(ng, cash > 0 || houseTxt ? `Heredaste ${U.money(cash)}${houseTxt}.` : 'No heredaste nada. Ni el reloj del abuelo.', '📜');
       if (p.job) MV.log(ng, `Trabajas como ${MV.sys.career.title(p)}.`, '💼');
       MV.ach.unlock(ng, 'heredero');
