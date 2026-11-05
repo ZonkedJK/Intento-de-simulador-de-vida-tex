@@ -1,0 +1,82 @@
+/* Mil Vidas — logros (persistentes entre vidas) y aspiraciones de vida. */
+(function (MV) {
+  'use strict';
+  const nw = (g) => MV.sys.money.netWorth(g);
+  const maxSkill = (p) => Math.max.apply(null, Object.values(p.skills));
+  const kids = (g) => MV.rels(g, 'hijo', true).length;
+
+  MV.ACHIEVEMENTS = [
+    { id: 'nacer', name: 'Primer llanto', icon: '👶', desc: 'Empieza tu primera vida.' },
+    { id: 'heredero', name: 'Heredero', icon: '📜', desc: 'Continúa la vida de uno de tus hijos.' },
+    { id: 'dinastia', name: 'Dinastía', icon: '🌳', desc: 'Llega a la 5.ª generación.', check: (g) => g.generation >= 5 },
+    { id: 'centenario', name: 'Centenario', icon: '💯', desc: 'Vive 100 años.', check: (g) => g.p.age >= 100 },
+    { id: 'joven', name: 'Vive rápido', icon: '⚡', desc: 'Muere antes de los 30.' },
+    { id: 'muerte_absurda', name: 'Muerte absurda', icon: '🪦', desc: 'Muere de una forma ridícula.' },
+    { id: 'millonario', name: 'Millonario', icon: '💰', desc: 'Ten un patrimonio de $1.000.000.', check: (g) => nw(g) >= 1e6 },
+    { id: 'magnate', name: 'Magnate', icon: '🤑', desc: 'Ten un patrimonio de $100.000.000.', check: (g) => nw(g) >= 1e8 },
+    { id: 'bancarrota', name: 'Fondo del pozo', icon: '📉', desc: 'Debe más de $50.000.', check: (g) => g.p.money <= -50000 },
+    { id: 'casa_propia', name: 'Casa propia', icon: '🏠', desc: 'Compra tu primera vivienda.' },
+    { id: 'graduado', name: 'Con título', icon: '🎓', desc: 'Termina una carrera universitaria.', check: (g) => MV.hasDegree(g.p, 'universidad') },
+    { id: 'doctorado', name: 'Doctor en algo', icon: '📜', desc: 'Termina un doctorado.' },
+    { id: 'abandono', name: 'La escuela de la vida', icon: '🎒', desc: 'Abandona tus estudios.' },
+    { id: 'jubilado', name: 'Jubilación', icon: '🏖️', desc: 'Jubílate.' },
+    { id: 'ceo', name: 'CEO', icon: '💼', desc: 'Llega a CEO de una corporación.' },
+    { id: 'estrella', name: 'Estrella', icon: '🌟', desc: 'Llega a lo más alto de una carrera de fama.' },
+    { id: 'presidente', name: 'Jefe de Estado', icon: '🏛️', desc: 'Gana la presidencia.' },
+    { id: 'jefe_mafia', name: 'El padrino', icon: '🕴️', desc: 'Dirige la familia criminal.' },
+    { id: 'profesional', name: 'Firmado', icon: '✍️', desc: 'Firma tu primer contrato como deportista profesional.' },
+    { id: 'campeon', name: 'Campeón', icon: '🏆', desc: 'Gana un título como deportista profesional.' },
+    { id: 'oro', name: 'Oro olímpico', icon: '🥇', desc: 'Gana una medalla de oro olímpica.' },
+    { id: 'numero_uno', name: 'Número 1', icon: '🥇', desc: 'Llega al número 1 del mundo en tenis o golf.' },
+    { id: 'leyenda', name: 'Leyenda del deporte', icon: '🐐', desc: 'Llega a lo más alto de un deporte.' },
+    { id: 'traspaso', name: 'Traspaso millonario', icon: '💸', desc: 'Cobra más de $10.000.000 al año tras un traspaso.' },
+    { id: 'emprendedor', name: 'Emprendedor', icon: '📈', desc: 'Vende un negocio por más de $1.000.000.' },
+    { id: 'famoso', name: 'Celebridad', icon: '⭐', desc: 'Llega a 80 de fama.', check: (g) => g.p.fame >= 80 },
+    { id: 'viral', name: 'Viral', icon: '📱', desc: 'Haz una publicación viral.' },
+    { id: 'escritor', name: 'Best seller', icon: '📚', desc: 'Escribe un libro superventas.' },
+    { id: 'santo', name: 'Santo en vida', icon: '😇', desc: 'Llega a 80 de karma.', check: (g) => g.p.karma >= 80 },
+    { id: 'villano', name: 'Villano de manual', icon: '😈', desc: 'Llega a -80 de karma.', check: (g) => g.p.karma <= -80 },
+    { id: 'recluso', name: 'Tras las rejas', icon: '⛓️', desc: 'Termina en la cárcel.' },
+    { id: 'fuga', name: 'Gran escape', icon: '🕳️', desc: 'Fúgate de la cárcel.' },
+    { id: 'perpetua', name: 'Para siempre', icon: '🔒', desc: 'Recibe una condena de 40 años o más.' },
+    { id: 'hacker', name: 'Hacker', icon: '👾', desc: 'Hackea un banco con éxito.' },
+    { id: 'asesino', name: 'Sangre fría', icon: '🔪', desc: 'Comete un asesinato.' },
+    { id: 'loteria', name: 'Suertudo', icon: '🎟️', desc: 'Gana el premio mayor de la lotería.' },
+    { id: 'casado', name: 'Sí, acepto', icon: '💍', desc: 'Cásate.' },
+    { id: 'divorcios', name: 'Coleccionista de ex', icon: '💔', desc: 'Divórciate 3 veces.', check: (g) => (g.p.counters.divorcios || 0) >= 3 },
+    { id: 'familia_numerosa', name: 'Familia numerosa', icon: '👨‍👩‍👧‍👦', desc: 'Ten 5 hijos o más.', check: (g) => kids(g) >= 5 },
+    { id: 'gemelos', name: 'Doble problema', icon: '👯', desc: 'Ten gemelos.' },
+    { id: 'mascotas', name: 'Arca de Noé', icon: '🐾', desc: 'Ten 5 mascotas a la vez.', check: (g) => MV.rels(g, 'mascota').length >= 5 },
+    { id: 'viajero', name: 'Trotamundos', icon: '✈️', desc: 'Haz 10 viajes.', check: (g) => (g.p.counters.viajes || 0) >= 10 },
+    { id: 'astronauta', name: 'Más allá', icon: '🚀', desc: 'Viaja al espacio.' },
+    { id: 'genio', name: 'Genio', icon: '🧠', desc: 'Llega a 100 de inteligencia.', check: (g) => g.p.stats.smarts >= 100 },
+    { id: 'belleza', name: 'Belleza absoluta', icon: '💅', desc: 'Llega a 100 de apariencia.', check: (g) => g.p.stats.looks >= 100 },
+    { id: 'virtuoso', name: 'Virtuoso', icon: '🎻', desc: 'Llega a 95 en una habilidad.', check: (g) => maxSkill(g.p) >= 95 },
+    { id: 'poliglota', name: 'Políglota', icon: '🌍', desc: 'Llega a 90 en idiomas.', check: (g) => g.p.skills.idiomas >= 90 },
+    { id: 'zen', name: 'Zen', icon: '🧘', desc: 'Llega a los 50 con estrés en 0.', check: (g) => g.p.age >= 50 && g.p.stress <= 0 },
+    { id: 'fondo', name: 'Toqué fondo', icon: '🍾', desc: 'Llega a 90 en una adicción.', check: (g) => Math.max.apply(null, Object.values(g.p.addic)) >= 90 },
+    { id: 'rehab', name: 'Rehabilitado', icon: '🌱', desc: 'Supera una adicción.' },
+    { id: 'aspiracion', name: 'Sueño cumplido', icon: '🌈', desc: 'Cumple tu aspiración de vida.' },
+    { id: 'emigrante', name: 'Nueva tierra', icon: '🧳', desc: 'Emigra a otro país.' },
+    { id: 'reencarnacion', name: 'Reencarnación', icon: '♻️', desc: 'Vive 10 vidas.' }
+  ];
+
+  MV.ASPIRATIONS = [
+    { id: 'rico', name: 'Ser millonario', icon: '💰', desc: 'Acumula $1.000.000 de patrimonio.', check: (g) => nw(g) >= 1e6 },
+    { id: 'famoso', name: 'Ser famoso', icon: '⭐', desc: 'Llega a 75 de fama.', check: (g) => g.p.fame >= 75 },
+    { id: 'familia', name: 'Formar una gran familia', icon: '👨‍👩‍👧', desc: 'Cásate y ten al menos 3 hijos.', check: (g) => kids(g) >= 3 && MV.rels(g, 'conyuge').length > 0 },
+    { id: 'amor', name: 'Encontrar el amor verdadero', icon: '❤️', desc: 'Llega a 25 años de casado con la misma persona.', check: (g) => { const s = MV.rels(g, 'conyuge')[0]; return !!s && g.p.age - s.r.since >= 25; } },
+    { id: 'medico', name: 'Salvar vidas', icon: '🩺', desc: 'Trabaja como médico o cirujano.', check: (g) => !!g.p.job && ['medico', 'cirujano'].includes(g.p.job.id) },
+    { id: 'sabio', name: 'Ser una eminencia', icon: '🎓', desc: 'Termina un doctorado.', check: (g) => g.p.edu.degrees.some((d) => d.type === 'doctorado') },
+    { id: 'longevo', name: 'Llegar a los 95', icon: '🐢', desc: 'Vive hasta los 95 años.', check: (g) => g.p.age >= 95 },
+    { id: 'viajero', name: 'Recorrer el mundo', icon: '🌍', desc: 'Haz 8 viajes.', check: (g) => (g.p.counters.viajes || 0) >= 8 },
+    { id: 'artista', name: 'Vivir del arte', icon: '🎨', desc: 'Llega a 80 en música o arte.', check: (g) => g.p.skills.musica >= 80 || g.p.skills.arte >= 80 },
+    { id: 'capo', name: 'Ser el capo', icon: '🕴️', desc: 'Llega a lo más alto de la mafia.', check: (g) => !!g.p.job && g.p.job.id === 'mafia' && g.p.job.level >= 4 },
+    { id: 'bueno', name: 'Ser buena persona', icon: '😇', desc: 'Llega a 70 de karma.', check: (g) => g.p.karma >= 70 },
+    { id: 'empresario', name: 'Tener un negocio exitoso', icon: '📈', desc: 'Que tu negocio valga $500.000.', check: (g) => !!g.p.business && g.p.business.value >= 500000 },
+    { id: 'atleta', name: 'Ser deportista profesional', icon: '🏅', desc: 'Juega como profesional en cualquier deporte.', check: (g) => !!g.p.job && g.p.job.type === 'sport' && g.p.job.level >= 1 },
+    { id: 'poder', name: 'Llegar al poder', icon: '🏛️', desc: 'Llega a senador o más.', check: (g) => !!g.p.job && g.p.job.id === 'politico' && g.p.job.level >= 2 },
+    { id: 'casa', name: 'La casa de tus sueños', icon: '🏡', desc: 'Ten una propiedad de $800.000 o más.', check: (g) => g.p.assets.some((a) => a.type === 'casa' && a.value >= 800000) },
+    { id: 'tranquilo', name: 'Una vida tranquila', icon: '🍃', desc: 'Llega a los 60 sin antecedentes y con felicidad 70+.', check: (g) => g.p.age >= 60 && !g.p.record.length && g.p.stats.happy >= 70 }
+  ];
+})(window.MV = window.MV || {});
