@@ -43,6 +43,52 @@
         if (n.age === 67 && n.job && !/Jubilad/.test(n.job)) n.job = U.gw(n.gender, 'Jubilado', 'Jubilada');
         if (n.age >= 18) n.money = Math.max(0, Math.round(n.money + U.int(-2000, 6000)));
       });
+      people.familyLife(g);
+    },
+
+    /** Vida propia de los hijos adultos: se casan, tienen hijos (tus nietos) y cambian de trabajo. */
+    familyLife(g) {
+      if (!g.p.alive) return;
+      MV.rels(g, 'hijo').forEach(({ n }) => {
+        if (n.species !== 'humano' || n.age < 18) return;
+        if (!n.married && n.age >= 22 && n.age <= 50 && U.chance(n.age <= 35 ? 0.1 : 0.04)) { people.marryKid(g, n); return; }
+        const kids = people.grandkidsOf(g, n.id).length;
+        if (n.married && n.age >= 22 && n.age <= 44 && kids < 4 && U.chance(0.14 - kids * 0.03)) { people.grandchild(g, n); return; }
+        if (n.age < 65 && U.chance(0.04)) {
+          const j = MV.randomJobTitle(n);
+          if (j && j !== n.job) {
+            n.job = j;
+            const who = `Tu ${MV.relLabel('hijo', n).toLowerCase()} ${n.first}`;
+            MV.log(g, /^Desemplead/.test(j) ? `${who} se quedó sin trabajo. Ya te pidió el sillón "por unas semanas".` : /^Am[oa] de casa/.test(j) ? `${who} ahora se dedica a la casa.` : `${who} ahora trabaja de ${j.toLowerCase()}.`, '💼');
+          }
+        }
+      });
+    },
+
+    grandkidsOf(g, kidId) { return MV.rels(g, 'nieto', true).filter((x) => x.n.parentId === kidId); },
+
+    /** Tu hijo o hija se casa: anuncia la boda (evento con opciones). */
+    marryKid(g, n) {
+      const sg = U.chance(0.9) ? (n.gender === 'f' ? 'm' : 'f') : n.gender;
+      n.married = true;
+      n.marriedAge = n.age;
+      n.spouseGender = sg;
+      n.spouseName = `${MV.randomFirst(sg, g.p.country)} ${MV.randomLast(g.p.country)}`;
+      MV.EV.push(g, 'hijo_boda', { target: n.id, spouse: n.spouseName, sg }, true);
+    },
+
+    /** Nace un nieto: persona real con relación "nieto". */
+    grandchild(g, kid) {
+      const gc = MV.newNPC(g, { age: 0, last: kid.last, country: g.p.country, parents: [{ look: kid.look }, { look: MV.makeLook(kid.spouseGender || 'f') }], money: 0, job: '-' });
+      gc.parentId = kid.id;
+      MV.addRel(g, gc, 'nieto', U.int(60, 90));
+      const first = !(g.p.counters.nietos > 0) && !MV.rels(g, 'nieto', true).some((x) => x.n.id !== gc.id);
+      g.p.counters.nietos = (g.p.counters.nietos || 0) + 1;
+      MV.fx.stat(g, 'happy', first ? 10 : 5);
+      const abu = U.gw(g.p.gender, 'abuelo', 'abuela');
+      MV.EV.info(g, { title: first ? `¡Eres ${abu}!` : U.gw(gc.gender, 'Otro nieto', 'Otra nieta'), icon: '👶', scene: 'hospital',
+        text: `${kid.first} tuvo ${U.gw(gc.gender, 'un varón', 'una nena')}: ${gc.first}. ${first ? `Ahora eres ${abu} y ya das consejos que nadie pidió.` : U.pick(['Otra criatura para malcriar.', 'Ya perdiste la cuenta de los cumpleaños.', 'Tiene tu nariz, dicen. Pobre.'])}` });
+      return gc;
     },
 
     die(g, n, cause) {
@@ -52,7 +98,7 @@
       const r = MV.relOf(g, n.id);
       if (!r || !g.p.alive) return;
       const label = MV.relLabel(r.type, n).toLowerCase();
-      const close = ['padre', 'hijo', 'conyuge', 'hermano', 'pareja', 'abuelo', 'mascota'].includes(r.type);
+      const close = ['padre', 'hijo', 'nieto', 'conyuge', 'hermano', 'pareja', 'abuelo', 'mascota'].includes(r.type);
       const love = r.rel / 100;
       if (r.type === 'mascota') {
         MV.fx.stat(g, 'happy', -Math.round(4 + 10 * love));

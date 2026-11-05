@@ -10,7 +10,7 @@
     { kind: 'Departamento de 2 ambientes', icon: '🏢', price: [80000, 165000] },
     { kind: 'Casa pequeña', icon: '🏠', price: [90000, 185000] },
     { kind: 'Casa familiar', icon: '🏡', price: [160000, 360000] },
-    { kind: 'Casa con piscina', icon: '🏡', price: [350000, 850000] },
+    { kind: 'Casa con piscina', icon: '🏡', price: [350000, 850000], has: ['piscina'] },
     { kind: 'Penthouse', icon: '🌆', price: [700000, 2100000] },
     { kind: 'Mansión', icon: '🏰', price: [2000000, 9000000] },
     { kind: 'Castillo medieval', icon: '🏯', price: [8000000, 30000000] }
@@ -141,7 +141,8 @@
   MV.TATTOO_ARTISTS = {
     garaje: { name: 'Tatuador de garaje', icon: '🪛', cost: 150, wobble: 6, infect: 0.15, bonus: -15, desc: 'Barato, mano temblorosa y agujas "esterilizadas" con fuego' },
     estudio: { name: 'Estudio de tatuajes', icon: '🖋️', cost: 800, wobble: 1.5, infect: 0.02, bonus: 0, desc: 'Profesional y prolijo' },
-    famoso: { name: 'Artista famoso', icon: '🌟', cost: 5000, wobble: 0, infect: 0, bonus: 15, desc: 'Mejora tu dibujo y lo sube a sus redes' }
+    famoso: { name: 'Artista famoso', icon: '🌟', cost: 5000, wobble: 0, infect: 0, bonus: 15, desc: 'Mejora tu dibujo y lo sube a sus redes' },
+    carcel: { name: 'Recluso con birome', icon: '🖊️', cost: 0, wobble: 9, infect: 0.2, bonus: -30, desc: 'Solo en la cárcel', hidden: true }
   };
   MV.TATTOO_PLACES = {
     brazo: { name: 'Brazo', icon: '💪', mult: 1, art: 'el' },

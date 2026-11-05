@@ -3,7 +3,7 @@
   'use strict';
   const U = MV.U;
 
-  MV.VERSION = 3;
+  MV.VERSION = 4;
 
   MV.LOOK = {
     SKIN: ['#f7dcc8', '#efc6a4', '#dfab84', '#c48b62', '#9c6644', '#6e4529', '#4a2e1c'],
@@ -38,11 +38,11 @@
   const REL_LABEL = {
     padre: ['Padre', 'Madre'], hermano: ['Hermano', 'Hermana'], abuelo: ['Abuelo', 'Abuela'],
     pareja: ['Novio', 'Novia'], conyuge: ['Esposo', 'Esposa'], ex: ['Ex', 'Ex'],
-    hijo: ['Hijo', 'Hija'], amigo: ['Amigo', 'Amiga'], enemigo: ['Enemigo', 'Enemiga'],
+    hijo: ['Hijo', 'Hija'], nieto: ['Nieto', 'Nieta'], amigo: ['Amigo', 'Amiga'], enemigo: ['Enemigo', 'Enemiga'],
     amante: ['Amante', 'Amante'], companero: ['Compañero', 'Compañera'], mascota: ['Mascota', 'Mascota']
   };
-  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'hermano', 'abuelo', 'mascota', 'amigo', 'companero', 'enemigo', 'ex'];
-  MV.FAMILY = ['padre', 'hermano', 'abuelo', 'hijo'];
+  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'nieto', 'hermano', 'abuelo', 'mascota', 'amigo', 'companero', 'enemigo', 'ex'];
+  MV.FAMILY = ['padre', 'hermano', 'abuelo', 'hijo', 'nieto'];
 
   MV.relLabel = function (type, person) {
     if (type === 'mascota' && person) return MV.SPECIES[person.species] ? MV.SPECIES[person.species].name : 'Mascota';
@@ -275,6 +275,7 @@
       const s = MV.rels(g, 'hermano')[0].n;
       MV.log(g, `Tienes ${U.gw(s.gender, 'un hermano mayor', 'una hermana mayor')}, ${s.first}, que ya te mira con desconfianza.`, '🧒');
     } else if (nSib > 1) MV.log(g, `Tienes ${nSib} hermanos mayores. Serás el último en elegir el postre.`, '🧒');
+    MV.sys.challenge.start(g, opts.challenge);
     g.rng = MV.rng.getState();
     return g;
   };

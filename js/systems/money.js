@@ -56,7 +56,7 @@
       const kids = MV.rels(g, 'hijo').filter((x) => x.n.age < 18).length;
       c += kids * 3200;
       c += MV.rels(g, 'mascota').length * 350;
-      return Math.round(c);
+      return Math.round(c * MV.sys.world.mods(g).living);
     },
 
     yearly(g) {
@@ -125,7 +125,7 @@
       p.assets.forEach((a) => {
         maint += money.upkeep(g, a);
         if (a.type === 'casa') {
-          a.value = Math.round(a.value * (1 + U.float(-0.04, 0.08)));
+          a.value = Math.round(a.value * (1 + U.float(-0.04, 0.08) + MV.sys.world.mods(g).house));
           a.cond = U.clamp(a.cond - U.int(1, 4), 0, 100);
           if (a.rented) { income += Math.round(a.value * 0.045); }
         } else if (a.type === 'auto') {
@@ -138,10 +138,11 @@
       });
       out += maint;
       money.homeYearly(g);
-      // Inversiones
+      // Inversiones (con el clima económico del año)
+      const world = MV.sys.world.mods(g);
       Object.keys(INV).forEach((k) => {
         if (p.inv[k] > 0) {
-          const r = U.float(INV[k].ret[0], INV[k].ret[1]);
+          const r = Math.max(-1, U.float(INV[k].ret[0], INV[k].ret[1]) + (world.inv[k] || 0));
           const d = Math.round(p.inv[k] * r);
           p.inv[k] = Math.max(0, p.inv[k] + d);
           if (Math.abs(d) > 500) MV.log(g, `${INV[k].icon} ${INV[k].name}: ${d >= 0 ? 'ganaste' : 'perdiste'} ${U.money(Math.abs(d))} (${Math.round(r * 100)}%).`, d >= 0 ? '📈' : '📉', d >= 0 ? 'good' : 'bad');
@@ -270,7 +271,7 @@
       p.assets = p.assets.filter((x) => x !== a);
       if (p.home === a.id) {
         p.home = null;
-        const other = p.assets.find((x) => x.type === 'casa');
+        const other = p.assets.find((x) => x.type === 'casa' && !x.rented);
         if (other) p.home = other.id; else { p.housing = 'alquiler'; p.rent = RENTALS[1]; }
       }
       return `Vendiste ${a.name} por ${U.money(price)}${loan ? ` (pagaste la hipoteca y te quedaron ${U.money(net)})` : ''}.`;
@@ -294,7 +295,9 @@
       return MV.HOUSE_UPGRADES.map((U2) => {
         const cost = money.upgradeCost(a, U2);
         const why = [];
+        const builtIn = ((MV.HOUSES || []).find((k) => k.kind === a.kind) || {}).has || [];
         if ((a.upgrades || []).some((u) => u.id === U2.id)) why.push('Ya la tienes');
+        else if (builtIn.includes(U2.id)) why.push('Ya la tiene de fábrica');
         if (U2.house && money.isApartment(a)) why.push('Solo en casas');
         if (U2.minValue && a.value < U2.minValue) why.push(`Solo en propiedades de ${U.money(U2.minValue)} o más`);
         if (g.p.money < cost) why.push(`Cuesta ${U.money(cost)}`);

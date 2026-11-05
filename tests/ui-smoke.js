@@ -29,7 +29,10 @@ const SHOTS = process.argv[2] || null;
   await page.reload();
   await page.click('text=Empezar una vida nueva');
   await page.fill('#f-first', 'Probeta');
+  await page.selectOption('#f-challenge', 'centenario');
+  if (!/100/.test(await page.$eval('#f-challenge-desc', (e) => e.textContent))) errors.push('El desafío no muestra su descripción');
   await page.click('text=Nacer');
+  if (await page.evaluate(() => (MV.UI.g.challenge || {}).id) !== 'centenario') errors.push('El desafío elegido no quedó en la partida');
   for (let y = 0; y < 22; y++) { await tryClick('.ageup'); await page.waitForTimeout(30); await resolve(); }
   await page.waitForTimeout(800);
   if (await page.evaluate(() => !MV.UI.g || MV.UI.g.over)) { // murió joven: otra vida para seguir probando
@@ -105,6 +108,52 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   await shot('novedades');
   await page.evaluate(() => MV.UI.closeSheets());
+  // Mascota con trucos y concurso
+  const petId = await page.evaluate(() => { const g = MV.UI.g; g.p.money = Math.max(g.p.money, 1000); const pet = MV.newPet(g, 'perro', { age: 3 }); pet.tricks = ['sentarse', 'dar la pata']; MV.addRel(g, pet, 'mascota', 80); MV.UI.closeSheets(); MV.UI.showPerson(pet.id); return pet.id; });
+  const tricksText = await page.$eval('#pet-tricks', (e) => e.textContent).catch(() => '');
+  if (!/dar la pata/.test(tricksText)) errors.push('La ficha de la mascota no muestra sus trucos');
+  await page.click('#layer button.row:has-text("concurso")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  if (await page.evaluate((id) => !MV.relOf(MV.UI.g, id), petId)) errors.push('La mascota desapareció tras el concurso');
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Obras: escribir un libro con título propio y verlo en Mis obras
+  await page.evaluate(() => { const g = MV.UI.g; g.p.yearActs = {}; MV.UI.closeSheets(); MV.UI.runAction(MV.ACTS.find((a) => a.id === 'libro')); });
+  await page.fill('#work-title', 'Memorias de un <mapache>');
+  await page.selectOption('#work-genre', 'memorias');
+  await page.click('#work-go');
+  await page.waitForSelector('#layer .card');
+  const workMsg = await page.$eval('#layer .card .result', (e) => e.textContent);
+  if (!/Memorias de un mapache/.test(workMsg)) errors.push('El resultado del libro no usa el título: ' + workMsg);
+  await resolve();
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
+  const worksText = await page.$eval('#works-list', (e) => e.textContent).catch(() => '');
+  if (await page.evaluate(() => MV.UI.g.challenge && !document.getElementById('profile-challenge'))) errors.push('La ficha no muestra el desafío');
+  if (!/Memorias de un mapache/.test(worksText)) errors.push('Mis obras no muestra el libro: ' + worksText);
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Relaciones con nietos: su propio encabezado
+  await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
+  const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));
+  if (!relHeads.includes('Nietos') || relHeads.includes('')) errors.push('Relaciones no muestra el encabezado Nietos: ' + relHeads.join(' | '));
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Intimidad: la protección se elige en pantalla y después decides qué son
+  await page.evaluate(() => { const g = MV.UI.g; g.p.age = Math.max(g.p.age, 20); const n = MV.newNPC(g, { age: 25, gender: g.p.gender === 'm' ? 'f' : 'm' }); MV.UI.closeSheets(); g.queue = []; MV.EV.push(g, 'proteccion', { target: n.id, casual: true }, true); MV.UI.flushQueue(); });
+  await page.waitForSelector('#layer .choice');
+  const protLabels = await page.$$eval('#layer .choice', (els) => els.map((e) => e.textContent).join(' | '));
+  if (!/Con protección \(0 % de embarazo\)/.test(protLabels) || !/Sin protección \(60 % de embarazo\)/.test(protLabels)) errors.push('La pregunta de protección no muestra los porcentajes: ' + protLabels);
+  await page.click('#layer .choice:has-text("Con protección")');
+  await page.waitForTimeout(150);
+  if (await page.$('#layer .card .btn.primary')) await page.click('#layer .card .btn.primary');
+  await page.waitForSelector('#layer .choice');
+  const morning = await page.$$eval('#layer .choice', (els) => els.map((e) => e.textContent).join(' | '));
+  if (!/Quedar como amigos/.test(morning)) errors.push('No apareció la decisión de la mañana siguiente: ' + morning);
+  await resolve();
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Noticias del mundo en Bienes y dinero
+  await page.evaluate(() => { const g = MV.UI.g; g.log.push({ age: g.p.age, year: g.year, items: [] }); MV.sys.world.set(g, 'recesion'); MV.UI.showAssets(); });
+  const newsText = await page.$eval('#world-news', (e) => e.textContent).catch(() => '');
+  if (!/Recesión mundial/.test(newsText)) errors.push('Bienes y dinero no muestra el clima económico: ' + newsText);
+  await page.evaluate(() => MV.UI.closeSheets());
 
   // Recargar: la partida debe continuar
   const state = await page.evaluate(() => ({ age: MV.UI.g.p.age, over: MV.UI.g.over }));
@@ -121,6 +170,11 @@ const SHOTS = process.argv[2] || null;
   await page.evaluate(() => { const g = MV.UI.g; const k = MV.newNPC(g, { age: 3, last: g.p.last, money: 0 }); MV.addRel(g, k, 'hijo', 80); MV.sys.legacy.die(g, 'una prueba automatizada'); MV.UI.save(); MV.UI.showDeath(); });
   await page.waitForSelector('.tomb');
   await shot('muerte');
+  await page.click('#copy-summary');
+  await page.waitForTimeout(1900);
+  const copied = await page.evaluate(() => { const ta = document.getElementById('summary-text'); return ta ? ta.value : (document.getElementById('toasts').textContent || ''); });
+  if (!/Copiado|Mil Vidas/.test(copied)) errors.push('Copiar resumen no copió ni mostró el texto: ' + copied.slice(0, 80));
+  await page.evaluate(() => MV.UI.closeSheets());
   await page.click('.death button.row >> nth=0');
   await page.waitForSelector('.idcard');
   const gen = await page.evaluate(() => MV.UI.g.generation);

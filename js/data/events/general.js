@@ -36,7 +36,11 @@
       { t: 'Poner carteles', eff: (g, ctx) => { if (U.chance(0.6)) return 'Pusiste carteles. Una señora devolvió a {t} y pidió recompensa en empanadas.'; MV.removeRel(g, ctx.target); fx.stat(g, 'happy', -10); return 'Nadie llamó. {t} desapareció para siempre.'; } },
       { t: 'Esperar a que vuelva solo', eff: (g, ctx) => { if (U.chance(0.45)) return '{t} volvió solo a los tres días, sucio y con un collar nuevo de otra familia.'; MV.removeRel(g, ctx.target); fx.stat(g, 'happy', -10); return '{t} nunca volvió. Esperar no fue buena estrategia.'; } }
     ] });
-  ev({ id: 'mascota_truco', age: [3, 110], when: H.has('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), target: H.rel('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), icon: '🎪', text: (g, ctx) => H.t(g, ctx).species === 'loro' ? '{t} aprendió a decir una grosería. Solo la dice cuando viene la abuela.' : '{t} aprendió un truco nuevo: hacerse el muerto cuando le hablas de bañarse.', auto: { happy: 3, rel: 4 } });
+  ev({ id: 'mascota_truco', age: [3, 110], when: H.has('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), target: H.rel('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), icon: '🎪', text: (g, ctx) => H.t(g, ctx).species === 'loro' ? '{t} aprendió a decir una grosería. Solo la dice cuando viene la abuela.' : '{t} aprendió un truco nuevo: hacerse el muerto cuando le hablas de bañarse.', auto: { happy: 3, rel: 4, then: (g, ctx) => {
+    const n = MV.person(g, ctx.target), t = n.species === 'loro' ? 'decir groserías frente a la abuela' : 'hacerse el muerto';
+    n.tricks = n.tricks || [];
+    if (!n.tricks.includes(t)) n.tricks.push(t);
+  } } });
 
   // — Tatuajes —
   const exTattoo = (g) => (g.p.tattoos || []).find((t) => t.partnerName && !MV.rels(g, ['pareja', 'conyuge', 'amante'], true).some((x) => x.n.first === t.partnerName));
@@ -97,7 +101,15 @@
   ev({ id: 'devolucion_impuestos', age: [20, 90], when: H.anyJob, icon: '💌', text: 'Te devolvieron {amount} de impuestos. Un error a tu favor. Disfrútalo antes de que se den cuenta.', auto: { money: [100, 1500], happy: 3 } });
 
   // — Familia —
-  ev({ id: 'nieto_nace', age: [38, 110], when: H.has('hijo', (n) => n.age >= 20 && n.age <= 45), target: H.rel('hijo', (n) => n.age >= 20 && n.age <= 45), icon: '👶', scene: 'hospital', text: (g, ctx) => `¡{t} tuvo un bebé! Ahora eres ${U.gw(g.p.gender, 'abuelo', 'abuela')}. Ya estás dando consejos que nadie pidió.`, auto: { happy: 10, rel: 6, count: 'nietos' } });
+  ev({ id: 'hijo_boda', manual: true, prison: 'any', icon: '💒', scene: 'boda', title: (g) => 'Boda en la familia',
+    text: (g, ctx) => `Tu ${MV.relLabel('hijo', MV.person(g, ctx.target)).toLowerCase()} {t} se casa con ${ctx.spouse}. Te llegó la invitación con un "¿nos ayudas con los gastos?" escrito a mano.`,
+    choices: [
+      { t: '✉️ Mandar una carta desde la cárcel', when: (g) => !!g.p.prison, eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) r.rel = U.clamp(r.rel + 3, 0, 100); fx.stat(g, 'happy', -3); return `Mandaste una carta que leyeron en la fiesta. Hubo aplausos, lágrimas y un tío que preguntó "¿y por qué está ${U.gw(g.p.gender, 'preso', 'presa')}?".`; } },
+      { t: '💸 Pagar la fiesta ($15.000)', when: (g) => !g.p.prison && g.p.money >= 15000, eff: (g, ctx) => { fx.money(g, -15000); const r = MV.relOf(g, ctx.target); if (r) r.rel = U.clamp(r.rel + 15, 0, 100); fx.stat(g, 'happy', 6); return `Pagaste una fiesta inolvidable. Lloraste en el brindis y bailaste con ${ctx.spouse}.`; } },
+      { t: '💃 Ir y bailar toda la noche', when: (g) => !g.p.prison, eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) r.rel = U.clamp(r.rel + 6, 0, 100); fx.stat(g, 'happy', 5); fx.stat(g, 'health', -1); return 'Fuiste el alma de la fiesta. Al otro día no podías caminar.'; } },
+      { t: '🤨 Ir, pero criticar todo', when: (g) => !g.p.prison, eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) r.rel = U.clamp(r.rel - 4, 0, 100); fx.stat(g, 'happy', 2); return `Dijiste que el vestido era "valiente" y que la comida estaba fría. Pero fuiste.`; } },
+      { t: '🚪 No ir', when: (g) => !g.p.prison, eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) r.rel = U.clamp(r.rel - 20, 0, 100); fx.stat(g, 'karma', -3); return 'No fuiste a la boda. Te lo van a recordar en cada Navidad.'; } }
+    ] });
   ev({ id: 'hermano_boda', age: [16, 90], when: H.has('hermano', (n) => n.age >= 22 && n.age <= 50), target: H.rel('hermano', (n) => n.age >= 22 && n.age <= 50), icon: '💒', scene: 'boda', text: '{t} se casó. Tú llevaste los anillos y los perdiste durante 10 minutos de pánico.', auto: { happy: 4, rel: 4 } });
   ev({ id: 'abuelo_regalo', age: [5, 25], when: H.has('abuelo', (n) => n.money > 500), target: H.rel('abuelo', (n) => n.money > 500), icon: '🎁', text: '{t} te regaló {amount} "para que te compres algo lindo". Y un suéter que tejió.', auto: { money: [20, 400], happy: 3, rel: 3 } });
   ev({ id: 'padre_enfermo', age: [15, 80], when: H.has('padre', (n) => n.age >= 55), target: H.rel('padre', (n) => n.age >= 55), icon: '🏥', scene: 'hospital', title: 'Malas noticias',
@@ -135,7 +147,13 @@
   ev({ id: 'carcel_tatuaje', prison: true, age: [14, 110], icon: '🖊️', scene: 'carcel', title: 'Arte carcelario',
     text: 'Un recluso ofrece tatuarte con una birome y una aguja de coser.',
     choices: [
-      { t: 'Aceptar', eff: (g) => { if (U.chance(0.2)) MV.sys.health.add(g, 'ets'); fx.stat(g, 'looks', U.int(-3, 2)); return U.pick(['Te tatuó una calavera. O un hongo. No queda claro.', 'Te tatuó "MAMÁ" pero le faltó una A.']); } },
+      { t: 'Aceptar', eff: (g) => {
+        if (U.chance(0.2)) MV.sys.health.add(g, 'ets');
+        fx.stat(g, 'looks', U.int(-3, 2));
+        const t = MV.sys.tattoo.prison(g);
+        if (!t) return 'No te quedaba piel libre. El recluso tatuó a otro y te cobró igual con cigarrillos.';
+        return t.label === 'MAMÁ' ? 'Te tatuó "MAMÁ" pero le faltó una A. Ya está en tu álbum, para siempre.' : 'Te tatuó una calavera. O un hongo. No queda claro. Ya está en tu álbum.';
+      } },
       { t: 'Rechazar', eff: { msg: 'Rechazaste. Tu piel y tu salud te lo agradecen.' } }
     ] });
   ev({ id: 'carcel_guardia', prison: true, age: [14, 110], icon: '💂', scene: 'carcel', title: 'Un guardia "amigo"',

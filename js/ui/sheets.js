@@ -205,6 +205,8 @@
     const debt = U.sum(p.loans, (l) => l.left);
     body.append(title('Dinero'), h('div', { class: 'box' }, kv('Efectivo', U.money(p.money)), kv('Patrimonio neto', U.money(MV.netWorth(g))), debt ? kv('Deudas', U.money(debt)) : null,
       p.loans.length ? h('div', null, p.loans.map((l) => h('p', { class: 'note' }, `${l.name}: debes ${U.money(l.left)} (${l.start > p.age ? 'empiezas a pagar a los ' + l.start : U.money(l.pay) + ' al año'})`))) : null));
+    const news = MV.sys.world.current(g);
+    body.append(h('div', { class: 'box news', id: 'world-news' }, h('b', null, `${news ? news.icon : '🌤️'} Clima económico: ${news ? news.title : 'año tranquilo'}`), h('p', { class: 'note', style: { margin: '4px 0 0' } }, MV.sys.world.describe(news))));
     if (p.age < 18) { body.append(note('Eres menor de edad: todavía no puedes comprar casas, autos ni invertir.')); return; }
     // Vivienda
     body.append(title('Vivienda'));
@@ -339,7 +341,7 @@
   }
 
   // ——————————————————— RELACIONES ———————————————————
-  const GROUP = { conyuge: 'Matrimonio', pareja: 'Pareja', amante: 'Amantes', padre: 'Padres', hijo: 'Hijos', hermano: 'Hermanos', abuelo: 'Abuelos', mascota: 'Mascotas', amigo: 'Amigos', companero: 'Compañeros', enemigo: 'Enemigos', ex: 'Ex' };
+  const GROUP = { conyuge: 'Matrimonio', pareja: 'Pareja', amante: 'Amantes', padre: 'Padres', hijo: 'Hijos', nieto: 'Nietos', hermano: 'Hermanos', abuelo: 'Abuelos', mascota: 'Mascotas', amigo: 'Amigos', companero: 'Compañeros', enemigo: 'Enemigos', ex: 'Ex' };
 
   UI.showRelations = function () {
     UI.sheet({
@@ -381,6 +383,11 @@
             h('p', { class: 'note', style: { margin: 0 } }, `${MV.relLabel(r.type, n)}, ${n.age} año${n.age === 1 ? '' : 's'}${human && n.job && n.job !== '-' ? '. ' + n.job : ''}`),
             human ? h('p', null, n.traits.map((t) => h('span', { class: 'tag' }, t))) : h('p', null, h('span', { class: 'tag' }, n.traits[0] || 'mascota')),
             h('div', { style: { maxWidth: '200px' } }, UI.bar(r.rel)))));
+        if (!human && ((n.tricks || []).length || n.trophies)) {
+          body.append(h('div', { class: 'box', id: 'pet-tricks' },
+            n.tricks && n.tricks.length ? h('p', { style: { margin: 0 } }, h('b', null, '🎓 Trucos: '), n.tricks.join(', ') + '.') : null,
+            n.trophies ? h('p', { style: { margin: n.tricks && n.tricks.length ? '6px 0 0' : 0 } }, h('b', null, '🏆 Trofeos: '), `${n.trophies}${n.wins ? ` (${n.wins} primer${n.wins === 1 ? '' : 'os'} puesto${n.wins === 1 ? '' : 's'})` : ''}`) : null));
+        }
         body.append(UI.actionList(MV.sys.rels.actions(g, r, n), r.acts, r));
       }
     });

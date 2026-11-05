@@ -74,7 +74,7 @@
       const partner = MV.partner(g);
       if (partner && partner.r.rel < 60 && years >= 3 && U.chance(0.5)) {
         const t = partner.n;
-        partner.r.type = 'ex';
+        MV.sys.rels.makeEx(g, partner.r);
         MV.log(g, `${t.first} te dejó: "no te voy a esperar ${years} años".`, '💔', 'bad');
       }
     },

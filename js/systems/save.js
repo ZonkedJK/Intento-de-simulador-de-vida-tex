@@ -68,6 +68,13 @@
       if (p.flags.exAtleta && MV.SPORTS[p.flags.exAtleta]) p.flags.proSports = Object.assign({ [p.flags.exAtleta]: true }, p.flags.proSports);
       g.version = 3;
     }
+    if (g.version === 3) {
+      // v4: obras, noticias del mundo y desafíos.
+      g.p.works = g.p.works || [];
+      g.world = g.world || null;
+      g.challenge = g.challenge || null;
+      g.version = 4;
+    }
     return g;
   };
 

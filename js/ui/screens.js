@@ -47,6 +47,10 @@
         .map((k) => h('option', { value: k }, `${MV.COUNTRIES[k].flag} ${MV.COUNTRIES[k].name}`)))));
     country.value = st.country;
     country.addEventListener('change', () => { st.country = country.value; });
+    const chal = h('select', { class: 'select', id: 'f-challenge' }, h('option', { value: '' }, 'Sin desafío'),
+      MV.CHALLENGES.map((c) => h('option', { value: c.id }, `${c.icon} ${c.name}`)));
+    const chalNote = h('p', { class: 'note', id: 'f-challenge-desc', style: { margin: '4px 0 0' } }, 'Una meta para esta vida. Si la cumples, ganas un logro.');
+    chal.addEventListener('change', () => { const C = MV.CHALLENGES.find((c) => c.id === chal.value); chalNote.textContent = C ? C.desc : 'Una meta para esta vida. Si la cumples, ganas un logro.'; });
     const segG = h('div', { class: 'seg', role: 'group', 'aria-label': 'Género' });
     const drawSeg = () => {
       UI.clear(segG);
@@ -66,6 +70,7 @@
     const rnd = (fn) => h('button', { type: 'button', class: 'btn', 'aria-label': 'Al azar', onclick: fn }, '🎲');
     const born = (random) => {
       const opts = random ? {} : { first: (st.first || '').trim() || MV.randomFirst(st.gender, st.country), last: (st.last || '').trim() || MV.randomLast(st.country), gender: st.gender, country: st.country, look: Object.assign({}, look) };
+      opts.challenge = chal.value || null;
       UI.startGame(MV.newGame(opts));
     };
     drawSeg(); drawSw(); drawPreview();
@@ -79,6 +84,7 @@
           h('div', { class: 'field' }, h('span', { class: 'label' }, 'Género'), segG),
           h('div', { class: 'field' }, h('label', { for: 'f-country' }, 'País de nacimiento'), country),
           h('div', { class: 'field' }, h('span', { class: 'label' }, 'Tono de piel'), sw),
+          h('div', { class: 'field' }, h('label', { for: 'f-challenge' }, 'Desafío (opcional)'), chal, chalNote),
           note('La familia, la clase social, la inteligencia y la apariencia te tocan por sorteo. Como en la vida.'))),
       h('div', { class: 'cover-actions' },
         h('button', { class: 'btn primary block', onclick: () => born(false) }, '👶 Nacer'),
@@ -116,6 +122,10 @@
       kv('Patrimonio', U.money(s.worth)), kv('Ocupación', s.job), kv('Estudios', s.edu), kv('Hijos', String(s.kids)), kv('Matrimonios', String(s.marriages)),
       kv('Delitos', String(s.crimes)), kv('Karma', String(s.karma)), kv('Fama', String(s.fame)), kv('Generación', `${s.generation} de la dinastía ${s.dynasty ? s.dynasty.name : ''}`),
       s.aspiration ? kv('Aspiración', `${s.aspiration.name || ''}: ${s.aspiration.done ? 'cumplida' : 'sin cumplir'}`) : null));
+    const shareText = MV.sys.legacy.summaryText(g);
+    root.append(h('div', { class: 'btn-row' },
+      h('button', { class: 'btn', id: 'copy-summary', style: { flex: 1 }, onclick: () => UI.copyText(shareText) }, '📋 Copiar resumen'),
+      typeof navigator !== 'undefined' && navigator.share ? h('button', { class: 'btn', style: { flex: 1 }, onclick: () => navigator.share({ title: 'Mil Vidas', text: shareText }).catch(() => {}) }, '📤 Compartir') : null));
     if (s.ach.length) {
       root.append(title('Logros de esta vida'));
       const grid = h('div', { class: 'ach-grid' });
@@ -123,9 +133,10 @@
       root.append(grid);
     }
     if (heirs.length) {
-      root.append(title('Continuar la dinastía'), note('Juega como uno de tus hijos. Heredará tu patrimonio (menos impuestos).'));
+      const grandHeirs = (MV.relOf(g, heirs[0].id) || {}).type === 'nieto';
+      root.append(title('Continuar la dinastía'), note(`Juega como uno de tus ${grandHeirs ? 'nietos' : 'hijos'}. Heredará tu patrimonio (menos impuestos).`));
       const l = h('div', { class: 'list' });
-      heirs.forEach((n) => l.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${MV.relLabel('hijo', n)}, ${n.age} años${g.p.heirId === n.id ? ', heredero principal' : ''}`, 'Continuar', () => {
+      heirs.forEach((n) => l.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${MV.relLabel((MV.relOf(g, n.id) || {}).type || 'hijo', n)}, ${n.age} años${g.p.heirId === n.id ? ', heredero principal' : ''}`, 'Continuar', () => {
         const ng = MV.sys.legacy.continueAs(g, n.id);
         UI.startGame(ng);
       })));
@@ -141,6 +152,27 @@
     root.append(diary);
     app.append(root);
     window.scrollTo(0, 0);
+  };
+
+  /** Copia un texto al portapapeles; si el navegador no deja, lo muestra para copiarlo a mano. */
+  UI.copyText = function (text) {
+    const manual = () => UI.sheet({ title: 'Resumen de la vida', icon: '📋', allowOver: true, render: (body) => {
+      const ta = h('textarea', { class: 'input', id: 'summary-text', rows: '10', readonly: 'readonly', style: { width: '100%', fontFamily: 'inherit' } });
+      ta.value = text;
+      body.append(note('Tu navegador no dejó copiar automáticamente. Mantén presionado el texto para copiarlo.'), ta);
+      setTimeout(() => { ta.focus(); ta.select(); }, 0);
+    } });
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        // Si el permiso nunca responde, a los 1,5 s se ofrece la copia manual.
+        let done = false;
+        const finish = (fn) => () => { if (done) return; done = true; clearTimeout(timer); fn(); };
+        const timer = setTimeout(finish(manual), 1500);
+        navigator.clipboard.writeText(text).then(finish(() => UI.toast('📋', 'Copiado', 'Pega el resumen donde quieras.')), finish(manual));
+        return;
+      }
+    } catch (e) { /* sigue con la copia manual */ }
+    manual();
   };
 
   // ——— Ficha personal ———
@@ -178,9 +210,16 @@
         body.append(hb);
         body.append(title('Tatuajes'));
         body.append(h('div', { class: 'box' }, UI.tattooAlbum()));
+        body.append(title('Mis obras'));
+        body.append(h('div', { class: 'box' }, UI.worksList()));
         body.append(title('Aspiración de vida'));
         const A = p.aspiration && MV.ASPIRATIONS.find((a) => a.id === p.aspiration.id);
         body.append(h('div', { class: 'box' }, A ? h('p', null, `${A.icon} ${A.name}: ${A.desc} ${p.aspiration.done ? '¡Cumplida!' : ''}`) : h('p', null, p.age < 14 ? 'La elegirás a los 14 años.' : 'Sin aspiración. Vives al día.')));
+        const ch = MV.sys.challenge.status(g);
+        if (ch) {
+          body.append(title('Desafío'));
+          body.append(h('div', { class: 'box', id: 'profile-challenge' }, h('p', { style: { margin: 0 } }, h('b', null, MV.sys.challenge.label(g))), h('p', { class: 'note', style: { margin: '4px 0 0' } }, ch.def.desc)));
+        }
         body.append(title('Educación'));
         const eb = h('div', { class: 'box' });
         eb.append(kv('Nivel', MV.EDU.names[MV.EDU.order[MV.eduLevel(p)]]));

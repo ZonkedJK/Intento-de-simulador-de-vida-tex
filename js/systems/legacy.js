@@ -85,18 +85,23 @@
       g.over = true;
       g.queue = [];
       MV.ach.check(g);
+      MV.sys.challenge.yearly(g);
+      g.queue = [];
       if (p.age < 30) MV.ach.unlock(g, 'joven');
       if (p.flags.muerteAbsurda) MV.ach.unlock(g, 'muerte_absurda');
       const J = p.job ? MV.sys.career.title(p) : (p.jobs.length ? p.jobs[p.jobs.length - 1].title : null);
       const best = p.edu.degrees.length ? p.edu.degrees[p.edu.degrees.length - 1] : null;
       const summary = {
         id: p.id, name: MV.fullName(p), gender: p.gender, look: p.look, born: g.year - p.age, died: g.year,
-        age: p.age, cause, worth: MV.netWorth(g), job: J ? (p.retired ? J + ' (jubilado)' : J) : 'Sin trabajo',
+        age: p.age, cause, worth: MV.netWorth(g), job: J ? (p.retired ? `${J} (${U.gw(p.gender, 'jubilado', 'jubilada')})` : J) : 'Sin trabajo',
         edu: best ? (best.kind === 'universidad' ? MV.EDU.majors[best.major].name : best.kind === 'tecnica' ? MV.EDU.tech[best.major].name : MV.EDU.post[best.type].name) : MV.EDU.names[MV.EDU.order[MV.eduLevel(p)]],
         kids: MV.rels(g, 'hijo', true).length, marriages: p.counters.bodas || 0, crimes: p.counters.delitos || 0,
         karma: p.karma, fame: p.fame, stats: Object.assign({}, p.stats), epitaph: legacy.epitaph(g), verdict: legacy.verdict(p.karma),
         ach: (g.achLife || []).slice(), aspiration: p.aspiration ? Object.assign({ name: (MV.ASPIRATIONS.find((a) => a.id === p.aspiration.id) || {}).name }, p.aspiration) : null,
-        generation: g.generation, dynasty: g.dynasty, country: p.country, city: p.city
+        generation: g.generation, dynasty: g.dynasty, country: p.country, city: p.city,
+        grandkids: MV.rels(g, 'nieto', true).length,
+        works: (p.works || []).filter((w) => w.hit).map((w) => w.title).slice(-3),
+        challenge: MV.sys.challenge.label(g)
       };
       g.summary = summary;
       MV.log(g, `Moriste a los ${p.age} años por ${cause}.`, '🪦', 'bad');
@@ -109,16 +114,46 @@
       return summary;
     },
 
-    heirs(g) { return MV.rels(g, 'hijo').map((x) => x.n); },
+    /** Resumen en texto para copiar o compartir (requiere g.summary, es decir, la vida terminada). */
+    summaryText(g) {
+      const s = g.summary;
+      if (!s) return '';
+      const C = MV.COUNTRIES[s.country] || { name: '', flag: '' };
+      const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+      const fam = [s.kids ? plural(s.kids, 'hijo', 'hijos') : 'sin hijos', s.grandkids ? plural(s.grandkids, 'nieto', 'nietos') : null, s.marriages ? plural(s.marriages, 'boda', 'bodas') : null].filter(Boolean).join(', ');
+      const achs = (s.ach || []).map((id) => MV.ach.def(id)).filter(Boolean);
+      const lines = [
+        `🪦 ${s.name} (${s.born}–${s.died}), ${plural(s.age, 'año', 'años')}`,
+        `${C.flag} ${s.city ? s.city + ', ' : ''}${C.name}. Murió por ${s.cause}.`,
+        `💼 ${s.job} · 🎓 ${s.edu} · 💰 ${U.money(s.worth)}`,
+        `👪 ${U.cap(fam)} · ☯️ karma ${s.karma} · ⭐ fama ${s.fame}`,
+        s.works && s.works.length ? `🏆 Éxitos: ${s.works.map((t) => `"${t}"`).join(', ')}` : null,
+        achs.length ? `🏅 Logros: ${achs.slice(0, 6).map((a) => `${a.icon} ${a.name}`).join(', ')}${achs.length > 6 ? ` y ${achs.length - 6} más` : ''}` : null,
+        s.challenge ? `🎯 Desafío: ${s.challenge}` : null,
+        `${s.verdict.icon} ${s.verdict.name}. «${s.epitaph}»`,
+        `Generación ${s.generation}${s.dynasty ? ` de la dinastía ${s.dynasty.name}` : ''} · Mil Vidas`
+      ];
+      return lines.filter(Boolean).join('\n');
+    },
+
+    /** Herederos: los hijos vivos; si no queda ninguno, los nietos vivos. */
+    heirs(g) {
+      const kids = MV.rels(g, 'hijo').map((x) => x.n);
+      return kids.length ? kids : MV.rels(g, 'nieto').map((x) => x.n);
+    },
 
     /** Crea una nueva partida jugando como uno de los hijos. */
     continueAs(g, kidId) {
       const old = g.p, c = g.people[kidId];
       if (!c || !c.alive) throw new Error('Ese heredero no está disponible.');
+      const grand = (MV.relOf(g, kidId) || {}).type === 'nieto';
       const ng = {
         version: MV.VERSION, year: g.year, startYear: g.year - c.age, people: {}, log: [], queue: [], evDone: {},
-        generation: (g.generation || 1) + 1, dynasty: g.dynasty, over: false, achLife: [], rng: 0
+        generation: (g.generation || 1) + 1, dynasty: g.dynasty, over: false, achLife: [], rng: 0,
+        challenge: null
       };
+      const ch = MV.sys.challenge.status(g);
+      if (ch && ch.def.dynasty && !ch.done && !ch.failed) ng.challenge = Object.assign({}, g.challenge, { countries: [] });
       const p = MV.newPlayerBase({
         first: c.first, last: c.last || old.last, gender: c.gender, age: c.age, country: old.country, city: old.city, look: c.look,
         stats: { happy: U.int(35, 65), health: U.clamp(c.health, 30, 100), smarts: c.smarts, looks: c.looks }
@@ -131,17 +166,34 @@
         id: old.id, first: old.first, last: old.last, gender: old.gender, age: old.age, alive: false, species: 'humano', look: old.look,
         looks: old.stats.looks, smarts: old.stats.smarts, health: 0, money: 0, job: g.summary ? g.summary.job : '', traits: [], deathAge: old.age, cause: old.cause
       };
-      p.rels.push({ id: old.id, type: 'padre', rel: oldRel ? oldRel.rel : 60, since: 0 });
+      p.rels.push({ id: old.id, type: grand ? 'abuelo' : 'padre', rel: oldRel ? oldRel.rel : 60, since: 0 });
       const copy = (n) => { ng.people[n.id] = U.deepClone(n); return ng.people[n.id]; };
-      const other = c.otherParent && g.people[c.otherParent];
-      if (other && other.alive) { copy(other); const orr = MV.relOf(g, other.id); p.rels.push({ id: other.id, type: 'padre', rel: orr ? U.clamp(orr.rel, 40, 90) : 60, since: 0 }); }
-      const siblings = MV.rels(g, 'hijo').filter((x) => x.n.id !== kidId);
+      if (grand) {
+        // Como nieto: tu padre o madre es el hijo del jugador anterior (vivo o no).
+        const par = c.parentId && g.people[c.parentId];
+        if (par) {
+          copy(par); p.rels.push({ id: par.id, type: 'padre', rel: par.alive ? U.int(50, 90) : 60, since: 0 });
+          // El otro padre o madre (la pareja del hijo) pasa a ser una persona real que te cría.
+          if (par.spouseName) {
+            const [first, ...rest] = par.spouseName.split(' ');
+            const op = MV.newNPC(ng, { gender: par.spouseGender || (par.gender === 'm' ? 'f' : 'm'), age: U.clamp(par.age + U.int(-4, 4), c.age + 18, 110), first, last: rest.join(' ') || undefined });
+            p.rels.push({ id: op.id, type: 'padre', rel: U.int(55, 90), since: 0 });
+          }
+        }
+      } else {
+        const other = c.otherParent && g.people[c.otherParent];
+        if (other && other.alive) { copy(other); const orr = MV.relOf(g, other.id); p.rels.push({ id: other.id, type: 'padre', rel: orr ? U.clamp(orr.rel, 40, 90) : 60, since: 0 }); }
+      }
+      const siblings = grand ? MV.rels(g, 'nieto').filter((x) => x.n.id !== kidId && x.n.parentId === c.parentId) : MV.rels(g, 'hijo').filter((x) => x.n.id !== kidId);
       siblings.forEach(({ n }) => { copy(n); p.rels.push({ id: n.id, type: 'hermano', rel: U.int(35, 85), since: 0 }); });
       MV.rels(g, 'mascota').forEach(({ n, r }) => { if (c.age < 30) { copy(n); p.rels.push({ id: n.id, type: 'mascota', rel: r.rel, since: c.age }); } });
 
       // Herencia
-      const nKids = siblings.length + 1;
-      let share = old.heirId ? (old.heirId === kidId ? 0.85 : 0.15 / Math.max(1, nKids - 1)) : 1 / nKids;
+      const pool = legacy.heirs(g);
+      const nKids = Math.max(1, pool.length);
+      // El heredero nombrado solo cuenta si sigue entre los herederos (si murió, se reparte en partes iguales).
+      const named = old.heirId && pool.some((x) => x.id === old.heirId) ? old.heirId : null;
+      let share = named ? (named === kidId ? 0.85 : 0.15 / Math.max(1, nKids - 1)) : 1 / nKids;
       if (nKids === 1) share = 1;
       const estate = Math.max(0, g.summary ? g.summary.worth : MV.netWorth(g));
       let cash = Math.round(estate * 0.9 * share);
@@ -171,7 +223,23 @@
           if (J) { MV.sys.career.hire(ng, J, U.clamp(Math.floor((c.age - 20) / 9), 0, J.titles.length - 1)); p.job.start = Math.max(18, c.age - 3); }
         } else { p.retired = true; p.pension = U.int(9000, 25000); }
         if (p.housing !== 'propia') { p.housing = 'alquiler'; p.rent = MV.RENTALS[1]; }
-        if (c.age >= 25 && U.chance(0.55)) {
+        const ownKids = grand ? [] : MV.sys.people.grandkidsOf(g, kidId).filter((x) => x.n.alive);
+        if (!grand && (c.spouseName || ownKids.length)) {
+          // Su familia real: la pareja con la que se casó y sus hijos (los nietos del jugador anterior).
+          let sp = null;
+          if (c.spouseName) {
+            const [first, ...rest] = c.spouseName.split(' ');
+            sp = MV.newNPC(ng, { gender: c.spouseGender || (c.gender === 'm' ? 'f' : 'm'), age: U.clamp(c.age + U.int(-4, 4), 18, 110), first, last: rest.join(' ') || undefined });
+            p.rels.push({ id: sp.id, type: 'conyuge', rel: U.int(50, 85), since: c.marriedAge || Math.max(18, c.age - 3) });
+            p.counters.bodas = 1;
+          }
+          ownKids.forEach(({ n, r }) => {
+            const k = copy(n);
+            delete k.parentId;
+            k.otherParent = sp ? sp.id : null;
+            p.rels.push({ id: k.id, type: 'hijo', rel: U.clamp(r.rel + 15, 40, 100), since: Math.max(0, c.age - k.age) });
+          });
+        } else if (c.age >= 25 && U.chance(0.55)) {
           const sp = MV.sys.rels.candidate(ng);
           p.rels.push({ id: sp.id, type: 'conyuge', rel: U.int(45, 85), since: c.age - U.int(1, Math.max(1, c.age - 22)) });
           p.counters.bodas = 1;
@@ -188,7 +256,7 @@
       if (c.age >= 18 && U.chance(0.7)) p.license = true;
       if (c.age >= 15) p.aspiration = null;
       ng.log.push({ age: c.age, year: ng.year, items: [] });
-      MV.log(ng, `Ahora eres ${MV.fullName(p)}, ${U.gw(p.gender, 'hijo', 'hija')} de ${MV.fullName(old)}. Generación ${ng.generation} de la dinastía ${ng.dynasty.name}.`, '🌳');
+      MV.log(ng, `Ahora eres ${MV.fullName(p)}, ${grand ? U.gw(p.gender, 'nieto', 'nieta') : U.gw(p.gender, 'hijo', 'hija')} de ${MV.fullName(old)}. Generación ${ng.generation} de la dinastía ${ng.dynasty.name}.`, '🌳');
       MV.log(ng, cash > 0 || houseTxt ? `Heredaste ${U.money(cash)}${houseTxt}.` : 'No heredaste nada. Ni el reloj del abuelo.', '📜');
       if (p.job) MV.log(ng, `Trabajas como ${MV.sys.career.title(p)}.`, '💼');
       MV.ach.unlock(ng, 'heredero');

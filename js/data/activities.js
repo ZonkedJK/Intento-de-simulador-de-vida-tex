@@ -121,13 +121,15 @@
         const n = MV.sys.rels.candidate(g);
         if (!U.chance(0.3 + p.stats.looks / 200 + p.skills.carisma / 300)) { delete g.people[n.id]; fx.stat(g, 'happy', -3); return 'Intentaste ligar toda la noche. Volviste a casa con un kebab.'; }
         fx.stat(g, 'happy', U.int(4, 8)); fx.stat(g, 'stress', -4); p.counters.ligues = (p.counters.ligues || 0) + 1;
-        if (U.chance(0.07)) MV.sys.health.add(g, 'ets');
         const partner = MV.partner(g);
-        if (partner && U.chance(0.25)) { partner.r.rel = U.clamp(partner.r.rel - 30, 0, 100); fx.stat(g, 'karma', -6); return `Pasaste la noche con ${n.first} (fundido a negro). ${partner.n.first} se enteró por una foto en redes. Problemas.`; }
-        if (partner) fx.stat(g, 'karma', -4);
-        if (U.chance(0.2)) { MV.addRel(g, n, partner ? 'amante' : 'pareja', U.int(45, 70)); return `Pasaste la noche con ${n.first} y... ¿quieren repetir? Ahora salen.`; }
-        delete g.people[n.id];
-        return `Pasaste la noche con ${n.first}. Al día siguiente, ninguno recordaba el nombre del otro. Fundido a negro.`;
+        let caught = '';
+        if (partner) {
+          fx.stat(g, 'karma', -4);
+          if (U.chance(0.25)) { partner.r.rel = U.clamp(partner.r.rel - 30, 0, 100); fx.stat(g, 'karma', -2); caught = ` ${partner.n.first} vio una foto tuya con ${n.first} en redes. Problemas.`; }
+        }
+        // Tú eliges la protección y, a la mañana siguiente, qué son.
+        MV.EV.push(g, 'proteccion', { target: n.id, casual: true }, true);
+        return `Conociste a ${n.first} en la pista y la noche siguió en otro lado.${caught}`;
       }
       fx.addic(g, 'drogas', U.int(8, 15)); fx.stat(g, 'happy', U.int(5, 10));
       if (U.chance(0.04 + p.addic.drogas / 1000)) { MV.sys.legacy.die(g, 'una sobredosis en una discoteca'); return 'Aceptaste algo de un desconocido. Fue la última mala decisión.'; }
@@ -193,14 +195,10 @@
       p.followers += gain; fx.stat(g, 'happy', 1);
       return `Publicaste ${{ selfie: 'una selfie', opinion: 'una opinión polémica', meme: 'un meme', baile: 'un video bailando', comida: 'una foto de tu comida' }[o]}. +${U.num(gain)} seguidores (total: ${U.num(p.followers)}).`;
     } });
-  A({ id: 'libro', cat: 'ocio', icon: '✍️', label: 'Escribir un libro', sub: 'Puede ser un éxito', minAge: 16, limit: 1,
-    run: (g) => {
-      const p = g.p; fx.stat(g, 'stress', 6); fx.skill(g, 'arte', 2);
-      const genre = U.pick(['una novela de misterio', 'un libro de autoayuda', 'una saga de fantasía', 'unas memorias exageradas', 'un libro de cocina', 'poesía oscura']);
-      if (U.chance(0.04 + p.stats.smarts / 600 + p.skills.arte / 500 + p.fame / 300)) { const amt = U.int(80000, 900000); fx.money(g, amt); fx.stat(g, 'fame', U.int(10, 20)); MV.ach.unlock(g, 'escritor'); return `Escribiste ${genre} y fue un BEST SELLER. Ganaste ${U.money(amt)}.`; }
-      const amt = U.int(0, 3000); fx.money(g, amt);
-      return `Escribiste ${genre}. ${amt > 1000 ? `Vendiste algunos ejemplares: ${U.money(amt)}.` : 'Lo compraron tu madre y dos primos.'}`;
-    } });
+  const work = (kind) => (g, o) => MV.sys.works.create(g, kind, o && o.title, o && o.genre);
+  A({ id: 'libro', cat: 'ocio', icon: '✍️', label: 'Escribir un libro', sub: 'Con título propio. Puede ser un best seller', minAge: 16, limit: 1, ui: 'work', work: 'libro', run: work('libro') });
+  A({ id: 'cancion', cat: 'ocio', icon: '🎵', label: 'Componer una canción', sub: 'Con título propio. Puede ser un hit', minAge: 12, limit: 1, ui: 'work', work: 'cancion', run: work('cancion') });
+  A({ id: 'cuadro', cat: 'ocio', icon: '🎨', label: 'Pintar un cuadro', sub: 'Con título propio. Quizás termine en un museo', minAge: 8, limit: 1, ui: 'work', work: 'cuadro', run: work('cuadro') });
   A({ id: 'voluntariado', cat: 'ocio', icon: '🤲', label: 'Hacer voluntariado', sub: '+karma, +felicidad', minAge: 12, limit: 2,
     run: (g) => { fx.stat(g, 'karma', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5)); return U.pick(['Serviste comida en un comedor. Una señora te dio un abrazo que no olvidarás.', 'Limpiaste una playa. Encontraste 3 zapatos izquierdos.', 'Paseaste perros de un refugio. Quieres adoptar a todos.', 'Le leíste a ancianos en un geriátrico. Te contaron chismes de 1960.']); } });
   A({ id: 'templo', cat: 'ocio', icon: '⛪', label: 'Ir a un templo', sub: '+karma, +paz', minAge: 6, limit: 1,
@@ -218,7 +216,7 @@
   A({ id: 'tatuaje', cat: 'ocio', icon: '🖋️', label: 'Hacerte un tatuaje', sub: 'Minijuego: dibuja tu diseño', minAge: 18, limit: 1, ui: 'tattoo',
     check: (g, o) => (o && o.design ? MV.sys.tattoo.refusal(g, o.design, o.cover) : null),
     run: (g, o) => (o && o.design ? MV.sys.tattoo.apply(g, o.design, o.artist, o.place, { cover: o.cover })
-      : MV.sys.tattoo.apply(g, MV.sys.tattoo.randomDesign(), U.pick(Object.keys(MV.TATTOO_ARTISTS)), U.pick(Object.keys(MV.TATTOO_PLACES)))) });
+      : MV.sys.tattoo.apply(g, MV.sys.tattoo.randomDesign(), U.pick(Object.keys(MV.TATTOO_ARTISTS).filter((k) => !MV.TATTOO_ARTISTS[k].hidden)), U.pick(Object.keys(MV.TATTOO_PLACES)))) });
 
   // ——— Azar ———
   A({ id: 'ruleta', cat: 'azar', icon: '🎡', label: 'Ruleta (rojo o negro)', sub: 'x2 · 47%', limit: 4, opts: bets,
@@ -294,9 +292,32 @@
       return `${n.first}, ${n.age} años. Apariencia: ${n.looks}/100. Trabaja como ${(n.job || 'algo que no explica').toLowerCase()}. Bio: "${bio}"`;
     },
     choices: [
-      { t: '💚 Deslizar a la derecha', eff: (g, ctx) => { const n = MV.person(g, ctx.target); const ch = 0.35 + (g.p.stats.looks - n.looks) / 200 + g.p.skills.carisma / 400; if (U.chance(U.clamp(ch, 0.08, 0.9))) { const r = MV.sys.rels.startDating(g, n); return `¡Match! Tuvieron una cita increíble. ${r}`; } delete g.people[n.id]; g.p.stats.happy = U.clamp(g.p.stats.happy - 2, 0, 100); return `${n.first} no te dio match. Te consuelas pensando que no vio tu foto bien.`; } },
+      { t: '💚 Deslizar a la derecha', eff: (g, ctx) => {
+        const n = MV.person(g, ctx.target);
+        const ch = 0.35 + (g.p.stats.looks - n.looks) / 200 + g.p.skills.carisma / 400;
+        if (U.chance(U.clamp(ch, 0.08, 0.9))) { MV.EV.push(g, 'match_cita', { target: n.id }, true); return `¡Match! Quedaron para una cita con ${n.first}.`; }
+        delete g.people[n.id]; g.p.stats.happy = U.clamp(g.p.stats.happy - 2, 0, 100);
+        return `${n.first} no te dio match. Te consuelas pensando que no vio tu foto bien.`;
+      } },
       { t: '💔 Deslizar a la izquierda', eff: (g, ctx) => { delete g.people[ctx.target]; return 'Siguiente.'; } },
-      { t: '⭐ Superlike ($10)', eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.fx.money(g, -10); if (U.chance(U.clamp(0.5 + (g.p.stats.looks - n.looks) / 200, 0.1, 0.95))) return `¡Match con superlike! ${MV.sys.rels.startDating(g, n)}`; delete g.people[n.id]; return 'Pagaste un superlike y te ignoraron. Doble dolor.'; } }
+      { t: '⭐ Superlike ($10)', eff: (g, ctx) => {
+        const n = MV.person(g, ctx.target); MV.fx.money(g, -10);
+        if (U.chance(U.clamp(0.5 + (g.p.stats.looks - n.looks) / 200, 0.1, 0.95))) { MV.EV.push(g, 'match_cita', { target: n.id }, true); return `¡Match con superlike! Quedaron para una cita con ${n.first}.`; }
+        delete g.people[n.id];
+        return 'Pagaste un superlike y te ignoraron. Doble dolor.';
+      } }
+    ]
+  });
+
+  MV.ev({
+    id: 'match_cita', manual: true, prison: 'any', icon: '💘', scene: 'ciudad', title: 'Después de la cita',
+    text: 'La cita con {t} salió mejor de lo esperado. Están en la puerta y nadie quiere irse. ¿Y ahora?',
+    choices: [
+      { t: '💑 Proponer que sean pareja', when: (g) => !MV.partner(g), eff: (g, ctx) => MV.sys.rels.startDating(g, MV.person(g, ctx.target)) },
+      { t: '🤫 Empezar una aventura en secreto', when: (g) => !!MV.partner(g), eff: (g, ctx) => MV.sys.rels.startDating(g, MV.person(g, ctx.target)) },
+      { t: '🌙 Pasar la noche, sin compromiso', eff: (g, ctx) => { MV.EV.push(g, 'proteccion', { target: ctx.target, casual: true }, true); return `La cita con ${MV.person(g, ctx.target).first} siguió en tu casa.`; } },
+      { t: '🤝 Quedar como amigos', eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'amigo', U.int(40, 65)); return `Quedaron como amigos con ${n.first}. Sin presiones.`; } },
+      { t: '👋 No volver a verse', eff: (g, ctx) => `Fue lindo, pero no. Le deseaste suerte a ${MV.person(g, ctx.target).first} y borraste la app (hasta mañana).` }
     ]
   });
 })(window.MV = window.MV || {});

@@ -60,8 +60,7 @@
     divorce(g, n, theyLeft) {
       const r = MV.relOf(g, n.id);
       if (!r) return '';
-      if (g.p.flags.convive === n.id) delete g.p.flags.convive;
-      r.type = 'ex'; r.rel = U.clamp(r.rel - 30, 0, 100);
+      rels.makeEx(g, r); r.rel = U.clamp(r.rel - 30, 0, 100);
       g.p.counters.divorcios = (g.p.counters.divorcios || 0) + 1;
       MV.fx.stat(g, 'happy', -15);
       let lost = 0;
@@ -70,11 +69,67 @@
       return `${theyLeft ? `${n.first} pidió el divorcio.` : `Te divorciaste de ${n.first}.`}${lost ? ` El acuerdo te costó ${U.money(lost)}.` : ''}`;
     },
 
+    /** Enseña un truco a una mascota. Aprende según la relación, su salud y su viveza. */
+    teachTrick(g, n, r) {
+      const all = MV.PET_TRICKS[n.species] || MV.PET_TRICKS.perro;
+      n.tricks = n.tricks || [];
+      const next = all.find((t) => !n.tricks.includes(t));
+      if (!next) return `${n.first} ya sabe todos los trucos de su especie. Ahora te enseña trucos a ti.`;
+      const hard = all.indexOf(next) / all.length;
+      r.rel = U.clamp(r.rel + U.int(2, 5), 0, 100);
+      if (U.chance(U.clamp(0.3 + r.rel / 250 + n.health / 400 + (n.smarts || 30) / 300 - hard * 0.25, 0.1, 0.9))) {
+        n.tricks.push(next);
+        MV.fx.stat(g, 'happy', 3);
+        return `¡${n.first} aprendió a ${next}! ${U.pick(['Lo festejaste como un gol.', 'Le diste tantos premios que ahora está gordit' + U.gw(n.gender, 'o', 'a') + '.', 'Ya lo filmaste para las redes.'])}`;
+      }
+      return U.pick([`Intentaste enseñarle a ${n.first} a ${next}. Te miró como si el animal fueras tú.`, `${n.first} no aprendió a ${next}, pero se comió todos los premios.`, `Una hora practicando "${next}". ${n.first} se durmió en la mitad.`]);
+    },
+
+    /** Concurso de mascotas: $50 de inscripción; trucos, salud, relación y azar deciden el puesto. */
+    petShow(g, n, r) {
+      const p = g.p;
+      if (p.money < 50) return 'No te alcanza para la inscripción.';
+      MV.fx.money(g, -50);
+      const score = (n.tricks || []).length * 12 + n.health * 0.3 + r.rel * 0.2 + (n.looks || 50) * 0.15 + U.int(0, 35);
+      const place = score >= 100 ? 1 : score >= 84 ? 2 : score >= 70 ? 3 : 0;
+      const sp = (MV.SPECIES[n.species] || { name: 'mascota' }).name.toLowerCase();
+      if (!place) return U.pick([`${n.first} se distrajo con un jurado y no ganó nada. Te costó $50 y un poco de dignidad.`, `En el concurso, ${n.first} hizo todo menos lo que practicaron. El público aplaudió por lástima.`, `Ganó ${(MV.SPECIES[n.species] || {}).art || 'un'} ${sp} con moño. ${n.first} y tú vuelven a casa en silencio.`]);
+      const prize = place === 1 ? U.int(1500, 5000) : place === 2 ? U.int(600, 1500) : U.int(300, 600);
+      MV.fx.money(g, prize);
+      n.trophies = (n.trophies || 0) + 1;
+      r.rel = U.clamp(r.rel + 5, 0, 100);
+      MV.fx.stat(g, 'happy', place === 1 ? 8 : 4);
+      if (place === 1) { n.wins = (n.wins || 0) + 1; MV.fx.stat(g, 'fame', 1); MV.ach.unlock(g, 'mascota_campeona'); }
+      return `${['', '🥇 ¡Primer puesto!', '🥈 Segundo puesto.', '🥉 Tercer puesto.'][place]} ${n.first} ${(n.tricks || []).length ? `deslumbró con "${U.pick(n.tricks)}"` : 'se ganó al jurado con pura simpatía'}. Premio: ${U.money(prize)}.`;
+    },
+
+    /** Probabilidad de embarazo sin protección (con protección es 0). */
+    UNPROTECTED_PREGNANCY: 0.6,
+
+    /** Resuelve la elección de protección: embarazo, ETS en lo casual, y qué son después. */
+    afterNight(g, ctx, safe) {
+      const n = MV.person(g, ctx.target);
+      if (!n || !n.alive) return 'La noche terminó antes de empezar.';
+      const pregnant = !safe && rels.fertile(g, n) && U.chance(rels.UNPROTECTED_PREGNANCY);
+      if (ctx.casual && U.chance(safe ? 0.01 : 0.12)) MV.sys.health.add(g, 'ets');
+      // Al frente de la cola, en orden inverso: primero "a la mañana siguiente", después la noticia.
+      if (pregnant) MV.EV.push(g, 'embarazo_sorpresa', { target: n.id }, true);
+      if (ctx.casual) MV.EV.push(g, 'despues_noche', { target: n.id }, true);
+      return safe ? U.pick([`Usaron protección con ${n.first}. Responsables y románticos a la vez. Fundido a negro.`, 'Protección primero, pasión después. Tu profesor de biología estaría orgulloso. Fundido a negro.'])
+        : U.pick([`Decidieron arriesgarse con ${n.first}. Fundido a negro... y que sea lo que el destino quiera.`, 'Sin protección. Fundido a negro. Tu yo del futuro tomó nota.']);
+    },
+
+    /** Convierte la relación en ex y deja de convivir si vivían juntos. */
+    makeEx(g, r) {
+      if (!r) return;
+      r.type = 'ex';
+      if (g.p.flags.convive === r.id) delete g.p.flags.convive;
+    },
+
     breakUp(g, n) {
       const r = MV.relOf(g, n.id);
       if (!r) return '';
-      if (g.p.flags.convive === n.id) delete g.p.flags.convive;
-      r.type = 'ex'; r.rel = U.clamp(r.rel - 25, 0, 100);
+      rels.makeEx(g, r); r.rel = U.clamp(r.rel - 25, 0, 100);
       MV.fx.stat(g, 'happy', -6);
       return `Terminaste con ${n.first}. ${U.pick(['Lloró en tu cara.', 'Te devolvió tu buzo, sin lavar.', 'Dijo "ya lo veía venir".', 'Cambió su estado a "liberad' + U.gw(n.gender, 'o', 'a') + '".'])}`;
     },
@@ -123,7 +178,7 @@
       const part = MV.partner(g);
       if (part && part.r.rel < 18 && U.chance(0.35)) {
         if (part.r.type === 'conyuge') MV.EV.info(g, { title: 'Divorcio', text: rels.divorce(g, part.n, true), icon: '💔', scene: 'tribunal' });
-        else { part.r.type = 'ex'; MV.EV.info(g, { title: 'Te dejaron', text: `${part.n.first} te dejó. Dijo que necesitaba "encontrarse". Se encontró con otra persona.`, icon: '💔', scene: 'hogar' }); MV.fx.stat(g, 'happy', -10); }
+        else { rels.makeEx(g, part.r); MV.EV.info(g, { title: 'Te dejaron', text: `${part.n.first} te dejó. Dijo que necesitaba "encontrarse". Se encontró con otra persona.`, icon: '💔', scene: 'hogar' }); MV.fx.stat(g, 'happy', -10); }
       }
       // Infidelidad descubierta
       const lover = MV.rels(g, 'amante')[0];
@@ -154,7 +209,11 @@
       const d = react === 'hate' ? -U.int(5, 12) : Math.round(react === 'love' ? base * 1.6 + 3 : react === 'like' ? base : base * 0.5);
       r.rel = U.clamp(r.rel + d, 0, 100);
       let extra = '';
-      if (gift.special === 'pet' && react !== 'hate') extra = ` Ahora ${n.first} tiene un perrito y te manda fotos todos los días.`;
+      if (gift.special === 'pet' && react !== 'hate') {
+        const home = r.type === 'conyuge' || g.p.flags.convive === n.id || (r.type === 'hijo' && n.age < 18) || (r.type === 'padre' && g.p.age < 18);
+        if (home) { const pet = MV.newPet(g, 'perro', { age: 0 }); MV.addRel(g, pet, 'mascota', U.int(60, 85)); MV.ach.check(g); extra = ` Ahora en casa hay un perrito: ${n.first} le puso ${pet.first}.`; }
+        else extra = ` Ahora ${n.first} tiene un perrito y te manda fotos todos los días.`;
+      }
       if (gift.special === 'trip' && react !== 'hate') { MV.fx.stat(g, 'happy', 3); extra = ` ${n.first} volvió broncead${U.gw(n.gender, 'o', 'a')} y con un imán para tu heladera.`; }
       if (gift.special === 'money') n.money = (n.money || 0) + Math.round(gift.price * 0.3);
       const line = {
@@ -175,9 +234,11 @@
       if (!human) {
         A({ id: 'jugar', icon: '🎾', label: 'Jugar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Jugaste con ${n.first}. Te mordió con cariño.`, `${n.first} trajo la pelota 40 veces. Tú te cansaste primero.`, `${n.first} te ignoró olímpicamente, pero se notaba feliz.`]); } });
         if (n.species === 'perro') A({ id: 'pasear', icon: '🦮', label: 'Pasear', sub: '+salud para ambos', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(3, 8), 0, 100); MV.fx.stat(g, 'health', U.int(1, 3)); n.health = U.clamp(n.health + 3, 0, 100); return `Paseaste a ${n.first}. Olfateó cada poste del barrio.`; } });
+        if (n.age >= 1) A({ id: 'truco', icon: '🎓', label: 'Enseñarle un truco', sub: (n.tricks || []).length ? `Sabe ${n.tricks.length} truco${n.tricks.length === 1 ? '' : 's'}` : 'Todavía no sabe ninguno', limit: 1, run: (g) => rels.teachTrick(g, n, r) });
+        if (n.age >= 1) A({ id: 'concurso', icon: '🏆', label: 'Anotarl' + U.gw(n.gender, 'o', 'a') + ' en un concurso', sub: '$50 de inscripción. Premios en efectivo', limit: 1, when: () => p.money >= 50, run: (g) => rels.petShow(g, n, r) });
         A({ id: 'vet', icon: '🩺', label: 'Llevar al veterinario', sub: '$250', limit: 1, run: (g) => { MV.fx.money(g, -250); n.health = U.clamp(n.health + U.int(10, 25), 0, 100); n.lifespan = (n.lifespan || 10) + (U.chance(0.3) ? 1 : 0); return `${n.first} fue al veterinario. Odia al veterinario.`; } });
         A({ id: 'regalar_mascota', icon: '📦', label: 'Dar en adopción', sub: 'Adiós', limit: 1, confirm: `¿Dar en adopción a ${n.first}?`, run: (g) => { MV.removeRel(g, n.id); MV.fx.stat(g, 'karma', -5); MV.fx.stat(g, 'happy', -6); return `Diste en adopción a ${n.first}. Te miró por última vez con ojos de traición.`; } });
-        return list;
+        return list.filter((a) => !a.when || a.when(g));
       }
       A({ id: 'conversar', icon: '💬', label: 'Conversar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(1, 6), 0, 100); return U.pick([`Hablaste con ${n.first} sobre la vida. ${U.cap(MV.relLabel(t, n).toLowerCase())} feliz.`, `Charlaron de todo y de nada con ${n.first}.`, `${n.first} te contó un chisme jugoso.`, `Hablaron del clima durante 20 minutos. Intensísimo.`]); } });
       A({ id: 'tiempo', icon: '🫂', label: 'Pasar tiempo juntos', sub: '+relación, +felicidad', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Pasaste la tarde con ${n.first}. ${U.pick(['Vieron una película malísima.', 'Cocinaron algo incomible y se rieron mucho.', 'Fueron a caminar por el parque.', 'Jugaron cartas y hubo trampas.'])}`]); } });
@@ -215,7 +276,7 @@
         if (adult && n.age >= 18) A({ id: 'intimidad', icon: '🌙', label: 'Pasar la noche juntos', sub: '(fundido a negro)', limit: 2,
           run: (g) => {
             r.rel = U.clamp(r.rel + U.int(3, 8), 0, 100); MV.fx.stat(g, 'happy', U.int(4, 8)); MV.fx.stat(g, 'stress', -4);
-            if (rels.fertile(g, n) && U.chance(0.06)) { MV.EV.push(g, 'embarazo_sorpresa', { target: n.id }, true); }
+            MV.EV.push(g, 'proteccion', { target: n.id, casual: false }, true);
             return U.pick([`Pasaste la noche con ${n.first}. Los detalles quedan entre ustedes y las sábanas.`, `Noche especial con ${n.first}. Los vecinos golpearon la pared.`, `Velas, música... y un calambre en el peor momento. Igual fue lindo.`]);
           } });
         if (rels.fertile(g, n) && t !== 'amante') A({ id: 'bebe', icon: '👶', label: p.flags.buscandoBebe ? 'Ya están buscando un bebé' : 'Buscar un bebé', sub: 'Puede tardar', limit: 1,
@@ -277,8 +338,7 @@
         } });
       }
       // — Planes con familia y amigos —
-      const grown = n.age >= 14 && (p.age >= 14 || MV.FAMILY.includes(t));
-      if (['amigo', 'padre', 'hermano', 'hijo', 'abuelo', 'companero', 'conyuge', 'pareja'].includes(t) && grown && p.age >= 14) {
+      if (['amigo', 'padre', 'hermano', 'hijo', 'abuelo', 'companero', 'conyuge', 'pareja'].includes(t) && n.age >= 14 && p.age >= 14) {
         A({ id: 'comer_afuera', icon: '🍔', label: 'Salir a comer', sub: '$80', limit: 1, when: () => p.money >= 80 || p.age < 18, run: (g) => { if (p.age >= 18) MV.fx.money(g, -80); bump(4, 8); return `Salieron a comer con ${n.first}. ${U.pick(['Pidieron demasiado.', 'El mozo se equivocó con todo y igual dejaron propina.', 'Hablaron tres horas sin mirar el celular.'])}`; } });
         A({ id: 'cine_juntos', icon: '🍿', label: 'Ir al cine juntos', sub: '+relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'happy', 2); return `Fueron al cine con ${n.first}. ${U.pick(['Se durmió a la mitad.', 'Lloraron los dos y fingieron que no.', 'Comentó toda la película. Toda.'])}`; } });
         A({ id: 'gym_juntos', icon: '🏋️', label: 'Ir al gimnasio juntos', sub: '+salud, +relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'health', 2); n.health = U.clamp(n.health + 2, 0, 100); return `Entrenaron juntos con ${n.first}. Se motivaron mutuamente (y se quejaron mutuamente).`; } });
@@ -295,12 +355,22 @@
         n.health = U.clamp(n.health + U.int(8, 18), 0, 100); bump(4, 8); MV.fx.stat(g, 'karma', 2);
         return `Llevaste a ${n.first} al médico. Le ajustaron las pastillas y se quejó de la sala de espera todo el viaje.`;
       } });
+      if (t === 'nieto') A({ id: 'consentir', icon: '🍭', label: 'Malcriarl' + U.gw(n.gender, 'o', 'a'), sub: '$100. Golosinas y permisos', limit: 1, when: () => p.money >= 100, run: (g) => {
+        MV.fx.money(g, -100); bump(6, 12); MV.fx.stat(g, 'happy', 3);
+        const par = n.parentId && g.people[n.parentId], pr = par && MV.relOf(g, par.id);
+        if (pr && par.alive && U.chance(0.3)) { pr.rel = U.clamp(pr.rel - 3, 0, 100); return `Le diste a ${n.first} tres helados antes de cenar. ${par.first} te miró con odio.`; }
+        return U.pick([`Llevaste a ${n.first} a comprar juguetes. Salieron con la mitad del negocio.`, `Le dejaste a ${n.first} quedarse despiert${U.gw(n.gender, 'o', 'a')} hasta las 2. Es tu secreto.`, `${n.first} te dijo "sos ${U.gw(g.p.gender, 'el mejor abuelo', 'la mejor abuela')} del mundo". Valió cada peso.`]);
+      } });
+      if (t === 'nieto' && n.age >= 4 && n.age <= 16) A({ id: 'historias_nieto', icon: '🪑', label: 'Contarle historias de tu vida', sub: '+relación', limit: 1, run: (g) => {
+        bump(4, 9); n.smarts = U.clamp(n.smarts + 1, 0, 100);
+        return U.pick([`Le contaste a ${n.first} cómo era el mundo sin internet. No te creyó.`, `Le contaste a ${n.first} tus aventuras de juventud. Exageraste un 300 %.`, `${n.first} escuchó tus historias con la boca abierta. Después preguntó si eras un dinosaurio.`]);
+      } });
       if (t === 'hijo' && n.age >= 6 && n.age <= 15) A({ id: 'tarea', icon: '✏️', label: 'Ayudar con la tarea', sub: '+inteligencia del niño', limit: 1, run: (g) => {
         n.smarts = U.clamp(n.smarts + U.int(2, 5), 0, 100); bump(3, 7);
         return U.pick([`Ayudaste a ${n.first} con la tarea de matemáticas. Descubriste que no recordabas nada.`, `Hicieron una maqueta del sistema solar. Plutón quedó como planeta, por las dudas.`]);
       } });
-      if (t === 'hijo' && n.age >= 2 && n.age <= 12) A({ id: 'parque', icon: '🛝', label: 'Llevarl' + U.gw(n.gender, 'o', 'a') + ' al parque', sub: '+relación, +felicidad', limit: 1, run: (g) => { bump(4, 9); MV.fx.stat(g, 'happy', 3); n.health = U.clamp(n.health + 2, 0, 100); return `Fueron al parque. ${n.first} se tiró del tobogán 47 veces. Tú una, y te trabaste.`; } });
-      if (t === 'hijo' && n.age >= 5 && n.age <= 17 && (p.skills.deporte >= 40 || Object.values(p.sportsExp || {}).some((x) => x >= 3))) A({ id: 'ensenar_deporte', icon: '⚽', label: 'Enseñarle tu deporte', sub: '+salud y relación', limit: 1, run: (g) => {
+      if ((t === 'hijo' || t === 'nieto') && n.age >= 2 && n.age <= 12) A({ id: 'parque', icon: '🛝', label: 'Llevarl' + U.gw(n.gender, 'o', 'a') + ' al parque', sub: '+relación, +felicidad', limit: 1, run: (g) => { bump(4, 9); MV.fx.stat(g, 'happy', 3); n.health = U.clamp(n.health + 2, 0, 100); return `Fueron al parque. ${n.first} se tiró del tobogán 47 veces. Tú una, y te trabaste.`; } });
+      if ((t === 'hijo' || t === 'nieto') && n.age >= 5 && n.age <= 17 && (p.skills.deporte >= 40 || Object.values(p.sportsExp || {}).some((x) => x >= 3))) A({ id: 'ensenar_deporte', icon: '⚽', label: 'Enseñarle tu deporte', sub: '+salud y relación', limit: 1, run: (g) => {
         n.health = U.clamp(n.health + U.int(2, 5), 0, 100); bump(4, 9); MV.fx.skill(g, 'deporte', 1);
         return `Le enseñaste a ${n.first} a jugar. ${U.pick(['Tiene talento: ya te gana.', 'Pateó la pelota al techo del vecino. Dos veces.', 'Dice que de grande quiere ser como tú.'])}`;
       } });
@@ -347,8 +417,28 @@
     text: (g) => g.p.gender === 'f' ? 'Estás embarazada. Con {t}. No estaba en los planes.' : '{t} está embarazada. De ti. No estaba en los planes.',
     choices: [
       { t: '👶 Tener al bebé', eff: (g, ctx) => rels.birth(g, MV.person(g, ctx.target)) },
-      { t: '🏃 Huir del país (moralmente dudoso)', when: (g) => g.p.gender === 'm', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) { r.type = 'ex'; r.rel = 0; } MV.fx.stat(g, 'karma', -25); return 'Desapareciste. Cambiaste de número. Tu karma tomó nota.'; } },
+      { t: '🏃 Huir del país (moralmente dudoso)', when: (g) => g.p.gender === 'm', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) { rels.makeEx(g, r); r.rel = 0; } MV.fx.stat(g, 'karma', -25); return 'Desapareciste. Cambiaste de número. Tu karma tomó nota.'; } },
       { t: '🤝 Decidirlo juntos con calma', eff: (g, ctx) => { if (U.chance(0.5)) return rels.birth(g, MV.person(g, ctx.target)); return 'Lo hablaron con calma y decidieron que no era el momento. Siguen juntos.'; } }
+    ]
+  });
+
+  MV.ev({
+    id: 'proteccion', manual: true, prison: 'any', icon: '🛡️', scene: 'hogar', title: 'Antes de apagar la luz',
+    text: 'Con {t} la noche promete. Antes de que se apague la luz, una pregunta de adultos: ¿protección?',
+    choices: [
+      { t: (g, ctx) => (rels.fertile(g, MV.person(g, ctx.target)) ? '🛡️ Con protección (0 % de embarazo)' : '🛡️ Con protección'), eff: (g, ctx) => rels.afterNight(g, ctx, true) },
+      { t: (g, ctx) => (rels.fertile(g, MV.person(g, ctx.target)) ? `🎲 Sin protección (${Math.round(rels.UNPROTECTED_PREGNANCY * 100)} % de embarazo)` : `🎲 Sin protección (sin riesgo de embarazo${ctx.casual ? ', pero ojo con las ETS' : ''})`), eff: (g, ctx) => rels.afterNight(g, ctx, false) }
+    ]
+  });
+
+  MV.ev({
+    id: 'despues_noche', manual: true, prison: 'any', icon: '☕', scene: 'hogar', title: 'A la mañana siguiente',
+    text: 'Desayuno con {t}. Hay café, medialunas y un silencio que alguien tiene que romper. ¿Qué son ahora?',
+    choices: [
+      { t: '💑 Proponer que sean pareja', when: (g) => !MV.partner(g), eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'pareja', U.int(55, 80)); MV.fx.stat(g, 'happy', 8); return `Le propusiste a ${n.first} que sean pareja y dijo que sí. Ahora salen.`; } },
+      { t: '🤫 Seguir viéndose en secreto', when: (g) => !!MV.partner(g), eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'amante', U.int(45, 70)); MV.fx.stat(g, 'karma', -3); return `${n.first} y tú acordaron seguir viéndose. En secreto. ${MV.partner(g).n.first} no sabe nada... todavía.`; } },
+      { t: '🤝 Quedar como amigos', eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'amigo', U.int(40, 65)); return `Quedaron como amigos con ${n.first}. Raro, pero funciona.`; } },
+      { t: '👋 Solo fue una noche', eff: (g, ctx) => { const n = MV.person(g, ctx.target); return `Se despidieron con un abrazo. ${n.first} será un buen recuerdo (o una anécdota).`; } }
     ]
   });
 
