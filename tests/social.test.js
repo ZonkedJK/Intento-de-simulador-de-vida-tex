@@ -68,3 +68,61 @@ test('la acción de regalo usa el menú desplegable en la interfaz', () => {
   assert.equal(a.ui, 'gift');
   assert.equal(a.relId, r.id);
 });
+
+const ids = (MV, g, r, n) => MV.sys.rels.actions(g, r, n).map((a) => a.id);
+
+test('la pareja tiene acciones románticas nuevas', () => {
+  const MV = load();
+  const { g, n, r } = withPerson(MV, 'pareja', 30);
+  const list = ids(MV, g, r, n);
+  ['cena_casera', 'poema', 'bailar', 'series', 'sorpresa', 'desayuno', 'convivir', 'espiar_celular'].forEach((id) => assert.ok(list.includes(id), 'falta ' + id));
+});
+
+test('mudarse juntos comparte los gastos y se termina al cortar', () => {
+  const MV = load({ seed: 21 });
+  const { g, n, r } = withPerson(MV, 'pareja', 30);
+  g.p.housing = 'alquiler'; g.p.rent = MV.RENTALS[2];
+  const before = MV.sys.money.livingCost(g);
+  const a = MV.sys.rels.actions(g, r, n).find((x) => x.id === 'convivir');
+  MV.doAction(g, a, undefined, r.acts = {});
+  assert.equal(g.p.flags.convive, n.id);
+  assert.ok(MV.sys.money.livingCost(g) < before, 'los gastos deberían bajar');
+  assert.ok(!ids(MV, g, r, n).includes('convivir'), 'ya conviven');
+  MV.sys.rels.breakUp(g, n);
+  assert.equal(g.p.flags.convive, undefined);
+});
+
+test('renovar los votos requiere años de casados y cuesta dinero', () => {
+  const MV = load({ seed: 22 });
+  const { g, n, r } = withPerson(MV, 'conyuge', 40);
+  r.since = g.p.age - 2;
+  assert.ok(!ids(MV, g, r, n).includes('votos'), 'con 2 años de casados no');
+  r.since = g.p.age - 10;
+  const a = MV.sys.rels.actions(g, r, n).find((x) => x.id === 'votos');
+  assert.ok(a);
+  const m = g.p.money, rel = r.rel;
+  MV.doAction(g, a, undefined, r.acts = {});
+  assert.ok(g.p.money < m && r.rel > rel);
+});
+
+test('con los hijos hay tareas, parque y deporte; con padres mayores, llevarlos al médico', () => {
+  const MV = load({ seed: 23 });
+  const { g, n, r } = withPerson(MV, 'hijo', 9);
+  g.p.skills.deporte = 60;
+  ['tarea', 'parque', 'ensenar_deporte'].forEach((id) => assert.ok(ids(MV, g, r, n).includes(id), 'falta ' + id));
+  const s0 = n.smarts;
+  MV.doAction(g, MV.sys.rels.actions(g, r, n).find((x) => x.id === 'tarea'), undefined, r.acts = {});
+  assert.ok(n.smarts > s0, 'la tarea sube la inteligencia del hijo');
+  const o = withPerson(MV, 'padre', 72, 24);
+  o.n.health = 40;
+  MV.doAction(o.g, MV.sys.rels.actions(o.g, o.r, o.n).find((x) => x.id === 'medico_familiar'), undefined, o.r.acts = {});
+  assert.ok(o.n.health > 40);
+});
+
+test('amigos y familia tienen planes nuevos', () => {
+  const MV = load();
+  const { g, n, r } = withPerson(MV, 'amigo', 30);
+  ['comer_afuera', 'cine_juntos', 'gym_juntos', 'consejo', 'escuchar', 'prestar'].forEach((id) => assert.ok(ids(MV, g, r, n).includes(id), 'falta ' + id));
+  g.p.flags.emigro = true;
+  assert.ok(ids(MV, g, r, n).includes('videollamada'));
+});

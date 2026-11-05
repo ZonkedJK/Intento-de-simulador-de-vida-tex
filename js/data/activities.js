@@ -227,7 +227,7 @@
       .map((k) => ({ id: k, icon: MV.COUNTRIES[k].flag, label: MV.COUNTRIES[k].name, sub: MV.COUNTRIES[k].region })),
     run: (g, k) => {
       const p = g.p, C = MV.COUNTRIES[k];
-      fx.money(g, -3000); p.country = k; p.city = U.pick(C.cities);
+      fx.money(g, -3000); p.country = k; p.city = U.pick(C.cities); p.flags.emigro = true;
       MV.rels(g, ['amigo', 'companero']).forEach((x) => { x.r.rel = U.clamp(x.r.rel - 20, 0, 100); });
       if (p.job && p.job.type === 'full' && U.chance(0.7)) MV.sys.career.leave(g, 'emigración');
       MV.ach.unlock(g, 'emigrante');

@@ -115,7 +115,7 @@
     ctx: (g) => ({ pais: U.pick(Object.keys(MV.COUNTRIES).filter((c) => c !== g.p.country)) }),
     text: (g, ctx) => `Te ofrecen un puesto similar en ${MV.COUNTRIES[ctx.pais].name} ${MV.COUNTRIES[ctx.pais].flag} con 30% más de sueldo.`,
     choices: [
-      { t: 'Aceptar y mudarme', eff: (g, ctx) => { const k = ctx.pais; const Cc = MV.COUNTRIES[k]; g.p.country = k; g.p.city = U.pick(Cc.cities); if (g.p.job) g.p.job.salary = Math.round(g.p.job.salary * 1.3); MV.ach.unlock(g, 'emigrante'); MV.rels(g, ['amigo', 'companero']).forEach((x) => { x.r.rel = U.clamp(x.r.rel - 15, 0, 100); }); fx.stat(g, 'stress', 8); return `Te mudaste a ${g.p.city}, ${Cc.name}. Nueva vida, nuevo sueldo, nuevo idioma para equivocarte.`; } },
+      { t: 'Aceptar y mudarme', eff: (g, ctx) => { const k = ctx.pais; const Cc = MV.COUNTRIES[k]; g.p.country = k; g.p.city = U.pick(Cc.cities); g.p.flags.emigro = true; if (g.p.job) g.p.job.salary = Math.round(g.p.job.salary * 1.3); MV.ach.unlock(g, 'emigrante'); MV.rels(g, ['amigo', 'companero']).forEach((x) => { x.r.rel = U.clamp(x.r.rel - 15, 0, 100); }); fx.stat(g, 'stress', 8); return `Te mudaste a ${g.p.city}, ${Cc.name}. Nueva vida, nuevo sueldo, nuevo idioma para equivocarte.`; } },
       { t: 'Rechazar', eff: { msg: 'Rechazaste la oferta. Te quedas cerca de los tuyos (y de tu panadería favorita).' } }
     ] });
   ev({ id: 'hijo_dibujo', age: [20, 70], when: H.has('hijo', (n) => n.age >= 3 && n.age <= 9), target: H.rel('hijo', (n) => n.age >= 3 && n.age <= 9), icon: '🖍️', text: '{t} te dibujó como un monstruo con colmillos y cuchillos. Dice que es "un retrato de la familia".', auto: { happy: 2, rel: 3 } });

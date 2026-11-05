@@ -52,6 +52,7 @@
       if (p.housing === 'alquiler' && p.rent) c += p.rent.cost;
       const partner = MV.partner(g);
       if (partner && partner.r.type === 'conyuge') c *= 0.75; // gastos compartidos
+      else if (partner && p.flags.convive === partner.n.id) c *= 0.8; // conviven
       const kids = MV.rels(g, 'hijo').filter((x) => x.n.age < 18).length;
       c += kids * 3200;
       c += MV.rels(g, 'mascota').length * 350;
