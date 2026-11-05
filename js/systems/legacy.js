@@ -85,6 +85,8 @@
       g.over = true;
       g.queue = [];
       MV.ach.check(g);
+      MV.sys.challenge.yearly(g);
+      g.queue = [];
       if (p.age < 30) MV.ach.unlock(g, 'joven');
       if (p.flags.muerteAbsurda) MV.ach.unlock(g, 'muerte_absurda');
       const J = p.job ? MV.sys.career.title(p) : (p.jobs.length ? p.jobs[p.jobs.length - 1].title : null);
@@ -98,7 +100,8 @@
         ach: (g.achLife || []).slice(), aspiration: p.aspiration ? Object.assign({ name: (MV.ASPIRATIONS.find((a) => a.id === p.aspiration.id) || {}).name }, p.aspiration) : null,
         generation: g.generation, dynasty: g.dynasty, country: p.country, city: p.city,
         grandkids: MV.rels(g, 'nieto', true).length,
-        works: (p.works || []).filter((w) => w.hit).map((w) => w.title).slice(-3)
+        works: (p.works || []).filter((w) => w.hit).map((w) => w.title).slice(-3),
+        challenge: MV.sys.challenge.label(g)
       };
       g.summary = summary;
       MV.log(g, `Moriste a los ${p.age} años por ${cause}.`, '🪦', 'bad');
@@ -146,8 +149,11 @@
       const grand = (MV.relOf(g, kidId) || {}).type === 'nieto';
       const ng = {
         version: MV.VERSION, year: g.year, startYear: g.year - c.age, people: {}, log: [], queue: [], evDone: {},
-        generation: (g.generation || 1) + 1, dynasty: g.dynasty, over: false, achLife: [], rng: 0
+        generation: (g.generation || 1) + 1, dynasty: g.dynasty, over: false, achLife: [], rng: 0,
+        challenge: null
       };
+      const ch = MV.sys.challenge.status(g);
+      if (ch && ch.def.dynasty && !ch.done && !ch.failed) ng.challenge = Object.assign({}, g.challenge, { countries: [] });
       const p = MV.newPlayerBase({
         first: c.first, last: c.last || old.last, gender: c.gender, age: c.age, country: old.country, city: old.city, look: c.look,
         stats: { happy: U.int(35, 65), health: U.clamp(c.health, 30, 100), smarts: c.smarts, looks: c.looks }

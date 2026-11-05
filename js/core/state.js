@@ -275,6 +275,7 @@
       const s = MV.rels(g, 'hermano')[0].n;
       MV.log(g, `Tienes ${U.gw(s.gender, 'un hermano mayor', 'una hermana mayor')}, ${s.first}, que ya te mira con desconfianza.`, '🧒');
     } else if (nSib > 1) MV.log(g, `Tienes ${nSib} hermanos mayores. Serás el último en elegir el postre.`, '🧒');
+    MV.sys.challenge.start(g, opts.challenge);
     g.rng = MV.rng.getState();
     return g;
   };

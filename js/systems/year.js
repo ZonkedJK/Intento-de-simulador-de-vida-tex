@@ -22,6 +22,7 @@
     MV.sys.crime.yearly(g);
     MV.sys.rels.yearly(g);
     MV.sys.legacy.yearly(g);
+    MV.sys.challenge.yearly(g);
     const cause = MV.sys.health.deathCheck(g);
     if (cause) { MV.sys.legacy.die(g, cause); return true; }
     MV.EV.runYear(g);

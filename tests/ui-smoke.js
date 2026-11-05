@@ -29,7 +29,10 @@ const SHOTS = process.argv[2] || null;
   await page.reload();
   await page.click('text=Empezar una vida nueva');
   await page.fill('#f-first', 'Probeta');
+  await page.selectOption('#f-challenge', 'centenario');
+  if (!/100/.test(await page.$eval('#f-challenge-desc', (e) => e.textContent))) errors.push('El desafío no muestra su descripción');
   await page.click('text=Nacer');
+  if (await page.evaluate(() => (MV.UI.g.challenge || {}).id) !== 'centenario') errors.push('El desafío elegido no quedó en la partida');
   for (let y = 0; y < 22; y++) { await tryClick('.ageup'); await page.waitForTimeout(30); await resolve(); }
   await page.waitForTimeout(800);
   if (await page.evaluate(() => !MV.UI.g || MV.UI.g.over)) { // murió joven: otra vida para seguir probando
@@ -125,6 +128,7 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
   const worksText = await page.$eval('#works-list', (e) => e.textContent).catch(() => '');
+  if (await page.evaluate(() => MV.UI.g.challenge && !document.getElementById('profile-challenge'))) errors.push('La ficha no muestra el desafío');
   if (!/Memorias de un mapache/.test(worksText)) errors.push('Mis obras no muestra el libro: ' + worksText);
   await page.evaluate(() => MV.UI.closeSheets());
   // Noticias del mundo en Bienes y dinero

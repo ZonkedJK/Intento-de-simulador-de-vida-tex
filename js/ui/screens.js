@@ -47,6 +47,10 @@
         .map((k) => h('option', { value: k }, `${MV.COUNTRIES[k].flag} ${MV.COUNTRIES[k].name}`)))));
     country.value = st.country;
     country.addEventListener('change', () => { st.country = country.value; });
+    const chal = h('select', { class: 'select', id: 'f-challenge' }, h('option', { value: '' }, 'Sin desafío'),
+      MV.CHALLENGES.map((c) => h('option', { value: c.id }, `${c.icon} ${c.name}`)));
+    const chalNote = h('p', { class: 'note', id: 'f-challenge-desc', style: { margin: '4px 0 0' } }, 'Una meta para esta vida. Si la cumples, ganas un logro.');
+    chal.addEventListener('change', () => { const C = MV.CHALLENGES.find((c) => c.id === chal.value); chalNote.textContent = C ? C.desc : 'Una meta para esta vida. Si la cumples, ganas un logro.'; });
     const segG = h('div', { class: 'seg', role: 'group', 'aria-label': 'Género' });
     const drawSeg = () => {
       UI.clear(segG);
@@ -66,6 +70,7 @@
     const rnd = (fn) => h('button', { type: 'button', class: 'btn', 'aria-label': 'Al azar', onclick: fn }, '🎲');
     const born = (random) => {
       const opts = random ? {} : { first: (st.first || '').trim() || MV.randomFirst(st.gender, st.country), last: (st.last || '').trim() || MV.randomLast(st.country), gender: st.gender, country: st.country, look: Object.assign({}, look) };
+      opts.challenge = chal.value || null;
       UI.startGame(MV.newGame(opts));
     };
     drawSeg(); drawSw(); drawPreview();
@@ -79,6 +84,7 @@
           h('div', { class: 'field' }, h('span', { class: 'label' }, 'Género'), segG),
           h('div', { class: 'field' }, h('label', { for: 'f-country' }, 'País de nacimiento'), country),
           h('div', { class: 'field' }, h('span', { class: 'label' }, 'Tono de piel'), sw),
+          h('div', { class: 'field' }, h('label', { for: 'f-challenge' }, 'Desafío (opcional)'), chal, chalNote),
           note('La familia, la clase social, la inteligencia y la apariencia te tocan por sorteo. Como en la vida.'))),
       h('div', { class: 'cover-actions' },
         h('button', { class: 'btn primary block', onclick: () => born(false) }, '👶 Nacer'),
@@ -209,6 +215,11 @@
         body.append(title('Aspiración de vida'));
         const A = p.aspiration && MV.ASPIRATIONS.find((a) => a.id === p.aspiration.id);
         body.append(h('div', { class: 'box' }, A ? h('p', null, `${A.icon} ${A.name}: ${A.desc} ${p.aspiration.done ? '¡Cumplida!' : ''}`) : h('p', null, p.age < 14 ? 'La elegirás a los 14 años.' : 'Sin aspiración. Vives al día.')));
+        const ch = MV.sys.challenge.status(g);
+        if (ch) {
+          body.append(title('Desafío'));
+          body.append(h('div', { class: 'box', id: 'profile-challenge' }, h('p', { style: { margin: 0 } }, h('b', null, MV.sys.challenge.label(g))), h('p', { class: 'note', style: { margin: '4px 0 0' } }, ch.def.desc)));
+        }
         body.append(title('Educación'));
         const eb = h('div', { class: 'box' });
         eb.append(kv('Nivel', MV.EDU.names[MV.EDU.order[MV.eduLevel(p)]]));
