@@ -131,6 +131,19 @@ const SHOTS = process.argv[2] || null;
   if (await page.evaluate(() => MV.UI.g.challenge && !document.getElementById('profile-challenge'))) errors.push('La ficha no muestra el desafío');
   if (!/Memorias de un mapache/.test(worksText)) errors.push('Mis obras no muestra el libro: ' + worksText);
   await page.evaluate(() => MV.UI.closeSheets());
+  // Intimidad: la protección se elige en pantalla y después decides qué son
+  await page.evaluate(() => { const g = MV.UI.g; g.p.age = Math.max(g.p.age, 20); const n = MV.newNPC(g, { age: 25, gender: g.p.gender === 'm' ? 'f' : 'm' }); MV.UI.closeSheets(); g.queue = []; MV.EV.push(g, 'proteccion', { target: n.id, casual: true }, true); MV.UI.flushQueue(); });
+  await page.waitForSelector('#layer .choice');
+  const protLabels = await page.$$eval('#layer .choice', (els) => els.map((e) => e.textContent).join(' | '));
+  if (!/Con protección \(0 % de embarazo\)/.test(protLabels) || !/Sin protección \(60 % de embarazo\)/.test(protLabels)) errors.push('La pregunta de protección no muestra los porcentajes: ' + protLabels);
+  await page.click('#layer .choice:has-text("Con protección")');
+  await page.waitForTimeout(150);
+  if (await page.$('#layer .card .btn.primary')) await page.click('#layer .card .btn.primary');
+  await page.waitForSelector('#layer .choice');
+  const morning = await page.$$eval('#layer .choice', (els) => els.map((e) => e.textContent).join(' | '));
+  if (!/Quedar como amigos/.test(morning)) errors.push('No apareció la decisión de la mañana siguiente: ' + morning);
+  await resolve();
+  await page.evaluate(() => MV.UI.closeSheets());
   // Noticias del mundo en Bienes y dinero
   await page.evaluate(() => { const g = MV.UI.g; g.log.push({ age: g.p.age, year: g.year, items: [] }); MV.sys.world.set(g, 'recesion'); MV.UI.showAssets(); });
   const newsText = await page.$eval('#world-news', (e) => e.textContent).catch(() => '');

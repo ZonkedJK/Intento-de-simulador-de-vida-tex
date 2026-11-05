@@ -103,6 +103,22 @@
       return `${['', '🥇 ¡Primer puesto!', '🥈 Segundo puesto.', '🥉 Tercer puesto.'][place]} ${n.first} ${(n.tricks || []).length ? `deslumbró con "${U.pick(n.tricks)}"` : 'se ganó al jurado con pura simpatía'}. Premio: ${U.money(prize)}.`;
     },
 
+    /** Probabilidad de embarazo sin protección (con protección es 0). */
+    UNPROTECTED_PREGNANCY: 0.6,
+
+    /** Resuelve la elección de protección: embarazo, ETS en lo casual, y qué son después. */
+    afterNight(g, ctx, safe) {
+      const n = MV.person(g, ctx.target);
+      if (!n || !n.alive) return 'La noche terminó antes de empezar.';
+      const pregnant = !safe && rels.fertile(g, n) && U.chance(rels.UNPROTECTED_PREGNANCY);
+      if (ctx.casual && U.chance(safe ? 0.01 : 0.12)) MV.sys.health.add(g, 'ets');
+      // Al frente de la cola, en orden inverso: primero "a la mañana siguiente", después la noticia.
+      if (pregnant) MV.EV.push(g, 'embarazo_sorpresa', { target: n.id }, true);
+      if (ctx.casual) MV.EV.push(g, 'despues_noche', { target: n.id }, true);
+      return safe ? U.pick([`Usaron protección con ${n.first}. Responsables y románticos a la vez. Fundido a negro.`, 'Protección primero, pasión después. Tu profesor de biología estaría orgulloso. Fundido a negro.'])
+        : U.pick([`Decidieron arriesgarse con ${n.first}. Fundido a negro... y que sea lo que el destino quiera.`, 'Sin protección. Fundido a negro. Tu yo del futuro tomó nota.']);
+    },
+
     /** Convierte la relación en ex y deja de convivir si vivían juntos. */
     makeEx(g, r) {
       if (!r) return;
@@ -260,7 +276,7 @@
         if (adult && n.age >= 18) A({ id: 'intimidad', icon: '🌙', label: 'Pasar la noche juntos', sub: '(fundido a negro)', limit: 2,
           run: (g) => {
             r.rel = U.clamp(r.rel + U.int(3, 8), 0, 100); MV.fx.stat(g, 'happy', U.int(4, 8)); MV.fx.stat(g, 'stress', -4);
-            if (rels.fertile(g, n) && U.chance(0.06)) { MV.EV.push(g, 'embarazo_sorpresa', { target: n.id }, true); }
+            MV.EV.push(g, 'proteccion', { target: n.id, casual: false }, true);
             return U.pick([`Pasaste la noche con ${n.first}. Los detalles quedan entre ustedes y las sábanas.`, `Noche especial con ${n.first}. Los vecinos golpearon la pared.`, `Velas, música... y un calambre en el peor momento. Igual fue lindo.`]);
           } });
         if (rels.fertile(g, n) && t !== 'amante') A({ id: 'bebe', icon: '👶', label: p.flags.buscandoBebe ? 'Ya están buscando un bebé' : 'Buscar un bebé', sub: 'Puede tardar', limit: 1,
@@ -403,6 +419,26 @@
       { t: '👶 Tener al bebé', eff: (g, ctx) => rels.birth(g, MV.person(g, ctx.target)) },
       { t: '🏃 Huir del país (moralmente dudoso)', when: (g) => g.p.gender === 'm', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) { rels.makeEx(g, r); r.rel = 0; } MV.fx.stat(g, 'karma', -25); return 'Desapareciste. Cambiaste de número. Tu karma tomó nota.'; } },
       { t: '🤝 Decidirlo juntos con calma', eff: (g, ctx) => { if (U.chance(0.5)) return rels.birth(g, MV.person(g, ctx.target)); return 'Lo hablaron con calma y decidieron que no era el momento. Siguen juntos.'; } }
+    ]
+  });
+
+  MV.ev({
+    id: 'proteccion', manual: true, prison: 'any', icon: '🛡️', scene: 'hogar', title: 'Antes de apagar la luz',
+    text: 'Con {t} la noche promete. Antes de que se apague la luz, una pregunta de adultos: ¿protección?',
+    choices: [
+      { t: (g, ctx) => (rels.fertile(g, MV.person(g, ctx.target)) ? '🛡️ Con protección (0 % de embarazo)' : '🛡️ Con protección'), eff: (g, ctx) => rels.afterNight(g, ctx, true) },
+      { t: (g, ctx) => (rels.fertile(g, MV.person(g, ctx.target)) ? `🎲 Sin protección (${Math.round(rels.UNPROTECTED_PREGNANCY * 100)} % de embarazo)` : `🎲 Sin protección (sin riesgo de embarazo${ctx.casual ? ', pero ojo con las ETS' : ''})`), eff: (g, ctx) => rels.afterNight(g, ctx, false) }
+    ]
+  });
+
+  MV.ev({
+    id: 'despues_noche', manual: true, prison: 'any', icon: '☕', scene: 'hogar', title: 'A la mañana siguiente',
+    text: 'Desayuno con {t}. Hay café, medialunas y un silencio que alguien tiene que romper. ¿Qué son ahora?',
+    choices: [
+      { t: '💑 Proponer que sean pareja', when: (g) => !MV.partner(g), eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'pareja', U.int(55, 80)); MV.fx.stat(g, 'happy', 8); return `Le propusiste a ${n.first} que sean pareja y dijo que sí. Ahora salen.`; } },
+      { t: '🤫 Seguir viéndose en secreto', when: (g) => !!MV.partner(g), eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'amante', U.int(45, 70)); MV.fx.stat(g, 'karma', -3); return `${n.first} y tú acordaron seguir viéndose. En secreto. ${MV.partner(g).n.first} no sabe nada... todavía.`; } },
+      { t: '🤝 Quedar como amigos', eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'amigo', U.int(40, 65)); return `Quedaron como amigos con ${n.first}. Raro, pero funciona.`; } },
+      { t: '👋 Solo fue una noche', eff: (g, ctx) => { const n = MV.person(g, ctx.target); return `Se despidieron con un abrazo. ${n.first} será un buen recuerdo (o una anécdota).`; } }
     ]
   });
 
