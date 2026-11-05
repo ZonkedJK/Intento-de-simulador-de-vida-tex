@@ -46,9 +46,11 @@ test('cientos de vidas completas sin errores y con valores válidos', () => {
   const MV = load({ seed: 1 });
   const ages = [];
   for (let i = 0; i < 160; i++) {
-    const g = MV.newGame({ seed: 7000 + i });
+    // Una de cada tres vidas juega con un desafío, para recorrer sus comprobaciones.
+    const g = MV.newGame({ seed: 7000 + i, challenge: i % 3 === 0 ? MV.CHALLENGES[i % MV.CHALLENGES.length].id : undefined });
     live(MV, g, { check: checker(MV) });
     assert.ok(g.over, 'la vida debería terminar');
+    if (g.challenge) assert.ok(!/undefined|NaN/.test(MV.sys.legacy.summaryText(g)), 'resumen roto con desafío');
     assert.ok(g.summary && typeof g.summary.cause === 'string' && g.summary.cause.length, 'falta la causa de muerte');
     assert.ok(g.p.age >= 0 && g.p.age <= 130, 'edad imposible');
     ages.push(g.p.age);

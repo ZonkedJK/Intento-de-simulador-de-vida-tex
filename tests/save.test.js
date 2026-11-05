@@ -112,10 +112,29 @@ test('una partida de la versión 2 se migra a la 3 (tatuajes, mejoras y aspecto)
   const back = MV.loadGame();
   assert.ok(back, 'no se cargó');
   assert.equal(back.version, MV.VERSION);
-  assert.equal(MV.VERSION, 3);
+  assert.ok(MV.VERSION >= 3);
   assert.equal(JSON.stringify(back.p.tattoos), '[]');
   assert.equal(JSON.stringify(back.p.assets.find((a) => a.id === 'c1').upgrades), '[]');
   assert.match(MV.UI.avatarSVG({ age: 40, gender: back.p.gender, look: back.p.look, id: 'm', mood: 50 }), /^<svg/);
   assert.ok(MV.sys.money.upgradeOptions(back, 'c1').length === 14);
   for (let y = 0; y < 5 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
+});
+
+test('una partida v3 con mascotas e hijos se migra a v4 y sigue jugando', () => {
+  const { load } = require('./load');
+  const { resolveQueue } = require('./agent');
+  const MV = load({ seed: 44 });
+  const g = MV.newGame({ seed: 44 }); g.p.age = 50; g.p.money = 20000;
+  const pet = MV.newPet(g, 'perro', { age: 4 }); MV.addRel(g, pet, 'mascota', 80);
+  const kid = MV.newNPC(g, { age: 24, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+  g.version = 3; delete g.p.works; delete g.world; delete g.challenge; delete pet.tricks;
+  MV.store.set('milvidas.partida', g);
+  const back = MV.loadGame();
+  assert.equal(back.version, MV.VERSION);
+  assert.equal(MV.VERSION, 4);
+  assert.ok(Array.isArray(back.p.works));
+  assert.equal(back.world, null);
+  assert.equal(back.challenge, null);
+  for (let y = 0; y < 25 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
+  assert.ok(back.p.age > 50);
 });
