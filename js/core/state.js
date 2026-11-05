@@ -196,7 +196,7 @@
       record: [], prison: null, wanted: 0,
       license: false, aspiration: null,
       counters: {}, flags: {}, yearActs: {},
-      rels: [], heirId: null, followers: 0, club: null, sportsExp: {}, talent: MV.rollTalent ? MV.rollTalent() : {},
+      rels: [], heirId: null, followers: 0, club: null, sportsExp: {}, talent: MV.rollTalent ? MV.rollTalent() : {}, tattoos: [],
       orientation: o.orientation || (U.chance(0.88) ? 'hetero' : U.pick(['homo', 'bi']))
     };
   }

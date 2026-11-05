@@ -258,6 +258,7 @@
         const quality = ctx.order[i];
         let chance = 0.45 + (p.stats.smarts - 50) / 250 + (p.stats.looks - 50) / 350 + p.skills.carisma / 400 + [0.25, 0, -0.25][quality];
         if (p.record.length) chance -= 0.15;
+        if (p.flags.tatuajeCara) chance -= 0.08;
         if (J.type === 'part') chance += 0.2;
         if (quality === 2 && U.chance(0.1)) chance = 1;
         if (U.chance(U.clamp(chance, 0.05, 0.95))) {

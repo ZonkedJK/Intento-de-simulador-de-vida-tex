@@ -67,6 +67,7 @@
     alzheimer: { name: 'Alzheimer', icon: '🧩', drain: [3, 6], heal: 0, cure: 0.05, cost: 30000, minAge: 65, smarts: -6 },
     cirrosis: { name: 'Cirrosis', icon: '🍺', drain: [6, 12], heal: 0, cure: 0.3, cost: 40000, minAge: 30 },
     insomnio: { name: 'Insomnio', icon: '🌙', drain: [0, 2], heal: 0.4, cure: 0.7, cost: 400, stress: 5 },
+    infeccion_tatuaje: { name: 'Infección del tatuaje', icon: '🩹', drain: [1, 4], heal: 0.7, cure: 0.95, cost: 200 },
     lesion: { name: 'Lesión deportiva', icon: '🩼', drain: [2, 6], heal: 0.6, cure: 0.9, cost: 3000 },
     hipocondria: { name: 'Hipocondría', icon: '🩺', drain: [0, 1], heal: 0.2, cure: 0.5, cost: 2000, happy: -3, minAge: 20 }
   };
@@ -116,6 +117,29 @@
     { id: 'discoteca', name: 'Discoteca', icon: '🪩', cost: 300000, risk: 0.35, skill: 'carisma', margin: 0.45 },
     { id: 'funeraria', name: 'Funeraria', icon: '⚰️', cost: 120000, risk: 0.1, skill: 'carisma', margin: 0.25 }
   ];
+
+  // — Tatuajes —
+  MV.TATTOO_ARTISTS = {
+    garaje: { name: 'Tatuador de garaje', icon: '🪛', cost: 150, wobble: 6, infect: 0.15, bonus: -15, desc: 'Barato, mano temblorosa y agujas "esterilizadas" con fuego' },
+    estudio: { name: 'Estudio de tatuajes', icon: '🖋️', cost: 800, wobble: 1.5, infect: 0.02, bonus: 0, desc: 'Profesional y prolijo' },
+    famoso: { name: 'Artista famoso', icon: '🌟', cost: 5000, wobble: 0, infect: 0, bonus: 15, desc: 'Mejora tu dibujo y lo sube a sus redes' }
+  };
+  MV.TATTOO_PLACES = {
+    brazo: { name: 'Brazo', icon: '💪', mult: 1, art: 'el' },
+    espalda: { name: 'Espalda', icon: '🔙', mult: 1, art: 'la' },
+    pierna: { name: 'Pierna', icon: '🦵', mult: 0.8, art: 'la' },
+    cuello: { name: 'Cuello', icon: '🦒', mult: 1.3, art: 'el' },
+    cara: { name: 'Cara', icon: '😶', mult: 1.6, art: 'la', flag: 'tatuajeCara' }
+  };
+  MV.TATTOO_INKS = ['#1b1b1b', '#c0392b', '#1f5fbf', '#2e8b57', '#e0a100', '#8e44ad'];
+  MV.TATTOO_WIDTHS = [1.5, 3, 5];
+  /** Plantillas para calcar (trazos guía en coordenadas 0-100). */
+  MV.TATTOO_TEMPLATES = {
+    corazon: { name: 'Corazón', icon: '❤️', pts: [[50, 82, 22, 55, 18, 38, 24, 26, 36, 22, 46, 28, 50, 36, 54, 28, 64, 22, 76, 26, 82, 38, 78, 55, 50, 82]] },
+    ancla: { name: 'Ancla', icon: '⚓', pts: [[50, 18, 50, 80], [36, 30, 64, 30], [24, 62, 30, 74, 40, 80, 50, 82, 60, 80, 70, 74, 76, 62], [50, 12, 44, 16, 50, 22, 56, 16, 50, 12]] },
+    calavera: { name: 'Calavera', icon: '💀', pts: [[30, 50, 28, 36, 34, 24, 50, 18, 66, 24, 72, 36, 70, 50, 64, 58, 64, 70, 36, 70, 36, 58, 30, 50], [38, 40, 44, 36, 48, 42, 42, 46, 38, 40], [52, 42, 56, 36, 62, 40, 58, 46, 52, 42], [42, 70, 42, 78], [50, 70, 50, 78], [58, 70, 58, 78]] },
+    estrella: { name: 'Estrella', icon: '⭐', pts: [[50, 14, 59, 38, 84, 38, 64, 54, 72, 80, 50, 64, 28, 80, 36, 54, 16, 38, 41, 38, 50, 14]] }
+  };
 
   MV.ABSURD_DEATHS = [
     'Te atragantaste con una aceituna en una boda.',
