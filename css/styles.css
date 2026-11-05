@@ -153,6 +153,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .lvl-mid { background: var(--hl-yellow); }
 .lvl-lo { background: var(--hl-pink); }
 .stat .val { font-family: var(--font-hand); font-weight: 700; text-align: right; }
+.cond { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.cond-bar { width: 96px; height: 9px; flex: none; }
+.cond-val { font-family: var(--font-hand); font-weight: 700; font-size: 0.85rem; color: var(--ink); }
+.kv .cond { justify-content: flex-end; margin-top: 0; }
 .chips { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; padding-top: 4px; }
 .chip { font-size: 0.8rem; border: 1.5px solid var(--ink); border-radius: 999px; padding: 1px 9px; background: transparent; white-space: nowrap; }
 .chip.warn { background: var(--hl-pink); color: var(--on-hl); }

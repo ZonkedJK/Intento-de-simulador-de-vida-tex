@@ -80,10 +80,13 @@
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     },
     cap: (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s),
+    /** Nivel de color de una barra: rojo < 40, amarillo 40-70, verde 71-100. */
+    barLevel: (pct) => (pct >= 71 ? 'hi' : pct >= 40 ? 'mid' : 'lo'),
     /** Elige palabra según género: g('m'|'f'|'n'), masculino, femenino. */
     gw: (gender, m, f) => (gender === 'f' ? f : m),
     sum: (arr, fn) => arr.reduce((a, x) => a + (fn ? fn(x) : x), 0),
     deepClone: (o) => JSON.parse(JSON.stringify(o))
   };
   MV.U = U;
+  MV.barLevel = U.barLevel;
 })(window.MV = window.MV || {});

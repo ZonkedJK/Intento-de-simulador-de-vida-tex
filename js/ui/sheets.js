@@ -224,7 +224,7 @@
     if (!p.assets.length) body.append(note('No tienes bienes. Lo bueno: nadie te los puede robar.'));
     else {
       const l = h('div', { class: 'list' });
-      p.assets.forEach((a) => l.append(UI.row(a.icon, a.name, `Valor ${U.money(a.value)}, estado ${a.cond}%${a.rented ? ', alquilada' : ''}${p.home === a.id ? ', tu hogar' : ''}`, '›', () => showAsset(a.id))));
+      p.assets.forEach((a) => l.append(UI.row(a.icon, a.name, [`Valor ${U.money(a.value)}${a.rented ? ', alquilada' : ''}${p.home === a.id ? ', tu hogar' : ''}`, UI.condBar(a.cond)], '›', () => showAsset(a.id))));
       body.append(l);
     }
     // Comprar
@@ -258,7 +258,7 @@
         const g = UI.g, p = g.p, a = p.assets.find((x) => x.id === id);
         if (!a) { body.append(note('Ya no tienes esto.')); return; }
         const loan = p.loans.find((l) => l.assetId === a.id);
-        body.append(h('div', { class: 'box' }, h('p', null, h('b', null, `${a.icon} ${a.name}`)), kv('Valor', U.money(a.value)), kv('Estado', a.cond + '%'), loan ? kv('Hipoteca pendiente', U.money(loan.left)) : null, a.haunted ? h('p', { class: 'note' }, 'De noche se escuchan cadenas. Probablemente sean las cañerías.') : null));
+        body.append(h('div', { class: 'box' }, h('p', null, h('b', null, `${a.icon} ${a.name}`)), kv('Valor', U.money(a.value)), kv('Estado', UI.condBar(a.cond)), loan ? kv('Hipoteca pendiente', U.money(loan.left)) : null, a.haunted ? h('p', { class: 'note' }, 'De noche se escuchan cadenas. Probablemente sean las cañerías.') : null));
         const l = h('div', { class: 'list' });
         l.append(UI.row('🏷️', 'Vender', `Te darían unos ${U.money(Math.round(a.value * (0.75 + a.cond / 400)))}`, null, () => UI.confirm(`¿Vender ${a.name}?`, () => { UI.popSheet(); UI.runSystem('🏷️', () => MV.sys.money.sell(g, a.id)); }, 'Vender')));
         if (a.cond < 100) l.append(UI.row('🛠️', 'Reparar', 'Dejarlo como nuevo', null, () => UI.runSystem('🛠️', () => MV.sys.money.repair(g, a.id))));
@@ -278,10 +278,10 @@
         body.append(note(`Tienes ${U.money(p.money)}.${kind === 'casa' ? ' Con hipoteca pagas solo el 20% al contado.' : ''}`));
         if (!items.length) { body.append(note('No queda nada a la venta este año.')); return; }
         const l = h('div', { class: 'list' });
-        items.forEach((it) => l.append(UI.row(it.icon, it.name, `${U.money(it.value)}, estado ${it.cond}%`, '›', () => UI.sheet({
+        items.forEach((it) => l.append(UI.row(it.icon, it.name, [U.money(it.value), UI.condBar(it.cond)], '›', () => UI.sheet({
           title: 'Comprar', icon: it.icon,
           render: (b2) => {
-            b2.append(h('div', { class: 'box' }, h('p', null, h('b', null, it.name)), kv('Precio', U.money(it.value)), kv('Estado', it.cond + '%')));
+            b2.append(h('div', { class: 'box' }, h('p', null, h('b', null, it.name)), kv('Precio', U.money(it.value)), kv('Estado', UI.condBar(it.cond))));
             const ll = h('div', { class: 'list' });
             ll.append(UI.row('💵', 'Pagar al contado', U.money(it.value), null, () => { UI.popSheet(); UI.popSheet(); UI.runSystem(it.icon, () => MV.sys.money.buy(g, it, false)); }, p.money < it.value));
             if (kind === 'casa') ll.append(UI.row('🏦', 'Hipoteca a 25 años', `Entrada ${U.money(Math.round(it.value * 0.2))}`, null, () => { UI.popSheet(); UI.popSheet(); UI.runSystem(it.icon, () => MV.sys.money.buy(g, it, true)); }, p.money < it.value * 0.2));

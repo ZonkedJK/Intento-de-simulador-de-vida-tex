@@ -104,11 +104,18 @@
     return 'Sin trabajo';
   };
 
-  const lvl = (v) => (v >= 66 ? 'lvl-hi' : v >= 33 ? 'lvl-mid' : 'lvl-lo');
+  const lvl = (v) => 'lvl-' + MV.barLevel(v);
   UI.bar = function (v, max, invert) {
     const pct = U.clamp(Math.round((v / (max || 100)) * 100), 0, 100);
     return h('div', { class: 'bar', role: 'meter', 'aria-valuemin': '0', 'aria-valuemax': String(max || 100), 'aria-valuenow': String(Math.round(v)) },
       h('i', { class: lvl(invert ? 100 - pct : pct), style: { width: pct + '%' } }));
+  };
+
+  /** Barra compacta con el porcentaje (estado de bienes). */
+  UI.condBar = function (cond) {
+    const c = U.clamp(Math.round(cond), 0, 100);
+    return h('span', { class: 'cond' }, h('span', { class: 'bar cond-bar', role: 'meter', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(c), 'aria-label': 'Estado' },
+      h('i', { class: lvl(c), style: { width: c + '%' } })), h('span', { class: 'cond-val' }, c + '%'));
   };
 
   UI.renderGame = function () {
