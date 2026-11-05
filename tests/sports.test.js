@@ -150,3 +150,69 @@ test('vidas completas con el jugador automático siguen sin errores', () => {
   }
   assert.ok(pros >= 1, 'ninguna vida llegó al deporte profesional');
 });
+
+function athlete(MV, sport, rating, seed) {
+  const g = MV.newGame({ seed: seed || 1 });
+  const p = g.p;
+  p.age = 19; p.edu.done = ['primaria', 'secundaria'];
+  MV.sys.sports.sign(g, MV.sys.sports.makeOffer(g, sport, 0));
+  if (rating === 'alto') { p.skills.deporte = 100; p.skills.programacion = 100; p.stats.smarts = 100; p.stats.health = 100; p.talent[sport] = 15; p.sportsExp[sport] = 10; }
+  else { p.skills.deporte = 10; p.stats.health = 50; p.talent[sport] = -12; p.sportsExp[sport] = 1; }
+  return g;
+}
+
+test('buscar equipo con nivel alto ofrece la categoría superior; con nivel bajo, solo la misma', () => {
+  const MV = load({ seed: 40 });
+  let up = 0;
+  for (let i = 0; i < 20; i++) {
+    const g = athlete(MV, 'futbol', 'alto', 700 + i);
+    const offers = MV.sys.sports.teamOffers(g);
+    assert.ok(offers.length >= 3 && offers.length <= 4);
+    if (offers.some((o) => o.level === g.p.job.level + 1)) up++;
+    const low = athlete(MV, 'futbol', 'bajo', 800 + i);
+    assert.ok(MV.sys.sports.teamOffers(low).every((o) => o.level === low.p.job.level), 'nivel bajo no debería subir');
+  }
+  assert.ok(up >= 15, 'ofertas de categoría superior: ' + up);
+});
+
+test('aceptar una oferta cambia de equipo, categoría y sueldo', () => {
+  const MV = load({ seed: 41 });
+  const g = athlete(MV, 'basquet', 'alto', 5);
+  const best = MV.sys.sports.teamOffers(g).sort((a, b) => b.level - a.level || b.salary - a.salary)[0];
+  const msg = MV.sys.sports.joinTeam(g, best);
+  assert.equal(g.p.job.club, best.club);
+  assert.equal(g.p.job.level, best.level);
+  assert.ok(g.p.job.salary >= best.salary);
+  assert.match(msg, new RegExp(best.club));
+});
+
+test('un piloto puede llegar a campeón de la Fórmula Mundial buscando escuderías', () => {
+  const MV = load({ seed: 42 });
+  const g = athlete(MV, 'automovilismo', 'alto', 9);
+  const top = MV.SPORTS.automovilismo.titles.length - 1;
+  for (let season = 0; season < 12 && g.p.job.level < top; season++) {
+    const best = MV.sys.sports.teamOffers(g).sort((a, b) => b.level - a.level)[0];
+    MV.sys.sports.joinTeam(g, best);
+    g.p.age++;
+  }
+  assert.equal(g.p.job.level, top);
+  assert.match(MV.sys.career.title(g.p), /Campe(ón|ona) de la Fórmula Mundial/);
+});
+
+test('lesionado solo recibe ofertas de su categoría', () => {
+  const MV = load({ seed: 43 });
+  const g = athlete(MV, 'tenis', 'alto', 3);
+  MV.sys.health.add(g, 'lesion');
+  assert.ok(MV.sys.sports.teamOffers(g).every((o) => o.level === g.p.job.level));
+});
+
+test('un exprofesional de 34 años puede volver; alguien sin pasado profesional no', () => {
+  const MV = load({ seed: 44 });
+  const g = athlete(MV, 'futbol', 'alto', 4);
+  MV.sys.sports.retire(g, 'Prueba de retiro.');
+  g.p.age = 34; g.queue = [];
+  assert.equal(MV.sys.sports.canTryout(g, 'futbol').ok, true);
+  assert.equal(MV.sys.sports.tryout(g, 'futbol'), '');
+  const g2 = MV.newGame({ seed: 5 }); g2.p.age = 34; g2.p.edu.done = ['primaria', 'secundaria'];
+  assert.equal(MV.sys.sports.canTryout(g2, 'futbol').ok, false);
+});

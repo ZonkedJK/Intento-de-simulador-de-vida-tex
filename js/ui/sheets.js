@@ -150,7 +150,7 @@
         const list = h('div', { class: 'list' });
         Object.keys(MV.SPORTS).forEach((k) => {
           const S = MV.SPORTS[k], J = MV.SPORT_JOBS['sport_' + k];
-          const m = MV.sys.career.meets(g, J);
+          const m = MV.sys.sports.canTryout(g, k);
           const pro = MV.sys.sports.isPro(p);
           const top = U.money(S.pay[S.pay.length - 1]);
           const sub = pro ? `Nivel ${MV.sys.sports.rating(g, k)}/100` : m.ok ? `Tu nivel: ${MV.sys.sports.rating(g, k)}/100. Las estrellas cobran hasta ${top} al año` : 'Requiere: ' + m.why.join(', ');

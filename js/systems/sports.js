@@ -77,6 +77,7 @@
       p.job.perf = 60;
       p.club = offer.sport;
       p.flags.exAtleta = offer.sport;
+      p.flags.proSports = Object.assign({}, p.flags.proSports, { [offer.sport]: true });
       MV.fx.stat(g, 'happy', 15);
       MV.fx.stat(g, 'fame', U.int(3, 8));
       MV.ach.unlock(g, 'profesional');
@@ -88,11 +89,70 @@
     tryout(g, id) {
       const S = MV.SPORTS[id], p = g.p;
       if (!S) return 'Ese deporte no existe.';
-      const m = MV.sys.career.meets(g, MV.SPORT_JOBS['sport_' + id]);
+      const m = sports.canTryout(g, id);
       if (!m.ok) return `No cumples los requisitos: ${m.why.join(', ')}.`;
       if (sports.isPro(p)) return 'Ya eres deportista profesional.';
-      MV.EV.push(g, 'prueba_deportiva', { sport: id, sname: S.name }, true);
+      MV.EV.push(g, 'prueba_deportiva', { sport: id, sname: S.name, comeback: !!m.comeback }, true);
       return '';
+    },
+
+    /** ¿Puede hacer la prueba? Un exprofesional puede volver aunque supere la edad de inicio. */
+    canTryout(g, id) {
+      const S = MV.SPORTS[id], p = g.p;
+      const m = MV.sys.career.meets(g, MV.SPORT_JOBS['sport_' + id]);
+      const wasPro = !!(p.flags.proSports && p.flags.proSports[id]);
+      if (!m.ok && wasPro && p.age < S.retire[1]) {
+        const why = m.why.filter((w) => !/^Edad máxima/.test(w));
+        return { ok: !why.length, why, comeback: true };
+      }
+      return { ok: m.ok, why: m.why, comeback: false };
+    },
+
+    /** Ofertas de otros equipos este año (misma categoría con mejor sueldo o la superior si te alcanza el nivel). */
+    teamOffers(g) {
+      const p = g.p, job = p.job;
+      if (!sports.isPro(p)) return [];
+      if (job.offersAge === p.age && Array.isArray(job.offers)) return job.offers;
+      const J = MV.jobById(job.id), S = MV.SPORTS[J.sport];
+      const r = sports.rating(g, J.sport);
+      const last = J.titles.length - 1;
+      const needNext = 40 + job.level * 15;
+      const hurt = p.conds.some((c) => c.id === 'lesion');
+      const canNext = job.level < last && !hurt && r >= needNext - 5;
+      const clubs = U.shuffle(S.clubs.filter((c) => c !== job.club));
+      const n = U.int(3, 4);
+      const offers = [];
+      for (let i = 0; i < n; i++) {
+        const up = canNext && U.chance(U.clamp(0.3 + (r - needNext) / 60, 0.15, 0.85));
+        const level = up ? job.level + 1 : job.level;
+        const salary = up ? Math.round(J.pay[level] * U.float(0.85, 1.15)) : Math.round(Math.max(job.salary, J.pay[level]) * U.float(1.05, 1.35));
+        offers.push({ sport: J.sport, club: clubs[i % clubs.length] || job.club, level, salary });
+      }
+      job.offersAge = p.age;
+      job.offers = offers;
+      return offers;
+    },
+
+    /** Firma con otro equipo, escudería o patrocinador. */
+    joinTeam(g, offer) {
+      const p = g.p, job = p.job;
+      if (!sports.isPro(p) || !offer) return 'No tienes ofertas.';
+      const J = MV.jobById(job.id), S = MV.SPORTS[J.sport];
+      const up = offer.level > job.level;
+      const prev = job.club;
+      job.club = offer.club;
+      job.level = U.clamp(offer.level, 0, J.titles.length - 1);
+      job.salary = Math.max(offer.salary, up ? J.pay[job.level] : 0);
+      job.offers = null;
+      if (up) { job.lvlYears = 0; job.perf = U.clamp(job.perf - 5, 30, 100); }
+      if (S.team && U.chance(0.4)) job.abroad = true;
+      const t = MV.sys.career.title(p);
+      if (job.level === J.titles.length - 1) { MV.ach.unlock(g, 'leyenda'); if (['tenis', 'golf'].includes(J.sport)) MV.ach.unlock(g, 'numero_uno'); }
+      if (S.team && job.salary >= 10000000) MV.ach.unlock(g, 'traspaso');
+      MV.fx.stat(g, 'happy', up ? 10 : 4);
+      MV.fx.stat(g, 'fame', up ? U.int(3, 7) : 1);
+      const who = S.team ? `Dejaste ${prev || 'tu club'} y firmaste con ${offer.club}` : `Ahora te representa ${offer.club}`;
+      return `${who}. ${up ? `¡Subiste de categoría! Ahora eres ${t.toLowerCase()}.` : `Sigues como ${t.toLowerCase()}, pero mejor pagad${U.gw(p.gender, 'o', 'a')}.`} ${S.prize ? 'Tus premios ahora apuntan más alto.' : `Contrato: ${U.money(job.salary)} al año.`}`;
     },
 
     /** Entrenamiento en el club y reclutadores universitarios (cada año). */
@@ -228,18 +288,10 @@
             if (U.chance(p.skills.carisma / 130 + job.perf / 220)) { const inc = Math.round(job.salary * U.float(0.1, 0.3)); job.salary += inc; return `Tu representante y tu carisma lograron ${U.money(inc)} más al año.`; }
             job.perf = U.clamp(job.perf - 3, 0, 100); return 'El club no aceptó. El presidente dijo que "primero hay que ganar algo".';
           } });
-        list.push({ id: 'traspaso', icon: '✈️', label: 'Pedir un traspaso', sub: 'Cambiar de club', limit: 1,
-          run: (g) => {
-            if (job.perf >= 55 && U.chance(0.55)) {
-              const prev = job.club; job.club = U.pick(S.clubs.filter((c) => c !== prev)) || prev;
-              const inc = Math.round(job.salary * U.float(0.15, 0.5)); job.salary += inc;
-              if (U.chance(0.4)) job.abroad = true;
-              if (job.salary >= 10000000) MV.ach.unlock(g, 'traspaso');
-              return `Te fuiste a ${job.club}${job.abroad ? ', en el extranjero' : ''}. Cobras ${U.money(inc)} más al año. Los hinchas de ${prev} queman tu camiseta.`;
-            }
-            job.perf = U.clamp(job.perf - 8, 0, 100); MV.fx.stat(g, 'happy', -4); return 'Nadie ofertó por ti. La hinchada se enteró de que querías irte.';
-          } });
       }
+      list.push({ id: 'buscar_equipo', icon: '🔎', label: S.team ? 'Buscar un equipo mejor' : J.sport === 'automovilismo' ? 'Buscar una escudería mejor' : 'Buscar un patrocinador mejor', sub: 'Mejor sueldo o subir de categoría', limit: 1,
+        opts: (g) => sports.teamOffers(g).map((o, i) => ({ id: i, icon: o.level > job.level ? '⬆️' : '💰', label: `${o.club}: ${sports.title(g.p, o.sport, o.level)}`, sub: `${S.prize ? 'Premios estimados' : 'Sueldo'}: ${U.money(o.salary)} al año${o.level > job.level ? '. Sube de categoría' : ''}` })),
+        run: (g, i) => { const o = sports.teamOffers(g)[+i]; return o ? sports.joinTeam(g, o) : 'Decidiste quedarte donde estás.'; } });
       list.push({ id: 'fiesta_equipo', icon: '🪩', label: 'Salir de fiesta', sub: '+felicidad, -rendimiento', limit: 1,
         run: (g) => { MV.fx.stat(g, 'happy', 6); MV.fx.addic(g, 'alcohol', 4); job.perf = U.clamp(job.perf - 6, 0, 100);
           if (U.chance(0.25)) { MV.fx.stat(g, 'fame', 3); return 'Te fotografiaron saliendo de una discoteca a las 6 a.m. antes de un partido. Portada de todos los diarios.'; }
@@ -287,7 +339,10 @@
   sports._tryout = function (g, ctx, bonus, hurt) {
     if (hurt) { MV.sys.health.add(g, 'lesion'); return 'Te lesionaste en plena prueba. Saliste en camilla, aplaudido por todos.'; }
     const r = sports.rating(g, ctx.sport);
-    if (U.chance(U.clamp((r - 35) / 60 + bonus, 0.03, 0.92))) return sports.sign(g, sports.makeOffer(g, ctx.sport, r >= 90 ? 1 : 0));
+    if (U.chance(U.clamp((r - 35) / 60 + bonus, 0.03, 0.92))) {
+      const msg = sports.sign(g, sports.makeOffer(g, ctx.sport, ctx.comeback || r >= 90 ? 1 : 0));
+      return ctx.comeback ? '¡Volviste del retiro! ' + msg.replace('tu primer contrato profesional', 'un nuevo contrato') : msg;
+    }
     MV.fx.stat(g, 'happy', -6);
     MV.fx.skill(g, MV.SPORTS[ctx.sport].skill || 'deporte', 1);
     return U.pick(['No quedaste. El entrenador dijo "seguí entrenando, pibe" sin mirarte.', 'Quedaste tercero. Solo había dos lugares.', 'Te dijeron que "te falta un poquito". Un poquito bastante grande.']);
