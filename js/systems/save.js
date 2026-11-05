@@ -64,6 +64,8 @@
       p.tattoos = p.tattoos || [];
       p.talent = p.talent || MV.rollTalent();
       (p.assets || []).forEach((a) => { if (a.type === 'casa') a.upgrades = a.upgrades || []; });
+      // La v2 solo guardaba el último deporte profesional: así se puede volver del retiro.
+      if (p.flags.exAtleta && MV.SPORTS[p.flags.exAtleta]) p.flags.proSports = Object.assign({ [p.flags.exAtleta]: true }, p.flags.proSports);
       g.version = 3;
     }
     return g;

@@ -6,6 +6,17 @@
 
   const MAX_POINTS = 900;
   const MAX_ALBUM = 12;
+
+  /** Recalcula las marcas que dependen de los tatuajes actuales (cara, nombre de la pareja). */
+  function syncFlags(p) {
+    const list = p.tattoos || [];
+    Object.keys(MV.TATTOO_PLACES).forEach((k) => {
+      const f = MV.TATTOO_PLACES[k].flag;
+      if (!f) return;
+      if (list.some((t) => t.place === k)) p.flags[f] = true; else delete p.flags[f];
+    });
+    if (p.flags.tatuajePareja && !list.some((t) => t.partnerName === p.flags.tatuajePareja)) delete p.flags.tatuajePareja;
+  }
   const LASER_COST = 1500;
 
   const clampInt = (v) => U.clamp(Math.round(Number(v) || 0), 0, 100);
@@ -72,16 +83,25 @@
     },
 
     /** Aplica un diseño a la piel. opts.cover: id de un tatuaje que se tapa. Devuelve el texto del resultado. */
+    /** Motivo por el que el tatuador no puede trabajar (o null): diseño vacío o sin piel libre. */
+    refusal(g, design, cover) {
+      const p = g.p, list = p.tattoos || [];
+      if (tattoo.isEmpty(tattoo.normalize(design))) return 'El tatuador miró tu papel casi en blanco y te lo devolvió: "vuelve cuando sepas qué quieres".';
+      if (!(cover && list.some((t) => t.id === cover)) && list.length >= MAX_ALBUM) return 'Ya no te queda piel libre. Ni el tatuador encontró un hueco.';
+      return null;
+    },
+
     apply(g, design, artistId, placeId, opts) {
       opts = opts || {};
       const p = g.p;
       p.tattoos = p.tattoos || [];
       const A = MV.TATTOO_ARTISTS[artistId] || MV.TATTOO_ARTISTS.estudio;
-      const P = MV.TATTOO_PLACES[placeId] || MV.TATTOO_PLACES.brazo;
       const d = tattoo.normalize(design);
-      if (tattoo.isEmpty(d)) return 'El tatuador miró tu papel casi en blanco y te devolvió el dinero: "vuelve cuando sepas qué quieres".';
+      const why = tattoo.refusal(g, d, opts.cover);
+      if (why) return why;
       const covered = opts.cover ? p.tattoos.find((t) => t.id === opts.cover) : null;
-      if (!covered && p.tattoos.length >= MAX_ALBUM) return 'Ya no te queda piel libre. Ni el tatuador encontró un hueco.';
+      if (covered) placeId = covered.place;
+      const P = MV.TATTOO_PLACES[placeId] || MV.TATTOO_PLACES.brazo;
       MV.fx.money(g, -A.cost);
       const sc = tattoo.score(d, artistId, p.skills.arte).score;
       const names = MV.rels(g, ['pareja', 'conyuge', 'amante']).map((x) => x.n.first);
@@ -92,8 +112,9 @@
       };
       if (covered) p.tattoos = p.tattoos.filter((t) => t !== covered);
       p.tattoos.push(tat);
+      if (covered && p.flags.taparTatuaje === covered.id) delete p.flags.taparTatuaje;
       if (tat.partnerName) p.flags.tatuajePareja = tat.partnerName;
-      if (P.flag) p.flags[P.flag] = true;
+      syncFlags(p);
       MV.fx.stat(g, 'looks', U.clamp(Math.round(((sc - 50) / 50) * 6 * P.mult), -10, 10));
       MV.fx.stat(g, 'happy', U.clamp(Math.round(((sc - 40) / 60) * 8), -4, 8));
       MV.fx.skill(g, 'arte', U.int(1, 3));
@@ -111,8 +132,8 @@
       MV.fx.money(g, -LASER_COST);
       MV.fx.stat(g, 'happy', -4);
       p.tattoos = p.tattoos.filter((x) => x !== t);
-      if (t.partnerName && p.flags.tatuajePareja === t.partnerName) delete p.flags.tatuajePareja;
-      if (t.place === 'cara' && !p.tattoos.some((x) => x.place === 'cara')) delete p.flags.tatuajeCara;
+      if (p.flags.taparTatuaje === t.id) delete p.flags.taparTatuaje;
+      syncFlags(p);
       return `Te borraste el tatuaje con láser (${U.money(LASER_COST)}). Dolió como diez tatuajes juntos.`;
     },
 

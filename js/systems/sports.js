@@ -6,6 +6,7 @@
 
   const val = (p, k) => (k in p.stats ? p.stats[k] : k in p.skills ? p.skills[k] : p[k] || 0);
 
+  const SAME_LEVEL_CAP = 2;
   const sports = {
     isPro: (p) => !!p.job && p.job.type === 'sport',
     exp: (p, id) => (p.sportsExp && p.sportsExp[id]) || 0,
@@ -100,7 +101,7 @@
     canTryout(g, id) {
       const S = MV.SPORTS[id], p = g.p;
       const m = MV.sys.career.meets(g, MV.SPORT_JOBS['sport_' + id]);
-      const wasPro = !!(p.flags.proSports && p.flags.proSports[id]);
+      const wasPro = !!(p.flags.proSports && p.flags.proSports[id]) || p.flags.exAtleta === id;
       if (!m.ok && wasPro && p.age < S.retire[1]) {
         const why = m.why.filter((w) => !/^Edad máxima/.test(w));
         return { ok: !why.length, why, comeback: true };
@@ -120,13 +121,15 @@
       const hurt = p.conds.some((c) => c.id === 'lesion');
       const canNext = job.level < last && !hurt && r >= needNext - 5;
       const clubs = U.shuffle(S.clubs.filter((c) => c !== job.club));
-      const n = U.int(3, 4);
+      const n = Math.min(U.int(3, 4), Math.max(1, clubs.length));
       const offers = [];
       for (let i = 0; i < n; i++) {
         const up = canNext && U.chance(U.clamp(0.3 + (r - needNext) / 60, 0.15, 0.85));
         const level = up ? job.level + 1 : job.level;
-        const salary = up ? Math.round(J.pay[level] * U.float(0.85, 1.15)) : Math.round(Math.max(job.salary, J.pay[level]) * U.float(1.05, 1.35));
-        offers.push({ sport: J.sport, club: clubs[i % clubs.length] || job.club, level, salary });
+        // En la misma categoría se mejora el sueldo, pero hasta el doble de lo que paga esa categoría.
+        const salary = up ? Math.round(J.pay[level] * U.float(0.85, 1.15)) : Math.round(Math.min(Math.max(job.salary, J.pay[level]) * U.float(1.05, 1.35), J.pay[level] * SAME_LEVEL_CAP));
+        if (!up && salary <= job.salary) continue;
+        offers.push({ sport: J.sport, club: clubs[i] || job.club, level, salary });
       }
       job.offersAge = p.age;
       job.offers = offers;
@@ -290,7 +293,13 @@
           } });
       }
       list.push({ id: 'buscar_equipo', icon: '🔎', label: S.team ? 'Buscar un equipo mejor' : J.sport === 'automovilismo' ? 'Buscar una escudería mejor' : 'Buscar un patrocinador mejor', sub: 'Mejor sueldo o subir de categoría', limit: 1,
-        opts: (g) => sports.teamOffers(g).map((o, i) => ({ id: i, icon: o.level > job.level ? '⬆️' : '💰', label: `${o.club}: ${sports.title(g.p, o.sport, o.level)}`, sub: `${S.prize ? 'Premios estimados' : 'Sueldo'}: ${U.money(o.salary)} al año${o.level > job.level ? '. Sube de categoría' : ''}` })),
+        opts: (g) => {
+          const hurtNote = g.p.conds.some((c) => c.id === 'lesion') && job.level < J.titles.length - 1 ? '. Con la lesión, nadie te ofrece subir de categoría' : '';
+          const offers = sports.teamOffers(g);
+          if (!offers.length) return [{ id: 'nadie', icon: '🤷', label: 'Nadie te ofrece más', sub: `Ya cobras lo máximo para tu categoría${hurtNote}` }];
+          return offers.map((o, i) => ({ id: i, icon: o.level > job.level ? '⬆️' : '💰', label: `${U.cap(o.club)}: ${sports.title(g.p, o.sport, o.level)}`,
+            sub: `${S.prize ? 'Premios estimados' : 'Sueldo'}: ${U.money(o.salary)} al año${o.level > job.level ? '. Sube de categoría' : ''}${hurtNote}` }));
+        },
         run: (g, i) => { const o = sports.teamOffers(g)[+i]; return o ? sports.joinTeam(g, o) : 'Decidiste quedarte donde estás.'; } });
       list.push({ id: 'fiesta_equipo', icon: '🪩', label: 'Salir de fiesta', sub: '+felicidad, -rendimiento', limit: 1,
         run: (g) => { MV.fx.stat(g, 'happy', 6); MV.fx.addic(g, 'alcohol', 4); job.perf = U.clamp(job.perf - 6, 0, 100);

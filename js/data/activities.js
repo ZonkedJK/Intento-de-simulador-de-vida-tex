@@ -148,7 +148,7 @@
     opts2Title: '¿Con quién vas?',
     opts2: (g, id) => {
       const D = MV.DESTINATIONS.find((d) => d.id === id) || { cost: 0 };
-      const out = [{ id: 'solo', icon: '🎒', label: 'Ir solo', sub: `${U.money(D.cost)}. Más chances de conocer gente` }];
+      const out = [{ id: 'solo', icon: '🎒', label: 'Ir sol' + U.gw(g.p.gender, 'o', 'a'), sub: `${U.money(D.cost)}. Más chances de conocer gente` }];
       if (g.p.money < D.cost * 2) return out;
       MV.rels(g, ['conyuge', 'pareja', 'amante', 'hijo', 'padre', 'hermano', 'abuelo', 'amigo']).forEach(({ r, n }) => {
         if (n.species !== 'humano' || (r.type === 'amigo' && n.age < 16) || (r.type === 'hijo' && n.age < 3)) return;
@@ -168,12 +168,12 @@
         comp.health = U.clamp(comp.health + 2, 0, 100);
         if (id === 'espacio') MV.ach.unlock(g, 'astronauta');
         const romantic = ['conyuge', 'pareja', 'amante'].includes(mr.type);
-        const story = romantic ? U.pick([`vieron el atardecer abrazados y ${comp.first} dijo que fue el mejor viaje de su vida`, `${comp.first} se perdió en un mercado y lo encontraste comprando un sombrero ridículo`, 'se pelearon por el mapa, se reconciliaron con un helado gigante'])
+        const story = romantic ? U.pick([`vieron el atardecer abrazados y ${comp.first} dijo que fue el mejor viaje de su vida`, `${comp.first} se perdió en un mercado y l${U.gw(comp.gender, 'o', 'a')} encontraste comprando un sombrero ridículo`, 'se pelearon por el mapa, se reconciliaron con un helado gigante'])
           : U.pick([`${comp.first} sacó 900 fotos, 600 de comida`, `${comp.first} roncó en el avión y te tocó pedir disculpas a medio pasaje`, `se rieron tanto con ${comp.first} que ahora tienen chistes internos para siempre`]);
         return `Viajaste a ${D.name} con ${comp.first} (${MV.relLabel(mr.type, comp).toLowerCase()}). En el viaje ${story}.`;
       }
-      if (U.chance(0.15)) { const n = MV.sys.rels.candidate(g); MV.addRel(g, n, 'amigo', U.int(50, 75)); return `Viajaste solo a ${D.name}. Conociste a ${n.first} en un hostal y siguen en contacto.`; }
       if (id === 'espacio') { MV.ach.unlock(g, 'astronauta'); return 'Viajaste al espacio. Viste la Tierra entera y entendiste lo pequeño que es tu problema con el vecino.'; }
+      if (U.chance(0.15)) { const n = MV.sys.rels.candidate(g); MV.addRel(g, n, 'amigo', U.int(50, 75)); return `Viajaste sol${U.gw(p.gender, 'o', 'a')} a ${D.name}. Conociste a ${n.first} en un hostal y siguen en contacto.`; }
       if (U.chance(0.1)) { MV.sys.health.add(g, U.pick(['gripe', 'resfriado', 'fractura'])); return `Fuiste a ${D.name} y volviste con un recuerdo no deseado.`; }
       if (U.chance(0.15)) { const n = MV.sys.rels.candidate(g); MV.addRel(g, n, 'amigo', U.int(50, 75)); return `En ${D.name} conociste a ${n.first}. Prometieron seguir en contacto (y lo cumplieron).`; }
       const T = { playa: ['Te quemaste tanto que parecías un camarón.', 'Tomaste cócteles con sombrillitas toda la semana.'], paris: ['Comiste croissants hasta enfermarte. Valió la pena.', 'Un mimo te siguió dos cuadras. Fue perturbador.'], tokio: ['Cantaste karaoke con oficinistas a las 3 a.m.', 'Te perdiste en el metro durante 4 horas.'], patagonia: ['Viste glaciares. El viento casi te lleva.', 'Acampaste bajo las estrellas. Un zorro te robó el desayuno.'], nyc: ['Caminaste tanto que se te gastaron las zapatillas.', 'Pagaste 18 dólares por un café. Lloraste un poco.'], safari: ['Un león te miró. Tú lo miraste. Nadie ganó.', 'Una jirafa te lamió el sombrero.'], crucero: ['Comiste en el bufé libre como si no hubiera mañana.', 'Ganaste el concurso de karaoke del barco.'], pueblo: ['Ordeñaste una vaca. La vaca no estaba de acuerdo.', 'Tu tía abuela te dio de comer 6 veces al día.'], vegas: ['Lo que pasó en Las Vegas se queda en Las Vegas. Y tu dinero también.', 'Viste un show de magia. Tu billetera desapareció.'] };
@@ -216,6 +216,7 @@
   A({ id: 'fumar', cat: 'ocio', icon: '🚬', label: 'Fumar un cigarrillo', sub: 'Mala idea', minAge: 14, limit: 3,
     run: (g) => { fx.addic(g, 'tabaco', U.int(4, 8)); fx.stat(g, 'stress', -3); fx.stat(g, 'health', -1); return U.pick(['Fumaste a escondidas. Tosiste como abuelo.', 'Fumaste para parecer cool. No funcionó.', 'Fumaste uno. Después otro. Tu madre lo olió desde otro país.']); } });
   A({ id: 'tatuaje', cat: 'ocio', icon: '🖋️', label: 'Hacerte un tatuaje', sub: 'Minijuego: dibuja tu diseño', minAge: 18, limit: 1, ui: 'tattoo',
+    check: (g, o) => (o && o.design ? MV.sys.tattoo.refusal(g, o.design, o.cover) : null),
     run: (g, o) => (o && o.design ? MV.sys.tattoo.apply(g, o.design, o.artist, o.place, { cover: o.cover })
       : MV.sys.tattoo.apply(g, MV.sys.tattoo.randomDesign(), U.pick(Object.keys(MV.TATTOO_ARTISTS)), U.pick(Object.keys(MV.TATTOO_PLACES)))) });
 

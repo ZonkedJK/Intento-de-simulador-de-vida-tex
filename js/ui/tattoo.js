@@ -21,6 +21,8 @@
       cover: p.flags.taparTatuaje && (p.tattoos || []).some((t) => t.id === p.flags.taparTatuaje) ? p.flags.taparTatuaje : null,
       ink: 0, width: 2, template: null, design: { strokes: [], texts: [] }, textMode: null, history: []
     };
+    const old = st.cover && p.tattoos.find((t) => t.id === st.cover);
+    if (old) st.place = old.place;
     UI.sheet({ title: 'Estudio de tatuajes', icon: '🖋️', render: (body) => renderSetup(body, st, action) });
   };
 
@@ -37,7 +39,7 @@
     const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Lugar del tatuaje' });
     Object.keys(MV.TATTOO_PLACES).forEach((k) => {
       const P = MV.TATTOO_PLACES[k];
-      seg.append(h('button', { type: 'button', 'aria-pressed': String(st.place === k), onclick: () => { st.place = k; UI.refreshSheets(); } }, `${P.icon} ${P.name}`));
+      seg.append(h('button', { type: 'button', 'aria-pressed': String(st.place === k), disabled: !!st.cover && st.place !== k, onclick: () => { st.place = k; UI.refreshSheets(); } }, `${P.icon} ${P.name}`));
     });
     body.append(seg);
     if (st.place === 'cara') body.append(h('p', { class: 'note' }, 'En la cara el efecto es mayor (para bien o para mal) y algunas entrevistas de trabajo se complican.'));
@@ -46,8 +48,14 @@
       const sel = h('select', { class: 'select', id: 'tat-cover' }, h('option', { value: '' }, 'No, es un tatuaje nuevo'),
         p.tattoos.map((t) => h('option', { value: t.id }, `${MV.TATTOO_PLACES[t.place].name}, a los ${t.age} años${t.partnerName ? ` ("${t.partnerName}")` : ''}`)));
       sel.value = st.cover || '';
-      sel.addEventListener('change', () => { st.cover = sel.value || null; });
+      sel.addEventListener('change', () => {
+        st.cover = sel.value || null;
+        const t = st.cover && p.tattoos.find((x) => x.id === st.cover);
+        if (t) st.place = t.place;
+        UI.refreshSheets();
+      });
       body.append(sel);
+      if (st.cover) body.append(h('p', { class: 'note' }, 'El diseño nuevo va encima del viejo, en el mismo lugar.'));
     }
     if ((p.tattoos || []).length >= MV.sys.tattoo.MAX_ALBUM && !st.cover) body.append(h('p', { class: 'note' }, 'Ya tienes 12 tatuajes: elige uno para tapar.'));
     body.append(h('div', { class: 'btn-row' }, h('button', {
@@ -138,18 +146,20 @@
     const hint = h('p', { class: 'note', 'aria-live': 'polite' });
     const updateHint = () => {
       const pts = U.sum(st.design.strokes, (s) => s.pts.length / 2);
+      if (go) go.disabled = !!MV.sys.tattoo.refusal(g, st.design, st.cover);
       hint.textContent = st.textMode ? `Toca el lienzo donde quieras poner "${st.textMode}".` : pts ? `${st.design.strokes.length} trazos. El tatuador mira por encima de tu hombro.` : 'Dibuja con el dedo o el mouse sobre la piel.';
     };
     const A = MV.TATTOO_ARTISTS[st.artist];
+    let go;
     body.append(wrap, hint, inks, widths, h('div', { class: 'tat-row' }, tmpl, textSel), textIn,
       h('div', { class: 'btn-row' },
         h('button', { type: 'button', class: 'btn', onclick: () => { const last = st.history.pop(); if (last === 't') st.design.texts.pop(); else if (last === 's') st.design.strokes.pop(); redraw(); updateHint(); } }, '↩️ Deshacer'),
         h('button', { type: 'button', class: 'btn', onclick: () => { st.design = { strokes: [], texts: [] }; st.history = []; redraw(); updateHint(); } }, '🧽 Borrar todo')),
-      h('button', {
-        type: 'button', class: 'btn primary block', onclick: () => {
+      go = h('button', {
+        type: 'button', class: 'btn primary block', id: 'tat-go', onclick: () => {
+          if (MV.sys.tattoo.refusal(UI.g, st.design, st.cover)) return;
           UI.closeSheets();
           const lastBefore = ((p.tattoos || []).slice(-1)[0] || {}).id;
-          if (st.cover && p.flags.taparTatuaje === st.cover) delete p.flags.taparTatuaje;
           UI.execAction(action, { design: st.design, artist: st.artist, place: st.place, cover: st.cover }, undefined, undefined, undefined, () => {
             const t = (UI.g.p.tattoos || []).slice(-1)[0];
             return t && t.id !== lastBefore ? h('div', { class: 'tat-result' }, UI.tattooArt(t, 140, UI.g.p.look.skin)) : null;

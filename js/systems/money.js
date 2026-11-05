@@ -236,17 +236,25 @@
     },
 
     /** Vende pidiendo un precio (factor −0,2…+0,5 sobre el estimado). Si piden de más, llega una contraoferta. */
+    /** Lo máximo que paga el comprador de este año (fijo durante el año: reintentar no lo cambia). */
+    buyerPrice(g, a, est) {
+      if (!a.market || a.market.age !== g.p.age) {
+        const appeal = (a.upgrades || []).filter((u) => (MV.HOUSE_UPGRADES.find((x) => x.id === u.id) || {}).demand).length;
+        a.market = { age: g.p.age, willing: (est || money.estimate(a)) * U.float(0.85, 1.25) * (1 + 0.04 * appeal) };
+      }
+      return a.market.willing;
+    },
+
     sellAt(g, assetId, factor) {
       const a = g.p.assets.find((x) => x.id === assetId);
       if (!a) return 'No tienes eso.';
       const f = U.clamp(Number(factor) || 0, -0.2, 0.5);
       const est = money.estimate(a);
       const asking = Math.round(est * (1 + f));
-      const appeal = (a.upgrades || []).filter((u) => (MV.HOUSE_UPGRADES.find((x) => x.id === u.id) || {}).demand).length;
-      const willing = est * U.float(0.85, 1.25) * (1 + 0.04 * appeal);
+      const willing = money.buyerPrice(g, a, est);
       if (asking <= willing) return money.sellFor(g, assetId, asking);
       const offer = Math.round(willing * U.float(0.92, 1));
-      MV.EV.push(g, 'contraoferta', { asset: a.id, aname: a.name, offer, asking }, true);
+      MV.EV.push(g, 'contraoferta', { asset: a.id, aname: a.name, offer, asking, willing: Math.round(willing) }, true);
       return `Pediste ${U.money(asking)} por ${a.name}. Un comprador lo pensó...`;
     },
 

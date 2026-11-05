@@ -155,7 +155,7 @@
       r.rel = U.clamp(r.rel + d, 0, 100);
       let extra = '';
       if (gift.special === 'pet' && react !== 'hate') extra = ` Ahora ${n.first} tiene un perrito y te manda fotos todos los días.`;
-      if (gift.special === 'trip' && react !== 'hate') { MV.fx.stat(g, 'happy', 3); extra = ` ${n.first} volvió bronceado y con un imán para tu heladera.`; }
+      if (gift.special === 'trip' && react !== 'hate') { MV.fx.stat(g, 'happy', 3); extra = ` ${n.first} volvió broncead${U.gw(n.gender, 'o', 'a')} y con un imán para tu heladera.`; }
       if (gift.special === 'money') n.money = (n.money || 0) + Math.round(gift.price * 0.3);
       const line = {
         love: [`¡A ${n.first} le encantó! Te abrazó tan fuerte que crujió algo.`, `${n.first} lloró de emoción. Era justo lo que quería.`],
@@ -325,7 +325,7 @@
         ],
         run: (g, m) => MV.sys.crime.murder(g, n.id, m) });
       if (['amigo', 'companero', 'ex', 'enemigo'].includes(t)) A({ id: 'olvidar', icon: '🚮', label: 'Sacar de tu vida', sub: 'Eliminar contacto', limit: 1, confirm: `¿Sacar a ${n.first} de tu vida?`, run: (g) => { MV.removeRel(g, n.id); return `Borraste a ${n.first} de tu vida y de tus contactos.`; } });
-      return list;
+      return list.filter((a) => !a.when || a.when(g));
     }
   };
   MV.sys.rels = rels;

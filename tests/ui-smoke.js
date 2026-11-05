@@ -64,6 +64,7 @@ const SHOTS = process.argv[2] || null;
   });
   await page.evaluate(() => MV.UI.runAction(MV.ACTS.find((a) => a.id === 'tatuaje')));
   await page.click('text=Empezar a dibujar');
+  if (!(await page.$eval('#tat-go', (b) => b.disabled))) errors.push('Tatuar debería estar desactivado con el lienzo vacío');
   const box = await (await page.$('.tat-canvas')).boundingBox();
   await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.3); await page.mouse.down();
   for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + box.width * (0.2 + i * 0.05), box.y + box.height * (0.3 + (i % 2) * 0.2), { steps: 3 });
@@ -72,6 +73,17 @@ const SHOTS = process.argv[2] || null;
   await page.waitForSelector('#layer .card');
   if (await page.evaluate(() => MV.UI.g.p.tattoos.length) !== 1) errors.push('El minijuego no creó el tatuaje');
   await resolve();
+  // Álbum lleno: elegir uno para tapar habilita el botón y fija el lugar
+  await page.evaluate(() => {
+    const g = MV.UI.g, t = g.p.tattoos[0]; g.p.yearActs = {};
+    for (let i = 1; i < MV.sys.tattoo.MAX_ALBUM; i++) g.p.tattoos.push(Object.assign({}, t, { id: 'tx' + i, place: i === 3 ? 'pierna' : t.place }));
+    MV.UI.closeSheets(); MV.UI.runAction(MV.ACTS.find((a) => a.id === 'tatuaje'));
+  });
+  if (!(await page.$eval('#layer button:has-text("Empezar a dibujar")', (b) => b.disabled))) errors.push('Con el álbum lleno, Empezar a dibujar debería estar desactivado');
+  await page.selectOption('#tat-cover', 'tx3');
+  if (await page.$eval('#layer button:has-text("Empezar a dibujar")', (b) => b.disabled)) errors.push('Elegir un tatuaje para tapar no habilitó Empezar a dibujar');
+  if (!(await page.$eval('#layer .seg button[aria-pressed="true"]', (b) => /Pierna/.test(b.textContent)))) errors.push('Tapar no fijó el lugar del tatuaje viejo');
+  await page.evaluate(() => { const g = MV.UI.g; g.p.tattoos = g.p.tattoos.slice(0, 1); MV.UI.closeSheets(); });
   const partnerId = await page.evaluate(() => MV.partner(MV.UI.g).n.id);
   await page.evaluate((id) => { MV.UI.closeSheets(); MV.UI.showPerson(id); }, partnerId);
   await page.click('#layer button.row:has-text("Hacer un regalo")');

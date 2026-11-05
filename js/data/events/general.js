@@ -39,7 +39,7 @@
   ev({ id: 'mascota_truco', age: [3, 110], when: H.has('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), target: H.rel('mascota', (n) => ['perro', 'loro', 'cerdo'].includes(n.species)), icon: '🎪', text: (g, ctx) => H.t(g, ctx).species === 'loro' ? '{t} aprendió a decir una grosería. Solo la dice cuando viene la abuela.' : '{t} aprendió un truco nuevo: hacerse el muerto cuando le hablas de bañarse.', auto: { happy: 3, rel: 4 } });
 
   // — Tatuajes —
-  const exTattoo = (g) => (g.p.tattoos || []).find((t) => t.partnerName && !MV.rels(g, ['pareja', 'conyuge', 'amante']).some((x) => x.n.first === t.partnerName));
+  const exTattoo = (g) => (g.p.tattoos || []).find((t) => t.partnerName && !MV.rels(g, ['pareja', 'conyuge', 'amante'], true).some((x) => x.n.first === t.partnerName));
   ev({ id: 'tatuaje_ex', age: [18, 110], cd: 3, w: 3, when: (g) => !!exTattoo(g), icon: '🖋️', title: 'Un nombre en la piel',
     text: (g) => `Tienes "${exTattoo(g).partnerName}" tatuado en el cuerpo. Ya no están juntos. Cada vez que te miras al espejo, te acuerdas.`,
     choices: [
@@ -180,12 +180,14 @@
       { t: 'Pedir protección policial', eff: { p: 0.6, ok: { msg: 'La policía te protegió. La familia perdió interés.' }, ko: { health: -25, msg: 'La protección policial duró dos días. La familia, más.' } } },
       { t: 'Cocinar el pescado', eff: { happy: 2, skills: { cocina: 2 }, msg: 'Lo cocinaste a la parrilla con limón. Si la mafia te va a amenazar, al menos que sea con proteína.' } }
     ] });
+  // Partir la diferencia, sin pasar lo que el comprador está dispuesto a pagar.
+  const haggle = (ctx) => Math.round(Math.min((ctx.asking + ctx.offer) / 2, ctx.willing || Infinity));
   ev({ id: 'contraoferta', manual: true, prison: 'any', icon: '🤝', scene: 'ciudad', title: 'Contraoferta',
     text: (g, ctx) => `Pediste ${U.money(ctx.asking)} por ${ctx.aname}. El comprador dice que es mucho y ofrece ${U.money(ctx.offer)}.`,
     choices: [
       { t: (g, ctx) => `✅ Aceptar ${U.money(ctx.offer)}`, eff: (g, ctx) => MV.sys.money.sellFor(g, ctx.asset, ctx.offer) },
-      { t: (g, ctx) => `🤏 Proponer ${U.money(Math.round((ctx.asking + ctx.offer) / 2))}`, eff: (g, ctx) => {
-        const mid = Math.round((ctx.asking + ctx.offer) / 2);
+      { t: (g, ctx) => `🤏 Proponer ${U.money(haggle(ctx))}`, eff: (g, ctx) => {
+        const mid = haggle(ctx);
         if (U.chance(0.45 + g.p.skills.carisma / 300)) { fx.skill(g, 'carisma', 1); return 'El comprador aceptó partir la diferencia. ' + MV.sys.money.sellFor(g, ctx.asset, mid); }
         return 'El comprador se ofendió y se fue. Te quedas con tu bien (por ahora).';
       } },

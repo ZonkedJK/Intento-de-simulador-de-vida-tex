@@ -40,7 +40,8 @@
   const TIRED = ['Ya hiciste eso suficiente este año.', 'Tranquilo, el año tiene un límite. Prueba el próximo.', 'Tu cuerpo dice basta por este año.'];
 
   /**
-   * Ejecuta una acción {id, icon, run(g,opt), limit}. `scope` guarda los usos por año
+   * Ejecuta una acción {id, icon, run(g,opt), limit, check?}. `check` devuelve un motivo para
+   * rechazarla sin gastar el uso del año. `scope` guarda los usos por año
    * (por defecto, el año del jugador; las relaciones usan su propio contador).
    */
   MV.doAction = function (g, action, opt, scope, opt2) {
@@ -49,6 +50,8 @@
     const sc = scope || p.yearActs;
     const used = sc[action.id] || 0;
     if (action.limit && used >= action.limit) return { msg: U.pick(TIRED), deltas: [], blocked: true, icon: '⏳' };
+    const why = action.check && action.check(g, opt, opt2);
+    if (why) return { msg: why, deltas: [], blocked: true, icon: action.icon };
     sc[action.id] = used + 1;
     if (sc !== p.yearActs) p.yearActs[action.id] = (p.yearActs[action.id] || 0) + 1;
     MV.fx.begin();
