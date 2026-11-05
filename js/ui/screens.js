@@ -178,6 +178,8 @@
         body.append(hb);
         body.append(title('Tatuajes'));
         body.append(h('div', { class: 'box' }, UI.tattooAlbum()));
+        body.append(title('Mis obras'));
+        body.append(h('div', { class: 'box' }, UI.worksList()));
         body.append(title('Aspiración de vida'));
         const A = p.aspiration && MV.ASPIRATIONS.find((a) => a.id === p.aspiration.id);
         body.append(h('div', { class: 'box' }, A ? h('p', null, `${A.icon} ${A.name}: ${A.desc} ${p.aspiration.done ? '¡Cumplida!' : ''}`) : h('p', null, p.age < 14 ? 'La elegirás a los 14 años.' : 'Sin aspiración. Vives al día.')));

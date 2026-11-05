@@ -114,6 +114,19 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   if (await page.evaluate((id) => !MV.relOf(MV.UI.g, id), petId)) errors.push('La mascota desapareció tras el concurso');
   await page.evaluate(() => MV.UI.closeSheets());
+  // Obras: escribir un libro con título propio y verlo en Mis obras
+  await page.evaluate(() => { const g = MV.UI.g; g.p.yearActs = {}; MV.UI.closeSheets(); MV.UI.runAction(MV.ACTS.find((a) => a.id === 'libro')); });
+  await page.fill('#work-title', 'Memorias de un <mapache>');
+  await page.selectOption('#work-genre', 'memorias');
+  await page.click('#work-go');
+  await page.waitForSelector('#layer .card');
+  const workMsg = await page.$eval('#layer .card .result', (e) => e.textContent);
+  if (!/Memorias de un mapache/.test(workMsg)) errors.push('El resultado del libro no usa el título: ' + workMsg);
+  await resolve();
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
+  const worksText = await page.$eval('#works-list', (e) => e.textContent).catch(() => '');
+  if (!/Memorias de un mapache/.test(worksText)) errors.push('Mis obras no muestra el libro: ' + worksText);
+  await page.evaluate(() => MV.UI.closeSheets());
   // Noticias del mundo en Bienes y dinero
   await page.evaluate(() => { const g = MV.UI.g; g.log.push({ age: g.p.age, year: g.year, items: [] }); MV.sys.world.set(g, 'recesion'); MV.UI.showAssets(); });
   const newsText = await page.$eval('#world-news', (e) => e.textContent).catch(() => '');

@@ -193,14 +193,10 @@
       p.followers += gain; fx.stat(g, 'happy', 1);
       return `Publicaste ${{ selfie: 'una selfie', opinion: 'una opinión polémica', meme: 'un meme', baile: 'un video bailando', comida: 'una foto de tu comida' }[o]}. +${U.num(gain)} seguidores (total: ${U.num(p.followers)}).`;
     } });
-  A({ id: 'libro', cat: 'ocio', icon: '✍️', label: 'Escribir un libro', sub: 'Puede ser un éxito', minAge: 16, limit: 1,
-    run: (g) => {
-      const p = g.p; fx.stat(g, 'stress', 6); fx.skill(g, 'arte', 2);
-      const genre = U.pick(['una novela de misterio', 'un libro de autoayuda', 'una saga de fantasía', 'unas memorias exageradas', 'un libro de cocina', 'poesía oscura']);
-      if (U.chance(0.04 + p.stats.smarts / 600 + p.skills.arte / 500 + p.fame / 300)) { const amt = U.int(80000, 900000); fx.money(g, amt); fx.stat(g, 'fame', U.int(10, 20)); MV.ach.unlock(g, 'escritor'); return `Escribiste ${genre} y fue un BEST SELLER. Ganaste ${U.money(amt)}.`; }
-      const amt = U.int(0, 3000); fx.money(g, amt);
-      return `Escribiste ${genre}. ${amt > 1000 ? `Vendiste algunos ejemplares: ${U.money(amt)}.` : 'Lo compraron tu madre y dos primos.'}`;
-    } });
+  const work = (kind) => (g, o) => MV.sys.works.create(g, kind, o && o.title, o && o.genre);
+  A({ id: 'libro', cat: 'ocio', icon: '✍️', label: 'Escribir un libro', sub: 'Con título propio. Puede ser un best seller', minAge: 16, limit: 1, ui: 'work', work: 'libro', run: work('libro') });
+  A({ id: 'cancion', cat: 'ocio', icon: '🎵', label: 'Componer una canción', sub: 'Con título propio. Puede ser un hit', minAge: 12, limit: 1, ui: 'work', work: 'cancion', run: work('cancion') });
+  A({ id: 'cuadro', cat: 'ocio', icon: '🎨', label: 'Pintar un cuadro', sub: 'Con título propio. Quizás termine en un museo', minAge: 8, limit: 1, ui: 'work', work: 'cuadro', run: work('cuadro') });
   A({ id: 'voluntariado', cat: 'ocio', icon: '🤲', label: 'Hacer voluntariado', sub: '+karma, +felicidad', minAge: 12, limit: 2,
     run: (g) => { fx.stat(g, 'karma', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5)); return U.pick(['Serviste comida en un comedor. Una señora te dio un abrazo que no olvidarás.', 'Limpiaste una playa. Encontraste 3 zapatos izquierdos.', 'Paseaste perros de un refugio. Quieres adoptar a todos.', 'Le leíste a ancianos en un geriátrico. Te contaron chismes de 1960.']); } });
   A({ id: 'templo', cat: 'ocio', icon: '⛪', label: 'Ir a un templo', sub: '+karma, +paz', minAge: 6, limit: 1,
