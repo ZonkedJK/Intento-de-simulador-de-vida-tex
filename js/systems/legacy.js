@@ -91,12 +91,14 @@
       const best = p.edu.degrees.length ? p.edu.degrees[p.edu.degrees.length - 1] : null;
       const summary = {
         id: p.id, name: MV.fullName(p), gender: p.gender, look: p.look, born: g.year - p.age, died: g.year,
-        age: p.age, cause, worth: MV.netWorth(g), job: J ? (p.retired ? J + ' (jubilado)' : J) : 'Sin trabajo',
+        age: p.age, cause, worth: MV.netWorth(g), job: J ? (p.retired ? `${J} (${U.gw(p.gender, 'jubilado', 'jubilada')})` : J) : 'Sin trabajo',
         edu: best ? (best.kind === 'universidad' ? MV.EDU.majors[best.major].name : best.kind === 'tecnica' ? MV.EDU.tech[best.major].name : MV.EDU.post[best.type].name) : MV.EDU.names[MV.EDU.order[MV.eduLevel(p)]],
         kids: MV.rels(g, 'hijo', true).length, marriages: p.counters.bodas || 0, crimes: p.counters.delitos || 0,
         karma: p.karma, fame: p.fame, stats: Object.assign({}, p.stats), epitaph: legacy.epitaph(g), verdict: legacy.verdict(p.karma),
         ach: (g.achLife || []).slice(), aspiration: p.aspiration ? Object.assign({ name: (MV.ASPIRATIONS.find((a) => a.id === p.aspiration.id) || {}).name }, p.aspiration) : null,
-        generation: g.generation, dynasty: g.dynasty, country: p.country, city: p.city
+        generation: g.generation, dynasty: g.dynasty, country: p.country, city: p.city,
+        grandkids: MV.rels(g, 'nieto', true).length,
+        works: (p.works || []).filter((w) => w.hit).map((w) => w.title).slice(-3)
       };
       g.summary = summary;
       MV.log(g, `Moriste a los ${p.age} años por ${cause}.`, '🪦', 'bad');
@@ -107,6 +109,28 @@
       MV.saveGlobal();
       if (glob.lives >= 10) MV.ach.unlock(g, 'reencarnacion');
       return summary;
+    },
+
+    /** Resumen en texto para copiar o compartir (requiere g.summary, es decir, la vida terminada). */
+    summaryText(g) {
+      const s = g.summary;
+      if (!s) return '';
+      const C = MV.COUNTRIES[s.country] || { name: '', flag: '' };
+      const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+      const fam = [s.kids ? plural(s.kids, 'hijo', 'hijos') : 'sin hijos', s.grandkids ? plural(s.grandkids, 'nieto', 'nietos') : null, s.marriages ? plural(s.marriages, 'boda', 'bodas') : null].filter(Boolean).join(', ');
+      const achs = (s.ach || []).map((id) => MV.ach.def(id)).filter(Boolean);
+      const lines = [
+        `🪦 ${s.name} (${s.born}–${s.died}), ${plural(s.age, 'año', 'años')}`,
+        `${C.flag} ${s.city ? s.city + ', ' : ''}${C.name}. Murió por ${s.cause}.`,
+        `💼 ${s.job} · 🎓 ${s.edu} · 💰 ${U.money(s.worth)}`,
+        `👪 ${U.cap(fam)} · ☯️ karma ${s.karma} · ⭐ fama ${s.fame}`,
+        s.works && s.works.length ? `🏆 Éxitos: ${s.works.map((t) => `"${t}"`).join(', ')}` : null,
+        achs.length ? `🏅 Logros: ${achs.slice(0, 6).map((a) => `${a.icon} ${a.name}`).join(', ')}${achs.length > 6 ? ` y ${achs.length - 6} más` : ''}` : null,
+        s.challenge ? `🎯 Desafío: ${s.challenge}` : null,
+        `${s.verdict.icon} ${s.verdict.name}. «${s.epitaph}»`,
+        `Generación ${s.generation}${s.dynasty ? ` de la dinastía ${s.dynasty.name}` : ''} · Mil Vidas`
+      ];
+      return lines.filter(Boolean).join('\n');
     },
 
     /** Herederos: los hijos vivos; si no queda ninguno, los nietos vivos. */

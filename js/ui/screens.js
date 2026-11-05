@@ -116,6 +116,10 @@
       kv('Patrimonio', U.money(s.worth)), kv('Ocupación', s.job), kv('Estudios', s.edu), kv('Hijos', String(s.kids)), kv('Matrimonios', String(s.marriages)),
       kv('Delitos', String(s.crimes)), kv('Karma', String(s.karma)), kv('Fama', String(s.fame)), kv('Generación', `${s.generation} de la dinastía ${s.dynasty ? s.dynasty.name : ''}`),
       s.aspiration ? kv('Aspiración', `${s.aspiration.name || ''}: ${s.aspiration.done ? 'cumplida' : 'sin cumplir'}`) : null));
+    const shareText = MV.sys.legacy.summaryText(g);
+    root.append(h('div', { class: 'btn-row' },
+      h('button', { class: 'btn', id: 'copy-summary', style: { flex: 1 }, onclick: () => UI.copyText(shareText) }, '📋 Copiar resumen'),
+      typeof navigator !== 'undefined' && navigator.share ? h('button', { class: 'btn', style: { flex: 1 }, onclick: () => navigator.share({ title: 'Mil Vidas', text: shareText }).catch(() => {}) }, '📤 Compartir') : null));
     if (s.ach.length) {
       root.append(title('Logros de esta vida'));
       const grid = h('div', { class: 'ach-grid' });
@@ -142,6 +146,27 @@
     root.append(diary);
     app.append(root);
     window.scrollTo(0, 0);
+  };
+
+  /** Copia un texto al portapapeles; si el navegador no deja, lo muestra para copiarlo a mano. */
+  UI.copyText = function (text) {
+    const manual = () => UI.sheet({ title: 'Resumen de la vida', icon: '📋', allowOver: true, render: (body) => {
+      const ta = h('textarea', { class: 'input', id: 'summary-text', rows: '10', readonly: 'readonly', style: { width: '100%', fontFamily: 'inherit' } });
+      ta.value = text;
+      body.append(note('Tu navegador no dejó copiar automáticamente. Mantén presionado el texto para copiarlo.'), ta);
+      setTimeout(() => { ta.focus(); ta.select(); }, 0);
+    } });
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        // Si el permiso nunca responde, a los 1,5 s se ofrece la copia manual.
+        let done = false;
+        const finish = (fn) => () => { if (done) return; done = true; clearTimeout(timer); fn(); };
+        const timer = setTimeout(finish(manual), 1500);
+        navigator.clipboard.writeText(text).then(finish(() => UI.toast('📋', 'Copiado', 'Pega el resumen donde quieras.')), finish(manual));
+        return;
+      }
+    } catch (e) { /* sigue con la copia manual */ }
+    manual();
   };
 
   // ——— Ficha personal ———
