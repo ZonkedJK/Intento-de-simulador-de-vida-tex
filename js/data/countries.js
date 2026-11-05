@@ -208,4 +208,19 @@
     iguana: { name: 'Iguana', icon: '🦎', life: [10, 20], price: 250 },
     huron: { name: 'Hurón', icon: '🦦', life: [6, 10], price: 350 }
   };
+  /** Trucos que puede aprender cada especie (los últimos son los más difíciles). */
+  MV.PET_TRICKS = {
+    perro: ['sentarse', 'dar la pata', 'hacerse el muerto', 'traer el diario', 'saltar el aro', 'bailar en dos patas', 'abrir la heladera'],
+    gato: ['venir cuando lo llamas (a veces)', 'chocar los cinco', 'sentarse por un premio', 'ignorarte con estilo', 'tirar cosas de la mesa a pedido'],
+    conejo: ['saltar obstáculos', 'venir por su nombre', 'girar en círculo', 'empujar una pelotita'],
+    hamster: ['correr en la rueda a pedido', 'pararse en dos patas', 'meterse en tu bolsillo', 'recorrer un laberinto'],
+    pez: ['seguir tu dedo por el vidrio', 'atravesar un aro', 'empujar una pelotita', 'hacerse el muerto (preocupante)'],
+    loro: ['decir su nombre', 'silbar el himno', 'imitar el timbre', 'decir groserías frente a la abuela', 'cantar a dúo'],
+    tortuga: ['venir por su nombre', 'empujar una pelota', 'subir una rampa', 'quedarse quieta muy convincentemente'],
+    serpiente: ['enroscarse a pedido', 'reconocer tu voz', 'asustar a las visitas', 'posar para fotos'],
+    caballo: ['hacer una reverencia', 'saltar vallas', 'contar con la pata', 'caminar de costado', 'sonreír'],
+    cerdo: ['sentarse', 'encontrar trufas', 'jugar al fútbol', 'abrir puertas', 'pintar con el hocico'],
+    iguana: ['venir por su nombre', 'subirse a tu hombro', 'tomar sol a pedido', 'mover la cabeza en señal de respeto'],
+    huron: ['bailar la danza de guerra', 'traer objetos robados', 'pasar por un tubo', 'esconder tus llaves a pedido']
+  };
 })(window.MV = window.MV || {});

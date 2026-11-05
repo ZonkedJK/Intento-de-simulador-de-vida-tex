@@ -105,6 +105,15 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   await shot('novedades');
   await page.evaluate(() => MV.UI.closeSheets());
+  // Mascota con trucos y concurso
+  const petId = await page.evaluate(() => { const g = MV.UI.g; g.p.money = Math.max(g.p.money, 1000); const pet = MV.newPet(g, 'perro', { age: 3 }); pet.tricks = ['sentarse', 'dar la pata']; MV.addRel(g, pet, 'mascota', 80); MV.UI.closeSheets(); MV.UI.showPerson(pet.id); return pet.id; });
+  const tricksText = await page.$eval('#pet-tricks', (e) => e.textContent).catch(() => '');
+  if (!/dar la pata/.test(tricksText)) errors.push('La ficha de la mascota no muestra sus trucos');
+  await page.click('#layer button.row:has-text("concurso")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  if (await page.evaluate((id) => !MV.relOf(MV.UI.g, id), petId)) errors.push('La mascota desapareció tras el concurso');
+  await page.evaluate(() => MV.UI.closeSheets());
   // Noticias del mundo en Bienes y dinero
   await page.evaluate(() => { const g = MV.UI.g; g.log.push({ age: g.p.age, year: g.year, items: [] }); MV.sys.world.set(g, 'recesion'); MV.UI.showAssets(); });
   const newsText = await page.$eval('#world-news', (e) => e.textContent).catch(() => '');

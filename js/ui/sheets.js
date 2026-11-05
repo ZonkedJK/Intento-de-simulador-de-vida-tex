@@ -383,6 +383,11 @@
             h('p', { class: 'note', style: { margin: 0 } }, `${MV.relLabel(r.type, n)}, ${n.age} año${n.age === 1 ? '' : 's'}${human && n.job && n.job !== '-' ? '. ' + n.job : ''}`),
             human ? h('p', null, n.traits.map((t) => h('span', { class: 'tag' }, t))) : h('p', null, h('span', { class: 'tag' }, n.traits[0] || 'mascota')),
             h('div', { style: { maxWidth: '200px' } }, UI.bar(r.rel)))));
+        if (!human && ((n.tricks || []).length || n.trophies)) {
+          body.append(h('div', { class: 'box', id: 'pet-tricks' },
+            n.tricks && n.tricks.length ? h('p', { style: { margin: 0 } }, h('b', null, '🎓 Trucos: '), n.tricks.join(', ') + '.') : null,
+            n.trophies ? h('p', { style: { margin: n.tricks && n.tricks.length ? '6px 0 0' : 0 } }, h('b', null, '🏆 Trofeos: '), `${n.trophies}${n.wins ? ` (${n.wins} primer${n.wins === 1 ? '' : 'os'} puesto${n.wins === 1 ? '' : 's'})` : ''}`) : null));
+        }
         body.append(UI.actionList(MV.sys.rels.actions(g, r, n), r.acts, r));
       }
     });

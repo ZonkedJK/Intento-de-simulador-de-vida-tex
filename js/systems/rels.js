@@ -69,6 +69,40 @@
       return `${theyLeft ? `${n.first} pidió el divorcio.` : `Te divorciaste de ${n.first}.`}${lost ? ` El acuerdo te costó ${U.money(lost)}.` : ''}`;
     },
 
+    /** Enseña un truco a una mascota. Aprende según la relación, su salud y su viveza. */
+    teachTrick(g, n, r) {
+      const all = MV.PET_TRICKS[n.species] || MV.PET_TRICKS.perro;
+      n.tricks = n.tricks || [];
+      const next = all.find((t) => !n.tricks.includes(t));
+      if (!next) return `${n.first} ya sabe todos los trucos de su especie. Ahora te enseña trucos a ti.`;
+      const hard = all.indexOf(next) / all.length;
+      r.rel = U.clamp(r.rel + U.int(2, 5), 0, 100);
+      if (U.chance(U.clamp(0.3 + r.rel / 250 + n.health / 400 + (n.smarts || 30) / 300 - hard * 0.25, 0.1, 0.9))) {
+        n.tricks.push(next);
+        MV.fx.stat(g, 'happy', 3);
+        return `¡${n.first} aprendió a ${next}! ${U.pick(['Lo festejaste como un gol.', 'Le diste tantos premios que ahora está gordit' + U.gw(n.gender, 'o', 'a') + '.', 'Ya lo filmaste para las redes.'])}`;
+      }
+      return U.pick([`Intentaste enseñarle a ${n.first} a ${next}. Te miró como si el animal fueras tú.`, `${n.first} no aprendió a ${next}, pero se comió todos los premios.`, `Una hora practicando "${next}". ${n.first} se durmió en la mitad.`]);
+    },
+
+    /** Concurso de mascotas: $50 de inscripción; trucos, salud, relación y azar deciden el puesto. */
+    petShow(g, n, r) {
+      const p = g.p;
+      if (p.money < 50) return 'No te alcanza para la inscripción.';
+      MV.fx.money(g, -50);
+      const score = (n.tricks || []).length * 12 + n.health * 0.3 + r.rel * 0.2 + (n.looks || 50) * 0.15 + U.int(0, 35);
+      const place = score >= 100 ? 1 : score >= 84 ? 2 : score >= 70 ? 3 : 0;
+      const sp = (MV.SPECIES[n.species] || { name: 'mascota' }).name.toLowerCase();
+      if (!place) return U.pick([`${n.first} se distrajo con un jurado y no ganó nada. Te costó $50 y un poco de dignidad.`, `En el concurso, ${n.first} hizo todo menos lo que practicaron. El público aplaudió por lástima.`, `Ganó ${U.gw(n.gender, 'un', 'una')} ${sp} con moño. ${n.first} y tú vuelven a casa en silencio.`]);
+      const prize = place === 1 ? U.int(1500, 5000) : place === 2 ? U.int(600, 1500) : U.int(300, 600);
+      MV.fx.money(g, prize);
+      n.trophies = (n.trophies || 0) + 1;
+      r.rel = U.clamp(r.rel + 5, 0, 100);
+      MV.fx.stat(g, 'happy', place === 1 ? 8 : 4);
+      if (place === 1) { n.wins = (n.wins || 0) + 1; MV.fx.stat(g, 'fame', 1); MV.ach.unlock(g, 'mascota_campeona'); }
+      return `${['', '🥇 ¡Primer puesto!', '🥈 Segundo puesto.', '🥉 Tercer puesto.'][place]} ${n.first} ${(n.tricks || []).length ? `deslumbró con "${U.pick(n.tricks)}"` : 'se ganó al jurado con pura simpatía'}. Premio: ${U.money(prize)}.`;
+    },
+
     /** Convierte la relación en ex y deja de convivir si vivían juntos. */
     makeEx(g, r) {
       if (!r) return;
@@ -184,9 +218,11 @@
       if (!human) {
         A({ id: 'jugar', icon: '🎾', label: 'Jugar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Jugaste con ${n.first}. Te mordió con cariño.`, `${n.first} trajo la pelota 40 veces. Tú te cansaste primero.`, `${n.first} te ignoró olímpicamente, pero se notaba feliz.`]); } });
         if (n.species === 'perro') A({ id: 'pasear', icon: '🦮', label: 'Pasear', sub: '+salud para ambos', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(3, 8), 0, 100); MV.fx.stat(g, 'health', U.int(1, 3)); n.health = U.clamp(n.health + 3, 0, 100); return `Paseaste a ${n.first}. Olfateó cada poste del barrio.`; } });
+        if (n.age >= 1) A({ id: 'truco', icon: '🎓', label: 'Enseñarle un truco', sub: (n.tricks || []).length ? `Sabe ${n.tricks.length} truco${n.tricks.length === 1 ? '' : 's'}` : 'Todavía no sabe ninguno', limit: 1, run: (g) => rels.teachTrick(g, n, r) });
+        if (n.age >= 1) A({ id: 'concurso', icon: '🏆', label: 'Anotarl' + U.gw(n.gender, 'o', 'a') + ' en un concurso', sub: '$50 de inscripción. Premios en efectivo', limit: 1, when: () => p.money >= 50, run: (g) => rels.petShow(g, n, r) });
         A({ id: 'vet', icon: '🩺', label: 'Llevar al veterinario', sub: '$250', limit: 1, run: (g) => { MV.fx.money(g, -250); n.health = U.clamp(n.health + U.int(10, 25), 0, 100); n.lifespan = (n.lifespan || 10) + (U.chance(0.3) ? 1 : 0); return `${n.first} fue al veterinario. Odia al veterinario.`; } });
         A({ id: 'regalar_mascota', icon: '📦', label: 'Dar en adopción', sub: 'Adiós', limit: 1, confirm: `¿Dar en adopción a ${n.first}?`, run: (g) => { MV.removeRel(g, n.id); MV.fx.stat(g, 'karma', -5); MV.fx.stat(g, 'happy', -6); return `Diste en adopción a ${n.first}. Te miró por última vez con ojos de traición.`; } });
-        return list;
+        return list.filter((a) => !a.when || a.when(g));
       }
       A({ id: 'conversar', icon: '💬', label: 'Conversar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(1, 6), 0, 100); return U.pick([`Hablaste con ${n.first} sobre la vida. ${U.cap(MV.relLabel(t, n).toLowerCase())} feliz.`, `Charlaron de todo y de nada con ${n.first}.`, `${n.first} te contó un chisme jugoso.`, `Hablaron del clima durante 20 minutos. Intensísimo.`]); } });
       A({ id: 'tiempo', icon: '🫂', label: 'Pasar tiempo juntos', sub: '+relación, +felicidad', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Pasaste la tarde con ${n.first}. ${U.pick(['Vieron una película malísima.', 'Cocinaron algo incomible y se rieron mucho.', 'Fueron a caminar por el parque.', 'Jugaron cartas y hubo trampas.'])}`]); } });
