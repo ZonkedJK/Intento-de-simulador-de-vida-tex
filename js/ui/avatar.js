@@ -134,6 +134,7 @@
     // Accesorios de la cabeza
     if (o.outfit === 'chef' && !baby) P.push(`<path d="M36 ${top + 2} h28 v-8 h-28 Z" fill="#ffffff" stroke="${INK}" stroke-width="2"/><path d="M34 ${top - 6} q-4 -14 8 -14 q4 -10 16 -4 q12 -4 10 10 q2 6 -2 8 Z" fill="#ffffff" stroke="${INK}" stroke-width="2"/>`);
     if (acc.includes('gorra_grad') && !baby && o.outfit !== 'chef') P.push(`<path d="M26 ${top + 2} l24 -10 l24 10 l-24 10 Z" fill="#1b1b1b" stroke="${INK}" stroke-width="1.6"/><path d="M36 ${top + 6} v6 q14 7 28 0 v-6" fill="#2b2b2b" stroke="${INK}" stroke-width="1.6"/><path d="M74 ${top + 2} v10" stroke="#f2c94c" stroke-width="2"/><circle cx="74" cy="${top + 13}" r="2" fill="#f2c94c"/>`);
+    if (acc.includes('casco') && !baby) P.push(`<g data-helmet="1"><path d="M${50 - r - 3} ${cy + 3} Q${50 - r - 4} ${top - 11} 50 ${top - 11} Q${50 + r + 4} ${top - 11} ${50 + r + 3} ${cy + 3} L${50 + r - 3} ${cy + 3} Q${50 + r - 3} ${top + 2} 50 ${top + 2} Q${50 - r + 3} ${top + 2} ${50 - r + 3} ${cy + 3} Z" fill="#d62828" stroke="${INK}" stroke-width="2"/><path d="M50 ${top - 11} V${top + 2}" stroke="#ffffff" stroke-width="3"/></g>`);
     if (acc.includes('auriculares') && !baby) P.push(`<path d="M${50 - r - 2} ${cy} Q${50 - r} ${top - 8} 50 ${top - 8} Q${50 + r} ${top - 8} ${50 + r + 2} ${cy}" fill="none" stroke="#1b1b1b" stroke-width="4"/><rect x="${50 - r - 7}" y="${cy - 5}" width="9" height="13" rx="3" fill="#e63946" stroke="${INK}" stroke-width="1.6"/><rect x="${50 + r - 2}" y="${cy - 5}" width="9" height="13" rx="3" fill="#e63946" stroke="${INK}" stroke-width="1.6"/>`);
     return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">${P.join('')}</svg>`;
   };
@@ -148,7 +149,7 @@
       if (['medico', 'cirujano', 'enfermero', 'veterinario', 'cientifico'].includes(J.id)) return 'medico';
       if (['policia', 'guardia', 'militar', 'bombero'].includes(J.id)) return 'policia';
       if (J.id === 'cocinero') return 'chef';
-      if (J.id === 'politico') return p.job.level >= 3 ? 'presidente' : 'traje';
+      if (J.id === 'politico') return p.job.level >= J.titles.length - 1 ? 'presidente' : 'traje';
       if (['gerente', 'financiero', 'abogado', 'juez', 'mafia', 'inmobiliario', 'arquitecto'].includes(J.id)) return 'traje';
     }
     if (p.edu && ['primaria', 'secundaria'].includes(p.edu.stage) && !p.edu.adult) return 'estudiante';
@@ -164,6 +165,7 @@
     if (p.fame >= 60) acc.push('lentes_sol');
     if (p.edu && MV.hasDegree(p, 'universidad') && p.age <= 26) acc.push('gorra_grad');
     if (p.look && p.look.piercing && p.age >= 14) acc.push('piercing');
+    if (J && J.sport === 'automovilismo' && !p.prison) acc.push('casco');
     return acc;
   };
 

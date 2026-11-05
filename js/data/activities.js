@@ -218,7 +218,7 @@
   A({ id: 'tatuaje', cat: 'ocio', icon: '🖋️', label: 'Hacerte un tatuaje', sub: 'Minijuego: dibuja tu diseño', minAge: 18, limit: 1, ui: 'tattoo',
     check: (g, o) => (o && o.design ? MV.sys.tattoo.refusal(g, o.design, o.cover) : null),
     run: (g, o) => (o && o.design ? MV.sys.tattoo.apply(g, o.design, o.artist, o.place, { cover: o.cover })
-      : MV.sys.tattoo.apply(g, MV.sys.tattoo.randomDesign(), U.pick(Object.keys(MV.TATTOO_ARTISTS)), U.pick(Object.keys(MV.TATTOO_PLACES)))) });
+      : MV.sys.tattoo.apply(g, MV.sys.tattoo.randomDesign(), U.pick(Object.keys(MV.TATTOO_ARTISTS).filter((k) => !MV.TATTOO_ARTISTS[k].hidden)), U.pick(Object.keys(MV.TATTOO_PLACES)))) });
 
   // ——— Azar ———
   A({ id: 'ruleta', cat: 'azar', icon: '🎡', label: 'Ruleta (rojo o negro)', sub: 'x2 · 47%', limit: 4, opts: bets,

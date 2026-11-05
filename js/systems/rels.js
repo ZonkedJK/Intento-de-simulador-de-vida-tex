@@ -60,8 +60,7 @@
     divorce(g, n, theyLeft) {
       const r = MV.relOf(g, n.id);
       if (!r) return '';
-      if (g.p.flags.convive === n.id) delete g.p.flags.convive;
-      r.type = 'ex'; r.rel = U.clamp(r.rel - 30, 0, 100);
+      rels.makeEx(g, r); r.rel = U.clamp(r.rel - 30, 0, 100);
       g.p.counters.divorcios = (g.p.counters.divorcios || 0) + 1;
       MV.fx.stat(g, 'happy', -15);
       let lost = 0;
@@ -70,11 +69,17 @@
       return `${theyLeft ? `${n.first} pidió el divorcio.` : `Te divorciaste de ${n.first}.`}${lost ? ` El acuerdo te costó ${U.money(lost)}.` : ''}`;
     },
 
+    /** Convierte la relación en ex y deja de convivir si vivían juntos. */
+    makeEx(g, r) {
+      if (!r) return;
+      r.type = 'ex';
+      if (g.p.flags.convive === r.id) delete g.p.flags.convive;
+    },
+
     breakUp(g, n) {
       const r = MV.relOf(g, n.id);
       if (!r) return '';
-      if (g.p.flags.convive === n.id) delete g.p.flags.convive;
-      r.type = 'ex'; r.rel = U.clamp(r.rel - 25, 0, 100);
+      rels.makeEx(g, r); r.rel = U.clamp(r.rel - 25, 0, 100);
       MV.fx.stat(g, 'happy', -6);
       return `Terminaste con ${n.first}. ${U.pick(['Lloró en tu cara.', 'Te devolvió tu buzo, sin lavar.', 'Dijo "ya lo veía venir".', 'Cambió su estado a "liberad' + U.gw(n.gender, 'o', 'a') + '".'])}`;
     },
@@ -123,7 +128,7 @@
       const part = MV.partner(g);
       if (part && part.r.rel < 18 && U.chance(0.35)) {
         if (part.r.type === 'conyuge') MV.EV.info(g, { title: 'Divorcio', text: rels.divorce(g, part.n, true), icon: '💔', scene: 'tribunal' });
-        else { part.r.type = 'ex'; MV.EV.info(g, { title: 'Te dejaron', text: `${part.n.first} te dejó. Dijo que necesitaba "encontrarse". Se encontró con otra persona.`, icon: '💔', scene: 'hogar' }); MV.fx.stat(g, 'happy', -10); }
+        else { rels.makeEx(g, part.r); MV.EV.info(g, { title: 'Te dejaron', text: `${part.n.first} te dejó. Dijo que necesitaba "encontrarse". Se encontró con otra persona.`, icon: '💔', scene: 'hogar' }); MV.fx.stat(g, 'happy', -10); }
       }
       // Infidelidad descubierta
       const lover = MV.rels(g, 'amante')[0];
@@ -154,7 +159,11 @@
       const d = react === 'hate' ? -U.int(5, 12) : Math.round(react === 'love' ? base * 1.6 + 3 : react === 'like' ? base : base * 0.5);
       r.rel = U.clamp(r.rel + d, 0, 100);
       let extra = '';
-      if (gift.special === 'pet' && react !== 'hate') extra = ` Ahora ${n.first} tiene un perrito y te manda fotos todos los días.`;
+      if (gift.special === 'pet' && react !== 'hate') {
+        const home = r.type === 'conyuge' || g.p.flags.convive === n.id || (r.type === 'hijo' && n.age < 18);
+        if (home) { const pet = MV.newPet(g, 'perro', { age: 0 }); MV.addRel(g, pet, 'mascota', U.int(60, 85)); MV.ach.check(g); extra = ` Ahora en casa hay un perrito: ${n.first} le puso ${pet.first}.`; }
+        else extra = ` Ahora ${n.first} tiene un perrito y te manda fotos todos los días.`;
+      }
       if (gift.special === 'trip' && react !== 'hate') { MV.fx.stat(g, 'happy', 3); extra = ` ${n.first} volvió broncead${U.gw(n.gender, 'o', 'a')} y con un imán para tu heladera.`; }
       if (gift.special === 'money') n.money = (n.money || 0) + Math.round(gift.price * 0.3);
       const line = {
@@ -277,8 +286,7 @@
         } });
       }
       // — Planes con familia y amigos —
-      const grown = n.age >= 14 && (p.age >= 14 || MV.FAMILY.includes(t));
-      if (['amigo', 'padre', 'hermano', 'hijo', 'abuelo', 'companero', 'conyuge', 'pareja'].includes(t) && grown && p.age >= 14) {
+      if (['amigo', 'padre', 'hermano', 'hijo', 'abuelo', 'companero', 'conyuge', 'pareja'].includes(t) && n.age >= 14 && p.age >= 14) {
         A({ id: 'comer_afuera', icon: '🍔', label: 'Salir a comer', sub: '$80', limit: 1, when: () => p.money >= 80 || p.age < 18, run: (g) => { if (p.age >= 18) MV.fx.money(g, -80); bump(4, 8); return `Salieron a comer con ${n.first}. ${U.pick(['Pidieron demasiado.', 'El mozo se equivocó con todo y igual dejaron propina.', 'Hablaron tres horas sin mirar el celular.'])}`; } });
         A({ id: 'cine_juntos', icon: '🍿', label: 'Ir al cine juntos', sub: '+relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'happy', 2); return `Fueron al cine con ${n.first}. ${U.pick(['Se durmió a la mitad.', 'Lloraron los dos y fingieron que no.', 'Comentó toda la película. Toda.'])}`; } });
         A({ id: 'gym_juntos', icon: '🏋️', label: 'Ir al gimnasio juntos', sub: '+salud, +relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'health', 2); n.health = U.clamp(n.health + 2, 0, 100); return `Entrenaron juntos con ${n.first}. Se motivaron mutuamente (y se quejaron mutuamente).`; } });
@@ -347,7 +355,7 @@
     text: (g) => g.p.gender === 'f' ? 'Estás embarazada. Con {t}. No estaba en los planes.' : '{t} está embarazada. De ti. No estaba en los planes.',
     choices: [
       { t: '👶 Tener al bebé', eff: (g, ctx) => rels.birth(g, MV.person(g, ctx.target)) },
-      { t: '🏃 Huir del país (moralmente dudoso)', when: (g) => g.p.gender === 'm', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) { r.type = 'ex'; r.rel = 0; } MV.fx.stat(g, 'karma', -25); return 'Desapareciste. Cambiaste de número. Tu karma tomó nota.'; } },
+      { t: '🏃 Huir del país (moralmente dudoso)', when: (g) => g.p.gender === 'm', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) { rels.makeEx(g, r); r.rel = 0; } MV.fx.stat(g, 'karma', -25); return 'Desapareciste. Cambiaste de número. Tu karma tomó nota.'; } },
       { t: '🤝 Decidirlo juntos con calma', eff: (g, ctx) => { if (U.chance(0.5)) return rels.birth(g, MV.person(g, ctx.target)); return 'Lo hablaron con calma y decidieron que no era el momento. Siguen juntos.'; } }
     ]
   });

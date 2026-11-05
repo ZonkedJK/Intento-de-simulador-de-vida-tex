@@ -135,7 +135,13 @@
   ev({ id: 'carcel_tatuaje', prison: true, age: [14, 110], icon: '🖊️', scene: 'carcel', title: 'Arte carcelario',
     text: 'Un recluso ofrece tatuarte con una birome y una aguja de coser.',
     choices: [
-      { t: 'Aceptar', eff: (g) => { if (U.chance(0.2)) MV.sys.health.add(g, 'ets'); fx.stat(g, 'looks', U.int(-3, 2)); return U.pick(['Te tatuó una calavera. O un hongo. No queda claro.', 'Te tatuó "MAMÁ" pero le faltó una A.']); } },
+      { t: 'Aceptar', eff: (g) => {
+        if (U.chance(0.2)) MV.sys.health.add(g, 'ets');
+        fx.stat(g, 'looks', U.int(-3, 2));
+        const t = MV.sys.tattoo.prison(g);
+        if (!t) return 'No te quedaba piel libre. El recluso tatuó a otro y te cobró igual con cigarrillos.';
+        return t.label === 'MAMÁ' ? 'Te tatuó "MAMÁ" pero le faltó una A. Ya está en tu álbum, para siempre.' : 'Te tatuó una calavera. O un hongo. No queda claro. Ya está en tu álbum.';
+      } },
       { t: 'Rechazar', eff: { msg: 'Rechazaste. Tu piel y tu salud te lo agradecen.' } }
     ] });
   ev({ id: 'carcel_guardia', prison: true, age: [14, 110], icon: '💂', scene: 'carcel', title: 'Un guardia "amigo"',

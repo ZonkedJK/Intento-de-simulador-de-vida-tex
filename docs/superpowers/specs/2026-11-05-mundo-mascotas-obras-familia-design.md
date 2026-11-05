@@ -17,7 +17,7 @@ Node, sin compilación).
 
 1. El láser exige tener $1.500; si no alcanza, no se cobra ni se borra.
 2. Toda ruptura directa (`type = 'ex'` al huir del país o desde el crimen) borra `convive`.
-3. Partidas viejas con tatuajes de cárcel (sin álbum) muestran un tatuaje "de la cárcel" en el álbum.
+3. El tatuaje de la cárcel queda en el álbum (artista "Recluso con birome", oculto en el estudio). Las partidas viejas no guardaron si hubo uno, así que no se recupera.
 4. Regalar un cachorro crea una mascota real (perro) para la persona que lo recibe, o para ti si conviven.
 5. El piloto lleva casco; la banda presidencial es solo para Presidente (nivel máximo de política).
 6. Vender la casa donde vives te muda a otra casa propia **que no esté alquilada**; si no hay, a un alquiler.

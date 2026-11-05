@@ -270,7 +270,7 @@
       p.assets = p.assets.filter((x) => x !== a);
       if (p.home === a.id) {
         p.home = null;
-        const other = p.assets.find((x) => x.type === 'casa');
+        const other = p.assets.find((x) => x.type === 'casa' && !x.rented);
         if (other) p.home = other.id; else { p.housing = 'alquiler'; p.rent = RENTALS[1]; }
       }
       return `Vendiste ${a.name} por ${U.money(price)}${loan ? ` (pagaste la hipoteca y te quedaron ${U.money(net)})` : ''}.`;
@@ -294,7 +294,9 @@
       return MV.HOUSE_UPGRADES.map((U2) => {
         const cost = money.upgradeCost(a, U2);
         const why = [];
+        const builtIn = ((MV.HOUSES || []).find((k) => k.kind === a.kind) || {}).has || [];
         if ((a.upgrades || []).some((u) => u.id === U2.id)) why.push('Ya la tienes');
+        else if (builtIn.includes(U2.id)) why.push('Ya la tiene de fábrica');
         if (U2.house && money.isApartment(a)) why.push('Solo en casas');
         if (U2.minValue && a.value < U2.minValue) why.push(`Solo en propiedades de ${U.money(U2.minValue)} o más`);
         if (g.p.money < cost) why.push(`Cuesta ${U.money(cost)}`);

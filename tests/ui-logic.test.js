@@ -72,3 +72,15 @@ test('makeLook crea aspectos nuevos con peinado 0-8 y barba 0-3', () => {
     if (i % 2 === 0) assert.equal(l.beardStyle, 0);
   }
 });
+
+test('el piloto lleva casco y la banda presidencial es solo para Presidente', () => {
+  const MV = load();
+  const g = MV.newGame({ seed: 7 }); g.p.age = 25; g.p.edu.done = ['primaria', 'secundaria'];
+  MV.sys.sports.sign(g, MV.sys.sports.makeOffer(g, 'automovilismo', 0));
+  assert.ok(MV.UI.accFor(g.p).includes('casco'));
+  assert.match(MV.UI.avatarSVG({ age: 25, gender: 'm', look: g.p.look, id: 'p', mood: 60, outfit: 'piloto', acc: ['casco'] }), /data-helmet/);
+  const pol = { alive: true, age: 50, job: { id: 'politico', level: 3 }, edu: {} };
+  assert.equal(MV.UI.outfitFor(pol), 'traje');
+  pol.job.level = 4;
+  assert.equal(MV.UI.outfitFor(pol), 'presidente');
+});

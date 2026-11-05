@@ -59,7 +59,8 @@
     /** Nota 0-100 del tatuador: cobertura, colores, detalle, prolijidad, Arte y tatuador. */
     score(design, artistId, art) {
       const d = tattoo.normalize(design);
-      const A = MV.TATTOO_ARTISTS[artistId] || MV.TATTOO_ARTISTS.estudio;
+      const A = (!(MV.TATTOO_ARTISTS[artistId] || {}).hidden && MV.TATTOO_ARTISTS[artistId]) || MV.TATTOO_ARTISTS.estudio;
+      if (A !== MV.TATTOO_ARTISTS[artistId]) artistId = 'estudio';
       if (tattoo.isEmpty(d)) return { score: 0, coverage: 0, colors: 0, strokes: 0 };
       const cells = new Set();
       d.strokes.forEach((s) => { for (let i = 0; i < s.pts.length; i += 2) cells.add(Math.min(9, Math.floor(s.pts[i] / 10)) * 10 + Math.min(9, Math.floor(s.pts[i + 1] / 10))); });
@@ -129,12 +130,26 @@
       const p = g.p;
       const t = (p.tattoos || []).find((x) => x.id === id);
       if (!t) return 'Ese tatuaje ya no existe.';
+      if (p.money < LASER_COST) return `No te alcanza para el láser: cuesta ${U.money(LASER_COST)}. El tatuaje se queda, como un recuerdo.`;
       MV.fx.money(g, -LASER_COST);
       MV.fx.stat(g, 'happy', -4);
       p.tattoos = p.tattoos.filter((x) => x !== t);
       if (p.flags.taparTatuaje === t.id) delete p.flags.taparTatuaje;
       syncFlags(p);
       return `Te borraste el tatuaje con láser (${U.money(LASER_COST)}). Dolió como diez tatuajes juntos.`;
+    },
+
+    /** Tatuaje carcelario: va al álbum si queda piel libre. Devuelve el tatuaje o null. */
+    prison(g) {
+      const p = g.p;
+      p.tattoos = p.tattoos || [];
+      if (p.tattoos.length >= MAX_ALBUM) return null;
+      const skull = U.chance(0.5);
+      const design = skull ? { strokes: MV.TATTOO_TEMPLATES.calavera.pts.map((pts) => ({ c: 0, w: 1, pts: pts.slice() })), texts: [] }
+        : { strokes: [{ c: 0, w: 1, pts: [30, 70, 70, 70] }], texts: [{ t: 'MAMÁ', x: 50, y: 50, c: 0 }] };
+      const t = { id: U.uid('t'), age: p.age, place: U.pick(['brazo', 'pierna', 'espalda']), artist: 'carcel', design: tattoo.normalize(design), score: U.int(5, 30), seed: U.int(1, 1e6), partnerName: null, prison: true, label: skull ? 'calavera (o un hongo)' : 'MAMÁ' };
+      p.tattoos.push(t);
+      return t;
     },
 
     /** Diseño al azar a partir de las plantillas (para jugadores automáticos y pruebas). */

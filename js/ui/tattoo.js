@@ -30,7 +30,7 @@
     const g = UI.g, p = g.p;
     body.append(h('h3', { class: 'section-title' }, '1. Elige al tatuador'));
     const al = h('div', { class: 'list' });
-    Object.keys(MV.TATTOO_ARTISTS).forEach((k) => {
+    Object.keys(MV.TATTOO_ARTISTS).filter((k) => !MV.TATTOO_ARTISTS[k].hidden).forEach((k) => {
       const A = MV.TATTOO_ARTISTS[k];
       al.append(UI.row(A.icon, A.name, `${A.desc}. ${U.money(A.cost)}`, st.artist === k ? '✓' : '', () => { st.artist = k; UI.refreshSheets(); }, p.money < A.cost));
     });
