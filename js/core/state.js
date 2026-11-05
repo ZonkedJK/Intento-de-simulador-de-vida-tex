@@ -81,12 +81,16 @@
       skin = U.pick(L.SKIN);
       hair = U.pick(L.HAIR);
     }
+    // Peinados 0-8: corto, raya, rulos, largo, rodete, calvo, cresta, coleta, melena.
+    const styles = gender === 'f' ? [3, 3, 4, 8, 7, 2, 1, 0, 6] : [0, 0, 1, 2, 5, 6, 8, 3, 7];
+    const beardStyle = gender === 'm' ? U.pickW([0, 1, 2, 3], (k) => [55, 15, 12, 18][k]) : 0;
     return {
-      skin, hair,
+      v: 2, skin, hair,
       eyes: ps.length && U.chance(0.7) ? U.pick(ps).look.eyes : U.pick(L.EYES),
-      style: U.int(0, 4),
+      style: U.pick(styles),
+      beardStyle, beard: beardStyle > 0,
       glasses: U.chance(0.18),
-      beard: gender === 'm' && U.chance(0.4),
+      piercing: U.chance(0.12),
       freckles: U.chance(0.12)
     };
   };
