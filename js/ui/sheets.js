@@ -257,13 +257,58 @@
       render: (body) => {
         const g = UI.g, p = g.p, a = p.assets.find((x) => x.id === id);
         if (!a) { body.append(note('Ya no tienes esto.')); return; }
+        const M = MV.sys.money;
         const loan = p.loans.find((l) => l.assetId === a.id);
-        body.append(h('div', { class: 'box' }, h('p', null, h('b', null, `${a.icon} ${a.name}`)), kv('Valor', U.money(a.value)), kv('Estado', UI.condBar(a.cond)), loan ? kv('Hipoteca pendiente', U.money(loan.left)) : null, a.haunted ? h('p', { class: 'note' }, 'De noche se escuchan cadenas. Probablemente sean las cañerías.') : null));
+        body.append(h('div', { class: 'box' }, h('p', null, h('b', null, `${a.icon} ${a.name}`)), kv('Valor', U.money(a.value)), kv('Estado', UI.condBar(a.cond)),
+          kv('Mantenimiento', U.money(M.upkeep(g, a)) + ' al año'),
+          loan ? kv('Hipoteca pendiente', U.money(loan.left)) : null,
+          a.haunted ? h('p', { class: 'note' }, 'De noche se escuchan cadenas. Probablemente sean las cañerías.') : null));
+        if (a.type === 'casa') {
+          body.append(h('h3', { class: 'section-title' }, 'Mejoras'));
+          const ups = a.upgrades || [];
+          const ul = h('div', { class: 'list' });
+          if (!ups.length) ul.append(UI.row('🏚️', 'Sin mejoras', p.home === a.id ? 'Las mejoras dan beneficios cada año mientras vivas aquí.' : 'Suman valor y alquiler. Sus beneficios son para quien vive aquí.'));
+          ups.forEach((u) => {
+            const U2 = MV.HOUSE_UPGRADES.find((x) => x.id === u.id) || { icon: '🔧', name: u.id, desc: '' };
+            ul.append(UI.row(U2.icon, U2.name, `${U2.desc}. ${u.added >= 0 ? 'Suma' : 'Resta'} ${U.money(Math.abs(u.added))} al valor`, 'Quitar',
+              () => UI.confirm(`¿Quitar ${U2.name.toLowerCase()}? La demolición cuesta ${U.money(Math.round((u.cost || 5000) * 0.2))}.`, () => UI.runSystem(U2.icon, () => M.removeUpgrade(g, a.id, u.id)), 'Quitar')));
+          });
+          ul.append(UI.row('➕', 'Agregar una mejora', 'Piscina, sauna, cancha de tenis y más', '›', () => UI.sheet({
+            title: 'Mejoras para tu casa', icon: '🛠️',
+            render: (b2) => {
+              b2.append(note(`Tienes ${U.money(p.money)}. Algunas mejoras suman más valor del que cuestan; otras, casi nada.`));
+              const l2 = h('div', { class: 'list' });
+              M.upgradeOptions(g, a.id).forEach((o) => l2.append(UI.row(o.icon, o.label, o.sub, o.ok ? 'Instalar' : '', () => { UI.popSheet(); UI.runSystem(o.icon, () => M.addUpgrade(g, a.id, o.id)); }, !o.ok)));
+              b2.append(l2);
+            }
+          })));
+          body.append(ul);
+        }
+        body.append(h('h3', { class: 'section-title' }, 'Opciones'));
         const l = h('div', { class: 'list' });
-        l.append(UI.row('🏷️', 'Vender', `Te darían unos ${U.money(Math.round(a.value * (0.75 + a.cond / 400)))}`, null, () => UI.confirm(`¿Vender ${a.name}?`, () => { UI.popSheet(); UI.runSystem('🏷️', () => MV.sys.money.sell(g, a.id)); }, 'Vender')));
-        if (a.cond < 100) l.append(UI.row('🛠️', 'Reparar', 'Dejarlo como nuevo', null, () => UI.runSystem('🛠️', () => MV.sys.money.repair(g, a.id))));
+        l.append(UI.row('🏷️', 'Vender', `Valor estimado ${U.money(M.estimate(a))}. Elige cuánto pedir`, '›', () => showSell(a.id)));
+        if (a.cond < 100) l.append(UI.row('🛠️', 'Reparar', 'Dejarlo como nuevo', null, () => UI.runSystem('🛠️', () => M.repair(g, a.id))));
         if (a.type === 'casa' && p.home !== a.id) l.append(UI.row('📦', 'Mudarte aquí', 'Dejar de pagar alquiler', null, () => UI.runSystem('📦', () => { p.housing = 'propia'; p.home = a.id; p.rent = null; a.rented = false; MV.fx.stat(g, 'happy', 5); return `Te mudaste a ${a.name}.`; })));
-        if (a.type === 'casa' && p.home !== a.id) l.append(UI.row('🧾', a.rented ? 'Dejar de alquilarla' : 'Alquilarla a inquilinos', a.rented ? '' : `Unos ${U.money(Math.round(a.value * 0.045))} al año`, null, () => UI.runSystem('🧾', () => { a.rented = !a.rented; return a.rented ? `Alquilaste ${a.name}. Tus inquilinos ya preguntan por la humedad.` : 'Echaste a tus inquilinos. Te dejaron una planta muerta.'; })));
+        if (a.type === 'casa' && p.home !== a.id) l.append(UI.row('🧾', a.rented ? 'Dejar de alquilarla' : 'Alquilarla a inquilinos', a.rented ? '' : `Unos ${U.money(Math.round(a.value * 0.045))} al año (las mejoras suben el alquiler)`, null, () => UI.runSystem('🧾', () => { a.rented = !a.rented; return a.rented ? `Alquilaste ${a.name}. Tus inquilinos ya preguntan por la humedad.` : 'Echaste a tus inquilinos. Te dejaron una planta muerta.'; })));
+        body.append(l);
+      }
+    });
+  }
+
+  function showSell(id) {
+    UI.sheet({
+      title: 'Poner precio', icon: '🏷️',
+      render: (body) => {
+        const g = UI.g, a = g.p.assets.find((x) => x.id === id);
+        if (!a) { body.append(note('Ya no tienes esto.')); return; }
+        const est = MV.sys.money.estimate(a);
+        body.append(note(`Valor estimado: ${U.money(est)}. Si pides de más, puede llegar una contraoferta; si pides poco, se vende seguro.`));
+        const l = h('div', { class: 'list' });
+        [[-0.2, 'Venta rápida', 'Se vende seguro'], [-0.1, 'Un poco por debajo', 'Muy probable'], [0, 'Al valor estimado', 'Probable'], [0.1, 'Un poco más', 'Puede haber contraoferta'], [0.25, 'Bastante más', 'Seguramente regateen'], [0.5, 'Precio de sueño', 'Casi seguro regatean']].forEach(([f, label, sub]) => {
+          const ask = Math.round(est * (1 + f));
+          l.append(UI.row(f < 0 ? '⬇️' : f > 0 ? '⬆️' : '⚖️', `${label}: ${U.money(ask)}`, `${f > 0 ? '+' : ''}${Math.round(f * 100)}%. ${sub}`, null,
+            () => { UI.popSheet(); UI.popSheet(); UI.runSystem('🏷️', () => MV.sys.money.sellAt(g, a.id, f)); }));
+        });
         body.append(l);
       }
     });
