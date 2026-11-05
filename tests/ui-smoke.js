@@ -11,6 +11,7 @@ const SHOTS = process.argv[2] || null;
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   const errors = [];
+  global.__page = page; global.__errors = errors;
   page.on('console', (m) => { if (m.type() === 'error' && !/fonts\.(googleapis|gstatic)/.test(m.text())) errors.push(m.text()); });
   page.on('pageerror', (e) => errors.push('Excepción: ' + e.message));
   const shot = async (n) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, n + '.png') }); };
@@ -30,6 +31,10 @@ const SHOTS = process.argv[2] || null;
   await page.fill('#f-first', 'Probeta');
   await page.click('text=Nacer');
   for (let y = 0; y < 22; y++) { await tryClick('.ageup'); await page.waitForTimeout(30); await resolve(); }
+  await page.waitForTimeout(800);
+  if (await page.evaluate(() => !MV.UI.g || MV.UI.g.over)) { // murió joven: otra vida para seguir probando
+    await page.evaluate(() => { const g = MV.newGame({ seed: 77 }); MV.UI.startGame(g); for (let i = 0; i < 20; i++) { while (g.queue.length) MV.EV.choose(g, MV.EV.view(g).choices[0].i); MV.ageUp(g); } while (g.queue.length) MV.EV.choose(g, MV.EV.view(g).choices[0].i); MV.UI.save(); MV.UI.renderGame(); });
+  }
   await shot('diario');
   // Recorrer las pestañas
   for (const tab of ['Ocupación', 'Bienes', 'Relaciones', 'Actividades']) {
@@ -51,6 +56,44 @@ const SHOTS = process.argv[2] || null;
     }
     await page.evaluate(() => MV.UI.closeSheets());
   }
+  // Minijuego del tatuaje, regalos y viaje con compañía
+  await page.evaluate(() => {
+    const g = MV.UI.g; g.over = false; g.queue = []; g.p.age = 25; g.p.money = 100000; g.p.yearActs = {};
+    if (!MV.partner(g)) { const n = MV.sys.rels.candidate(g); MV.addRel(g, n, 'pareja', 60); }
+    MV.UI.save(); MV.UI.renderGame();
+  });
+  await page.evaluate(() => MV.UI.runAction(MV.ACTS.find((a) => a.id === 'tatuaje')));
+  await page.click('text=Empezar a dibujar');
+  const box = await (await page.$('.tat-canvas')).boundingBox();
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.3); await page.mouse.down();
+  for (let i = 1; i <= 12; i++) await page.mouse.move(box.x + box.width * (0.2 + i * 0.05), box.y + box.height * (0.3 + (i % 2) * 0.2), { steps: 3 });
+  await page.mouse.up();
+  await page.click('button:has-text("Tatuar")');
+  await page.waitForSelector('#layer .card');
+  if (await page.evaluate(() => MV.UI.g.p.tattoos.length) !== 1) errors.push('El minijuego no creó el tatuaje');
+  await resolve();
+  const partnerId = await page.evaluate(() => MV.partner(MV.UI.g).n.id);
+  await page.evaluate((id) => { MV.UI.closeSheets(); MV.UI.showPerson(id); }, partnerId);
+  await page.click('#layer button.row:has-text("Hacer un regalo")');
+  await page.waitForSelector('#gift-select');
+  const firstGift = await page.$eval('#gift-select option', (o) => o.value);
+  await page.selectOption('#gift-select', firstGift);
+  const moneyBefore = await page.evaluate(() => MV.UI.g.p.money);
+  await page.click('button:has-text("Regalar")');
+  await page.waitForSelector('#layer .card');
+  if (await page.evaluate(() => MV.UI.g.p.money) >= moneyBefore) errors.push('Regalar no cobró nada');
+  await resolve();
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.runAction(MV.ACTS.find((a) => a.id === 'vacaciones')); });
+  await page.click('#layer .layer-item:last-child button.row >> nth=0');
+  await page.waitForTimeout(100);
+  await page.click('#layer .layer-item:last-child button.row >> nth=1'); // la fila 0 es "Ir solo"
+  await page.waitForSelector('#layer .card');
+  const tripMsg = await page.$eval('#layer .card .result', (e) => e.textContent);
+  if (!/con /i.test(tripMsg)) errors.push('El viaje no fue con compañía: ' + tripMsg);
+  await resolve();
+  await shot('novedades');
+  await page.evaluate(() => MV.UI.closeSheets());
+
   // Recargar: la partida debe continuar
   const state = await page.evaluate(() => ({ age: MV.UI.g.p.age, over: MV.UI.g.over }));
   if (state.over) { console.log('El personaje murió joven durante la prueba; se empieza otra vida.'); await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 }))); }
@@ -80,4 +123,13 @@ const SHOTS = process.argv[2] || null;
   await browser.close();
   if (errors.length) { console.error('Errores en la interfaz:\n' + errors.join('\n')); process.exit(1); }
   console.log('Interfaz OK');
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch(async (e) => {
+  console.error(e.message.split('\n')[0]);
+  if (global.__page) {
+    try {
+      console.error('Pantalla:', (await global.__page.evaluate(() => document.getElementById('app').innerText.slice(0, 200))).replace(/\n/g, ' | '));
+      console.error('Errores:', global.__errors.join(' || ') || 'ninguno');
+    } catch (err) { /* página cerrada */ }
+  }
+  process.exit(1);
+});

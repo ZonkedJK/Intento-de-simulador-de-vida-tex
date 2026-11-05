@@ -59,6 +59,13 @@
       (p.jobs || []).forEach((j) => { if (j.id === 'atleta') j.id = 'sport_futbol'; });
       g.version = 2;
     }
+    if (g.version === 2) {
+      const p = g.p;
+      p.tattoos = p.tattoos || [];
+      p.talent = p.talent || MV.rollTalent();
+      (p.assets || []).forEach((a) => { if (a.type === 'casa') a.upgrades = a.upgrades || []; });
+      g.version = 3;
+    }
     return g;
   };
 

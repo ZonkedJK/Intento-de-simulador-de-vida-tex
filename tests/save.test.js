@@ -99,3 +99,23 @@ test('un heredero de 18 o 19 años con trabajo tiene un puesto válido', () => {
     }
   }
 });
+
+test('una partida de la versión 2 se migra a la 3 (tatuajes, mejoras y aspecto)', () => {
+  const MV = load({ seed: 12 });
+  const g = MV.newGame({ seed: 8 });
+  g.version = 2;
+  delete g.p.tattoos;
+  g.p.age = 40;
+  g.p.look = { skin: '#dfab84', hair: '#5e3d22', eyes: '#3c7a4a', style: 2, beard: true, glasses: false };
+  g.p.assets.push({ id: 'c1', type: 'casa', kind: 'Casa familiar', icon: '🏡', name: 'Casa vieja', value: 200000, cond: 70 });
+  MV.store.set('milvidas.partida', g);
+  const back = MV.loadGame();
+  assert.ok(back, 'no se cargó');
+  assert.equal(back.version, MV.VERSION);
+  assert.equal(MV.VERSION, 3);
+  assert.equal(JSON.stringify(back.p.tattoos), '[]');
+  assert.equal(JSON.stringify(back.p.assets.find((a) => a.id === 'c1').upgrades), '[]');
+  assert.match(MV.UI.avatarSVG({ age: 40, gender: back.p.gender, look: back.p.look, id: 'm', mood: 50 }), /^<svg/);
+  assert.ok(MV.sys.money.upgradeOptions(back, 'c1').length === 14);
+  for (let y = 0; y < 5 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
+});
