@@ -168,7 +168,7 @@
         if (c.age < 65) {
           const options = MV.JOBS.filter((J) => MV.sys.career.meets(ng, J).ok);
           const J = U.pick(options);
-          if (J) { MV.sys.career.hire(ng, J, Math.min(J.titles.length - 1, Math.floor((c.age - 20) / 9))); p.job.start = Math.max(18, c.age - 3); }
+          if (J) { MV.sys.career.hire(ng, J, U.clamp(Math.floor((c.age - 20) / 9), 0, J.titles.length - 1)); p.job.start = Math.max(18, c.age - 3); }
         } else { p.retired = true; p.pension = U.int(9000, 25000); }
         if (p.housing !== 'propia') { p.housing = 'alquiler'; p.rent = MV.RENTALS[1]; }
         if (c.age >= 25 && U.chance(0.55)) {

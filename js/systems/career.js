@@ -52,7 +52,7 @@
     hire(g, J, level) {
       const p = g.p;
       if (p.job) career.leave(g, 'cambio');
-      const lvl = level || 0;
+      const lvl = U.clamp(Math.round(level || 0), 0, J.titles.length - 1); // defensa: nunca fuera de la escalera
       p.job = { id: J.id, level: lvl, salary: Math.round(J.pay[lvl] * U.float(0.9, 1.1)), perf: 55, years: 0, lvlYears: 0, type: J.type, start: p.age };
       p.retired = false;
       MV.ach.check(g);

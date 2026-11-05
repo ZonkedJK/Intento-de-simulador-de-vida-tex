@@ -80,3 +80,22 @@ test('el cementerio y los logros persisten entre vidas', () => {
   assert.ok(glob.ach.nacer);
   assert.equal(glob.lives, 1);
 });
+
+test('un heredero de 18 o 19 años con trabajo tiene un puesto válido', () => {
+  const MV = load({ seed: 1 });
+  for (const age of [18, 19]) {
+    for (let i = 0; i < 10; i++) {
+      const g = MV.newGame({ seed: 100 + i });
+      g.p.age = 50;
+      const k = MV.newNPC(g, { age, last: g.p.last, money: 0, job: '-' });
+      MV.addRel(g, k, 'hijo', 80);
+      MV.sys.legacy.die(g, 'una prueba');
+      const ng = MV.sys.legacy.continueAs(g, k.id);
+      if (!ng.p.job) continue;
+      assert.ok(ng.p.job.level >= 0, 'nivel ' + ng.p.job.level);
+      assert.ok(MV.sys.career.title(ng.p), 'sin título');
+      const log = ng.log.flatMap((y) => y.items.map((it) => it.t)).join(' ');
+      assert.ok(!/undefined/.test(log), log);
+    }
+  }
+});
