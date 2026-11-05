@@ -80,7 +80,7 @@ país, causa, ocupación, patrimonio, hijos, logros y epitafio.
 
 Al crear una vida se puede elegir un desafío opcional (unos 10): millonario sin universidad,
 presidente antes de los 50, diez hijos, vivir 100 años, campeón del mundo, santo y rico,
-de la cárcel a la presidencia, nunca trabajar hasta los 60, cinco países distintos, dinastía de 3.
+de la cárcel a la presidencia, nunca trabajar hasta los 60, vivir en tres países, superestrella, artista total y dinastía de 3.
 Se revisa cada año; si se cumple, aviso y logro "Desafío cumplido". Algunos se pueden perder
 (por ejemplo, si entras a la universidad en "millonario sin universidad"). El desafío se ve en la
 ficha personal y en la pantalla de muerte.

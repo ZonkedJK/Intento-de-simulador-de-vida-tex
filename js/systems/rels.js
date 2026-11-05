@@ -93,7 +93,7 @@
       const score = (n.tricks || []).length * 12 + n.health * 0.3 + r.rel * 0.2 + (n.looks || 50) * 0.15 + U.int(0, 35);
       const place = score >= 100 ? 1 : score >= 84 ? 2 : score >= 70 ? 3 : 0;
       const sp = (MV.SPECIES[n.species] || { name: 'mascota' }).name.toLowerCase();
-      if (!place) return U.pick([`${n.first} se distrajo con un jurado y no ganó nada. Te costó $50 y un poco de dignidad.`, `En el concurso, ${n.first} hizo todo menos lo que practicaron. El público aplaudió por lástima.`, `Ganó ${U.gw(n.gender, 'un', 'una')} ${sp} con moño. ${n.first} y tú vuelven a casa en silencio.`]);
+      if (!place) return U.pick([`${n.first} se distrajo con un jurado y no ganó nada. Te costó $50 y un poco de dignidad.`, `En el concurso, ${n.first} hizo todo menos lo que practicaron. El público aplaudió por lástima.`, `Ganó ${(MV.SPECIES[n.species] || {}).art || 'un'} ${sp} con moño. ${n.first} y tú vuelven a casa en silencio.`]);
       const prize = place === 1 ? U.int(1500, 5000) : place === 2 ? U.int(600, 1500) : U.int(300, 600);
       MV.fx.money(g, prize);
       n.trophies = (n.trophies || 0) + 1;
@@ -210,7 +210,7 @@
       r.rel = U.clamp(r.rel + d, 0, 100);
       let extra = '';
       if (gift.special === 'pet' && react !== 'hate') {
-        const home = r.type === 'conyuge' || g.p.flags.convive === n.id || (r.type === 'hijo' && n.age < 18);
+        const home = r.type === 'conyuge' || g.p.flags.convive === n.id || (r.type === 'hijo' && n.age < 18) || (r.type === 'padre' && g.p.age < 18);
         if (home) { const pet = MV.newPet(g, 'perro', { age: 0 }); MV.addRel(g, pet, 'mascota', U.int(60, 85)); MV.ach.check(g); extra = ` Ahora en casa hay un perrito: ${n.first} le puso ${pet.first}.`; }
         else extra = ` Ahora ${n.first} tiene un perrito y te manda fotos todos los días.`;
       }

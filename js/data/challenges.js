@@ -8,7 +8,7 @@
   const C = (id, icon, name, desc, check, fail, extra) => Object.assign({ id, icon, name, desc, check, fail: fail || null }, extra || {});
   MV.CHALLENGES = [
     C('millonario_sin_uni', '💰', 'Millonario sin universidad', 'Llega a $1.000.000 de patrimonio sin pisar la universidad.', (g) => nw(g) >= 1e6 && !uni(g.p), (g) => uni(g.p)),
-    C('presidente_50', '🏛️', 'Presidente antes de los 50', 'Gana la presidencia antes de cumplir 50 años.', (g) => president(g.p) && g.p.age < 50, (g) => g.p.age >= 50 && !president(g.p)),
+    C('presidente_50', '🏛️', 'Presidente antes de los 50', 'Gana la presidencia antes de cumplir 50 años.', (g) => g.p.flags.presidenteEdad < 50 || (president(g.p) && g.p.age < 50), (g) => g.p.age >= 50 && !(g.p.flags.presidenteEdad < 50)),
     C('diez_hijos', '👨‍👩‍👧‍👦', 'Un equipo de fútbol', 'Ten 10 hijos (biológicos o adoptados).', (g) => MV.rels(g, 'hijo', true).length >= 10),
     C('centenario', '💯', 'Cien años', 'Vive hasta los 100.', (g) => g.p.age >= 100),
     C('campeon', '🏆', 'Leyenda del deporte', 'Llega a lo más alto de un deporte profesional.', (g) => (g.achLife || []).includes('leyenda')),

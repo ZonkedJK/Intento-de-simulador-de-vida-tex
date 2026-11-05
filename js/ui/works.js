@@ -11,7 +11,7 @@
     UI.sheet({
       title: action.label, icon: action.icon,
       render: (body) => {
-        const input = h('input', { class: 'input', id: 'work-title', maxlength: String(MV.sys.works.MAX_TITLE), placeholder: `Título de ${K.noun}`, autocomplete: 'off' });
+        const input = h('input', { class: 'input', id: 'work-title', maxlength: String(MV.sys.works.MAX_TITLE), placeholder: MV.sys.works.titleHint(action.work), autocomplete: 'off' });
         const genre = h('select', { class: 'select', id: 'work-genre', 'aria-label': 'Género' }, K.genres.map((x) => h('option', { value: x.id }, x.name)));
         const dice = h('button', { type: 'button', class: 'btn', 'aria-label': 'Título al azar', onclick: () => { input.value = MV.sys.works.randomTitle(action.work); } }, '🎲');
         body.append(

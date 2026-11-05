@@ -171,7 +171,15 @@
       if (grand) {
         // Como nieto: tu padre o madre es el hijo del jugador anterior (vivo o no).
         const par = c.parentId && g.people[c.parentId];
-        if (par) { copy(par); p.rels.push({ id: par.id, type: 'padre', rel: par.alive ? U.int(50, 90) : 60, since: 0 }); }
+        if (par) {
+          copy(par); p.rels.push({ id: par.id, type: 'padre', rel: par.alive ? U.int(50, 90) : 60, since: 0 });
+          // El otro padre o madre (la pareja del hijo) pasa a ser una persona real que te cría.
+          if (par.spouseName) {
+            const [first, ...rest] = par.spouseName.split(' ');
+            const op = MV.newNPC(ng, { gender: par.spouseGender || (par.gender === 'm' ? 'f' : 'm'), age: U.clamp(par.age + U.int(-4, 4), c.age + 18, 110), first, last: rest.join(' ') || undefined });
+            p.rels.push({ id: op.id, type: 'padre', rel: U.int(55, 90), since: 0 });
+          }
+        }
       } else {
         const other = c.otherParent && g.people[c.otherParent];
         if (other && other.alive) { copy(other); const orr = MV.relOf(g, other.id); p.rels.push({ id: other.id, type: 'padre', rel: orr ? U.clamp(orr.rel, 40, 90) : 60, since: 0 }); }
@@ -181,8 +189,11 @@
       MV.rels(g, 'mascota').forEach(({ n, r }) => { if (c.age < 30) { copy(n); p.rels.push({ id: n.id, type: 'mascota', rel: r.rel, since: c.age }); } });
 
       // Herencia
-      const nKids = Math.max(1, legacy.heirs(g).length);
-      let share = old.heirId ? (old.heirId === kidId ? 0.85 : 0.15 / Math.max(1, nKids - 1)) : 1 / nKids;
+      const pool = legacy.heirs(g);
+      const nKids = Math.max(1, pool.length);
+      // El heredero nombrado solo cuenta si sigue entre los herederos (si murió, se reparte en partes iguales).
+      const named = old.heirId && pool.some((x) => x.id === old.heirId) ? old.heirId : null;
+      let share = named ? (named === kidId ? 0.85 : 0.15 / Math.max(1, nKids - 1)) : 1 / nKids;
       if (nKids === 1) share = 1;
       const estate = Math.max(0, g.summary ? g.summary.worth : MV.netWorth(g));
       let cash = Math.round(estate * 0.9 * share);

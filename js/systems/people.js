@@ -56,7 +56,11 @@
         if (n.married && n.age >= 22 && n.age <= 44 && kids < 4 && U.chance(0.14 - kids * 0.03)) { people.grandchild(g, n); return; }
         if (n.age < 65 && U.chance(0.04)) {
           const j = MV.randomJobTitle(n);
-          if (j && j !== n.job) { n.job = j; MV.log(g, `Tu ${MV.relLabel('hijo', n).toLowerCase()} ${n.first} ahora trabaja de ${j.toLowerCase()}.`, '💼'); }
+          if (j && j !== n.job) {
+            n.job = j;
+            const who = `Tu ${MV.relLabel('hijo', n).toLowerCase()} ${n.first}`;
+            MV.log(g, /^Desemplead/.test(j) ? `${who} se quedó sin trabajo. Ya te pidió el sillón "por unas semanas".` : /^Am[oa] de casa/.test(j) ? `${who} ahora se dedica a la casa.` : `${who} ahora trabaja de ${j.toLowerCase()}.`, '💼');
+          }
         }
       });
     },
@@ -82,7 +86,7 @@
       g.p.counters.nietos = (g.p.counters.nietos || 0) + 1;
       MV.fx.stat(g, 'happy', first ? 10 : 5);
       const abu = U.gw(g.p.gender, 'abuelo', 'abuela');
-      MV.EV.info(g, { title: first ? `¡Eres ${abu}!` : 'Otro nieto', icon: '👶', scene: 'hospital',
+      MV.EV.info(g, { title: first ? `¡Eres ${abu}!` : U.gw(gc.gender, 'Otro nieto', 'Otra nieta'), icon: '👶', scene: 'hospital',
         text: `${kid.first} tuvo ${U.gw(gc.gender, 'un varón', 'una nena')}: ${gc.first}. ${first ? `Ahora eres ${abu} y ya das consejos que nadie pidió.` : U.pick(['Otra criatura para malcriar.', 'Ya perdiste la cuenta de los cumpleaños.', 'Tiene tu nariz, dicen. Pobre.'])}` });
       return gc;
     },
@@ -94,7 +98,7 @@
       const r = MV.relOf(g, n.id);
       if (!r || !g.p.alive) return;
       const label = MV.relLabel(r.type, n).toLowerCase();
-      const close = ['padre', 'hijo', 'conyuge', 'hermano', 'pareja', 'abuelo', 'mascota'].includes(r.type);
+      const close = ['padre', 'hijo', 'nieto', 'conyuge', 'hermano', 'pareja', 'abuelo', 'mascota'].includes(r.type);
       const love = r.rel / 100;
       if (r.type === 'mascota') {
         MV.fx.stat(g, 'happy', -Math.round(4 + 10 * love));

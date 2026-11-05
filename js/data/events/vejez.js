@@ -61,7 +61,7 @@
       { t: 'Negociar: solo los domingos', eff: { health: 2, happy: 1, msg: 'Dieta de lunes a sábado, banquete los domingos. El médico se rindió.' } }
     ] });
   ev({ id: 'baston', age: [70, 110], once: true, icon: '🦯', text: 'Te compraste un bastón. Lo usas más para señalar cosas y espantar palomas que para caminar.', auto: { happy: 1 } });
-  ev({ id: 'memorias', age: [70, 110], once: true, icon: '📖', title: 'Tus memorias',
+  ev({ id: 'memorias', age: [70, 110], once: true, when: H.has('nieto', (n) => n.age >= 6), icon: '📖', title: 'Tus memorias',
     text: 'Tus nietos te piden que escribas tus memorias.',
     choices: [
       { t: 'Escribir la verdad', eff: { smarts: 1, karma: 2, happy: 4, msg: 'Escribiste la verdad. Tu familia descubrió cosas que preferiría no saber.' } },

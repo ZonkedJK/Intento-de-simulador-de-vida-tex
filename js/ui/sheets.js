@@ -341,7 +341,7 @@
   }
 
   // ——————————————————— RELACIONES ———————————————————
-  const GROUP = { conyuge: 'Matrimonio', pareja: 'Pareja', amante: 'Amantes', padre: 'Padres', hijo: 'Hijos', hermano: 'Hermanos', abuelo: 'Abuelos', mascota: 'Mascotas', amigo: 'Amigos', companero: 'Compañeros', enemigo: 'Enemigos', ex: 'Ex' };
+  const GROUP = { conyuge: 'Matrimonio', pareja: 'Pareja', amante: 'Amantes', padre: 'Padres', hijo: 'Hijos', nieto: 'Nietos', hermano: 'Hermanos', abuelo: 'Abuelos', mascota: 'Mascotas', amigo: 'Amigos', companero: 'Compañeros', enemigo: 'Enemigos', ex: 'Ex' };
 
   UI.showRelations = function () {
     UI.sheet({

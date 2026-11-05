@@ -142,7 +142,7 @@
       const world = MV.sys.world.mods(g);
       Object.keys(INV).forEach((k) => {
         if (p.inv[k] > 0) {
-          const r = U.float(INV[k].ret[0], INV[k].ret[1]) + (world.inv[k] || 0);
+          const r = Math.max(-1, U.float(INV[k].ret[0], INV[k].ret[1]) + (world.inv[k] || 0));
           const d = Math.round(p.inv[k] * r);
           p.inv[k] = Math.max(0, p.inv[k] + d);
           if (Math.abs(d) > 500) MV.log(g, `${INV[k].icon} ${INV[k].name}: ${d >= 0 ? 'ganaste' : 'perdiste'} ${U.money(Math.abs(d))} (${Math.round(r * 100)}%).`, d >= 0 ? '📈' : '📉', d >= 0 ? 'good' : 'bad');

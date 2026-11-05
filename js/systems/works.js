@@ -15,6 +15,12 @@
       return String(title == null ? '' : title).replace(/[<>{}$`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, MAX_TITLE).trim();
     },
 
+    /** "Título del libro", "Título de la canción". */
+    titleHint(kind) {
+      const K = MV.WORK_KINDS[kind] || MV.WORK_KINDS.libro;
+      return `Título ${K.noun.startsWith('el ') ? 'del ' + K.noun.slice(3) : 'de ' + K.noun}`;
+    },
+
     randomTitle(kind) {
       const K = MV.WORK_KINDS[kind] || MV.WORK_KINDS.libro;
       return `${U.pick(K.a)} ${U.pick(K.b)}`;
@@ -26,9 +32,9 @@
       kind = MV.WORK_KINDS[kind] ? kind : 'libro';
       const name = works.clean(title) || works.randomTitle(kind);
       const Gn = K.genres.find((x) => x.id === genre) || K.genres[0];
-      const q = p.skills[K.skill] * 0.6 + p.stats.smarts * 0.15 + p.fame * 0.1 + Gn.bonus(p) + U.int(-12, 22);
+      const q = 8 + p.skills[K.skill] * 0.6 + p.stats.smarts * 0.2 + p.fame * 0.15 + Gn.bonus(p) + U.int(-10, 30);
       const st = U.clamp(Math.round(q / 18), 1, 5);
-      const hit = (st === 5 && U.chance(0.3 + p.fame / 250)) || (st === 4 && U.chance(0.04));
+      const hit = U.chance(st === 5 ? 0.4 + p.fame / 250 : st === 4 ? 0.1 + p.fame / 300 : st === 3 ? 0.02 : 0);
       MV.fx.stat(g, 'stress', K.stress);
       MV.fx.skill(g, K.skill, 2);
       let earned, extra;
@@ -41,7 +47,7 @@
       } else {
         earned = Math.round(Math.pow(st, 3) * U.int(8, 40) * (1 + p.fame / 40));
         MV.fx.stat(g, 'happy', st >= 3 ? 3 : -2);
-        extra = earned > 1500 ? `Te dejó ${U.money(earned)}.` : st <= 2 ? 'Lo compraron tu madre y dos primos.' : `Te dejó ${U.money(earned)}. Para un café y medio.`;
+        extra = earned > 1500 ? `Te dejó ${U.money(earned)}.` : st <= 2 ? `${K.pron} compraron tu madre y dos primos.` : `Te dejó ${U.money(earned)}. Para un café y medio.`;
       }
       MV.fx.money(g, earned);
       p.works = (p.works || []).concat([{ id: U.uid('w'), kind, title: name, genre: Gn.id, age: p.age, stars: st, hit, earned, royalty: hit ? Math.round(earned * K.royalty) : 0 }]).slice(-MAX_WORKS);

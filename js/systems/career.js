@@ -87,7 +87,7 @@
       if (p.job.id === 'gerente' && p.job.level === J.titles.length - 1) MV.ach.unlock(g, 'ceo');
       if (J.type === 'fame' && p.job.level === J.titles.length - 1 && p.job.id !== 'politico') MV.ach.unlock(g, 'estrella');
       if (p.job.id === 'mafia' && p.job.level === J.titles.length - 1) MV.ach.unlock(g, 'jefe_mafia');
-      if (p.job.id === 'politico' && p.job.level === J.titles.length - 1) MV.ach.unlock(g, 'presidente');
+      if (p.job.id === 'politico' && p.job.level === J.titles.length - 1) { MV.ach.unlock(g, 'presidente'); if (p.flags.presidenteEdad == null) p.flags.presidenteEdad = p.age; }
       MV.EV.info(g, { title: '¡Ascenso!', text: `Te ascendieron a ${t}. Nuevo sueldo: ${U.money(p.job.salary)} al año.`, icon: '📈', scene: 'trabajo' });
       return true;
     },

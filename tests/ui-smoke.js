@@ -131,6 +131,11 @@ const SHOTS = process.argv[2] || null;
   if (await page.evaluate(() => MV.UI.g.challenge && !document.getElementById('profile-challenge'))) errors.push('La ficha no muestra el desafío');
   if (!/Memorias de un mapache/.test(worksText)) errors.push('Mis obras no muestra el libro: ' + worksText);
   await page.evaluate(() => MV.UI.closeSheets());
+  // Relaciones con nietos: su propio encabezado
+  await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
+  const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));
+  if (!relHeads.includes('Nietos') || relHeads.includes('')) errors.push('Relaciones no muestra el encabezado Nietos: ' + relHeads.join(' | '));
+  await page.evaluate(() => MV.UI.closeSheets());
   // Intimidad: la protección se elige en pantalla y después decides qué son
   await page.evaluate(() => { const g = MV.UI.g; g.p.age = Math.max(g.p.age, 20); const n = MV.newNPC(g, { age: 25, gender: g.p.gender === 'm' ? 'f' : 'm' }); MV.UI.closeSheets(); g.queue = []; MV.EV.push(g, 'proteccion', { target: n.id, casual: true }, true); MV.UI.flushQueue(); });
   await page.waitForSelector('#layer .choice');
