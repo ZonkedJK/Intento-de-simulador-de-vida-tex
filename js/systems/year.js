@@ -43,7 +43,7 @@
    * Ejecuta una acción {id, icon, run(g,opt), limit}. `scope` guarda los usos por año
    * (por defecto, el año del jugador; las relaciones usan su propio contador).
    */
-  MV.doAction = function (g, action, opt, scope) {
+  MV.doAction = function (g, action, opt, scope, opt2) {
     if (g.over) return { msg: '', deltas: [] };
     const p = g.p;
     const sc = scope || p.yearActs;
@@ -54,7 +54,7 @@
     MV.fx.begin();
     let msg;
     try {
-      msg = action.run(g, opt);
+      msg = action.run(g, opt, opt2);
     } catch (e) {
       MV.fx.end();
       throw e;

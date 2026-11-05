@@ -13,7 +13,9 @@ function possibleActions(MV, g) {
   const add = (a, scope) => {
     const os = optsOf(MV, g, a);
     if (!os.length) return;
-    out.push({ a, scope, opt: MV.U.pick(os) });
+    const opt = MV.U.pick(os);
+    const opt2 = a.opts2 ? MV.U.pick((a.opts2(g, opt) || []).map((x) => x.id)) : undefined;
+    out.push({ a, scope, opt, opt2 });
   };
   const p = g.p;
   if (p.prison) MV.sys.crime.prisonActions(g).forEach((a) => add(a));
@@ -93,7 +95,7 @@ function live(MV, g, o) {
       else {
         const list = possibleActions(MV, g);
         const x = MV.U.pick(list);
-        if (x) MV.doAction(g, x.a, x.opt, x.scope);
+        if (x) MV.doAction(g, x.a, x.opt, x.scope, x.opt2);
       }
       resolveQueue(MV, g);
       if (o.check) o.check(g);

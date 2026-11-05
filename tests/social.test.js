@@ -126,3 +126,38 @@ test('amigos y familia tienen planes nuevos', () => {
   g.p.flags.emigro = true;
   assert.ok(ids(MV, g, r, n).includes('videollamada'));
 });
+
+const trip = (MV) => MV.ACTS.find((a) => a.id === 'vacaciones');
+
+test('las vacaciones preguntan con quién vas', () => {
+  const MV = load();
+  const { g, n } = withPerson(MV, 'pareja', 30);
+  const comp = trip(MV).opts2(g, 'paris');
+  assert.ok(comp.some((c) => c.id === 'solo'));
+  assert.ok(comp.some((c) => c.id === n.id), 'la pareja debería poder viajar');
+});
+
+test('viajar con la pareja cobra doble y sube la relación', () => {
+  const MV = load({ seed: 31 });
+  const { g, n, r } = withPerson(MV, 'pareja', 30);
+  const cost = MV.DESTINATIONS.find((d) => d.id === 'paris').cost;
+  const m = g.p.money, rel = r.rel;
+  const res = MV.doAction(g, trip(MV), 'paris', undefined, n.id);
+  assert.equal(g.p.money, m - cost * 2);
+  assert.ok(r.rel - rel >= 8, 'relación +' + (r.rel - rel));
+  assert.match(res.msg, new RegExp(n.first));
+});
+
+test('viajar solo cobra un pasaje y un compañero inexistente cuenta como solo', () => {
+  const MV = load({ seed: 32 });
+  const { g } = withPerson(MV, 'amigo', 30);
+  const cost = MV.DESTINATIONS.find((d) => d.id === 'tokio').cost;
+  let m = g.p.money;
+  MV.doAction(g, trip(MV), 'tokio', undefined, 'solo');
+  assert.equal(g.p.money, m - cost);
+  g.p.yearActs = {};
+  m = g.p.money;
+  const res = MV.doAction(g, trip(MV), 'tokio', undefined, 'n-no-existe');
+  assert.equal(g.p.money, m - cost);
+  assert.ok(!BAD_TEXT.test(res.msg));
+});

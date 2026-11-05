@@ -145,10 +145,34 @@
   // ——— Ocio y vicios ———
   A({ id: 'vacaciones', cat: 'ocio', icon: '✈️', label: 'Irte de vacaciones', sub: 'Elige destino', minAge: 18, limit: 2,
     opts: (g) => MV.DESTINATIONS.filter((d) => g.p.money >= d.cost).map((d) => ({ id: d.id, icon: d.icon, label: d.name, sub: U.money(d.cost) })),
-    run: (g, id) => {
+    opts2Title: '¿Con quién vas?',
+    opts2: (g, id) => {
+      const D = MV.DESTINATIONS.find((d) => d.id === id) || { cost: 0 };
+      const out = [{ id: 'solo', icon: '🎒', label: 'Ir solo', sub: `${U.money(D.cost)}. Más chances de conocer gente` }];
+      if (g.p.money < D.cost * 2) return out;
+      MV.rels(g, ['conyuge', 'pareja', 'amante', 'hijo', 'padre', 'hermano', 'abuelo', 'amigo']).forEach(({ r, n }) => {
+        if (n.species !== 'humano' || (r.type === 'amigo' && n.age < 16) || (r.type === 'hijo' && n.age < 3)) return;
+        out.push({ id: n.id, icon: '🧳', label: `Con ${n.first}`, sub: `${MV.relLabel(r.type, n)}. Pagas los dos pasajes: ${U.money(D.cost * 2)}` });
+      });
+      return out;
+    },
+    run: (g, id, withId) => {
       const D = MV.DESTINATIONS.find((d) => d.id === id); const p = g.p;
-      fx.money(g, -D.cost); fx.stat(g, 'happy', U.int(6, 14)); fx.stat(g, 'stress', -U.int(10, 25)); fx.skill(g, 'idiomas', 2);
+      const mate = withId && withId !== 'solo' ? MV.person(g, withId) : null;
+      const mr = mate && mate.alive ? MV.relOf(g, mate.id) : null;
+      const comp = mr && p.money >= D.cost * 2 ? mate : null;
+      fx.money(g, -D.cost * (comp ? 2 : 1)); fx.stat(g, 'happy', U.int(6, 14)); fx.stat(g, 'stress', -U.int(10, 25)); fx.skill(g, 'idiomas', 2);
       p.counters.viajes = (p.counters.viajes || 0) + 1;
+      if (comp) {
+        mr.rel = U.clamp(mr.rel + U.int(8, 18), 0, 100);
+        comp.health = U.clamp(comp.health + 2, 0, 100);
+        if (id === 'espacio') MV.ach.unlock(g, 'astronauta');
+        const romantic = ['conyuge', 'pareja', 'amante'].includes(mr.type);
+        const story = romantic ? U.pick([`vieron el atardecer abrazados y ${comp.first} dijo que fue el mejor viaje de su vida`, `${comp.first} se perdió en un mercado y lo encontraste comprando un sombrero ridículo`, 'se pelearon por el mapa, se reconciliaron con un helado gigante'])
+          : U.pick([`${comp.first} sacó 900 fotos, 600 de comida`, `${comp.first} roncó en el avión y te tocó pedir disculpas a medio pasaje`, `se rieron tanto con ${comp.first} que ahora tienen chistes internos para siempre`]);
+        return `Viajaste a ${D.name} con ${comp.first} (${MV.relLabel(mr.type, comp).toLowerCase()}). En el viaje ${story}.`;
+      }
+      if (U.chance(0.15)) { const n = MV.sys.rels.candidate(g); MV.addRel(g, n, 'amigo', U.int(50, 75)); return `Viajaste solo a ${D.name}. Conociste a ${n.first} en un hostal y siguen en contacto.`; }
       if (id === 'espacio') { MV.ach.unlock(g, 'astronauta'); return 'Viajaste al espacio. Viste la Tierra entera y entendiste lo pequeño que es tu problema con el vecino.'; }
       if (U.chance(0.1)) { MV.sys.health.add(g, U.pick(['gripe', 'resfriado', 'fractura'])); return `Fuiste a ${D.name} y volviste con un recuerdo no deseado.`; }
       if (U.chance(0.15)) { const n = MV.sys.rels.candidate(g); MV.addRel(g, n, 'amigo', U.int(50, 75)); return `En ${D.name} conociste a ${n.first}. Prometieron seguir en contacto (y lo cumplieron).`; }
