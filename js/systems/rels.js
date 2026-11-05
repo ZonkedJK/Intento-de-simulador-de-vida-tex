@@ -138,6 +138,32 @@
       });
     },
 
+    /** Regalos que puedes pagar. */
+    giftOptions(g, relId) { return MV.GIFTS.filter((x) => x.price <= g.p.money && relId); },
+
+    /** Hace un regalo y devuelve el texto del resultado. */
+    giveGift(g, relId, giftId) {
+      const n = g.people[relId], r = MV.relOf(g, relId), gift = MV.GIFTS.find((x) => x.id === giftId);
+      if (!n || !r || !gift) return 'Ese regalo no está disponible.';
+      if (g.p.money < gift.price) return `No te alcanza para ${gift.name.toLowerCase()}.`;
+      MV.fx.money(g, -gift.price);
+      const react = MV.giftReaction(n, gift, r.type);
+      const base = 3 + Math.log10(gift.price + 1) * 3 * (n.traits.includes('tacaño') ? 1.3 : 1);
+      const d = react === 'hate' ? -U.int(5, 12) : Math.round(react === 'love' ? base * 1.6 + 3 : react === 'like' ? base : base * 0.5);
+      r.rel = U.clamp(r.rel + d, 0, 100);
+      let extra = '';
+      if (gift.special === 'pet' && react !== 'hate') extra = ` Ahora ${n.first} tiene un perrito y te manda fotos todos los días.`;
+      if (gift.special === 'trip' && react !== 'hate') { MV.fx.stat(g, 'happy', 3); extra = ` ${n.first} volvió bronceado y con un imán para tu heladera.`; }
+      if (gift.special === 'money') n.money = (n.money || 0) + Math.round(gift.price * 0.3);
+      const line = {
+        love: [`¡A ${n.first} le encantó! Te abrazó tan fuerte que crujió algo.`, `${n.first} lloró de emoción. Era justo lo que quería.`],
+        like: [`A ${n.first} le gustó mucho. Gracias sinceras.`, `${n.first} sonrió y lo guardó con cuidado.`],
+        meh: [`${n.first} dijo "gracias" con la misma emoción que un lunes.`, `${n.first} lo aceptó por educación. Ya está pensando en a quién regalárselo.`],
+        hate: [`A ${n.first} no le gustó nada. Silencio incómodo.`, `${n.first} te miró como si le hubieras regalado una piedra.`]
+      }[react];
+      return `Le regalaste ${gift.name.toLowerCase()} (${U.money(gift.price)}). ${U.pick(line)}${extra}`;
+    },
+
     /** Acciones disponibles con una relación concreta. */
     actions(g, r, n) {
       const p = g.p, list = [];
@@ -154,9 +180,9 @@
       A({ id: 'conversar', icon: '💬', label: 'Conversar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(1, 6), 0, 100); return U.pick([`Hablaste con ${n.first} sobre la vida. ${U.cap(MV.relLabel(t, n).toLowerCase())} feliz.`, `Charlaron de todo y de nada con ${n.first}.`, `${n.first} te contó un chisme jugoso.`, `Hablaron del clima durante 20 minutos. Intensísimo.`]); } });
       A({ id: 'tiempo', icon: '🫂', label: 'Pasar tiempo juntos', sub: '+relación, +felicidad', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Pasaste la tarde con ${n.first}. ${U.pick(['Vieron una película malísima.', 'Cocinaron algo incomible y se rieron mucho.', 'Fueron a caminar por el parque.', 'Jugaron cartas y hubo trampas.'])}`]); } });
       A({ id: 'cumplido', icon: '🌹', label: 'Hacer un cumplido', sub: 'Endulza el día', limit: 1, run: (g) => { if (U.chance(0.8)) { r.rel = U.clamp(r.rel + U.int(2, 6), 0, 100); return `Le dijiste a ${n.first} que ${U.pick(['tiene una sonrisa preciosa', 'es una persona increíble', 'cocina mejor que nadie', 'su corte de pelo le queda genial'])}. Se sonrojó.`; } r.rel = U.clamp(r.rel - 3, 0, 100); return `Intentaste decirle un cumplido a ${n.first} pero sonó raro. Muy raro.`; } });
-      A({ id: 'regalo', icon: '🎁', label: 'Hacer un regalo', sub: 'Cuesta dinero', limit: 1,
-        opts: () => [{ id: 20, icon: '🍬', label: 'Caramelos ($20)' }, { id: 200, icon: '💐', label: 'Flores y chocolates ($200)' }, { id: 2000, icon: '⌚', label: 'Algo caro ($2.000)' }, { id: 20000, icon: '💎', label: 'Algo carísimo ($20.000)' }].filter((o) => p.money >= o.id),
-        run: (g, amt) => { amt = +amt || 20; MV.fx.money(g, -amt); const boost = Math.round(4 + Math.log10(amt) * 4 * (1 + (n.traits.includes('tacaño') ? 0.3 : 0))); r.rel = U.clamp(r.rel + boost, 0, 100); return `Le regalaste a ${n.first} algo de ${U.money(amt)}. ${boost > 14 ? 'Casi se desmaya de la emoción.' : 'Le gustó.'}`; } });
+      A({ id: 'regalo', icon: '🎁', label: 'Hacer un regalo', sub: 'Elige entre más de 35 regalos', limit: 1, ui: 'gift', relId: n.id,
+        opts: (g) => rels.giftOptions(g, n.id).map((x) => ({ id: x.id, icon: x.icon, label: x.name, sub: U.money(x.price) })),
+        run: (g, giftId) => rels.giveGift(g, n.id, giftId) });
       if (['padre', 'abuelo', 'hermano', 'conyuge', 'amigo', 'hijo'].includes(t) && n.age >= 18) A({ id: 'pedir_dinero', icon: '💸', label: 'Pedir dinero', sub: 'Depende de la relación', limit: 1,
         run: (g) => {
           const generous = n.traits.includes('generoso') ? 0.25 : n.traits.includes('tacaño') ? -0.3 : 0;

@@ -141,6 +141,10 @@ test('vidas completas con el jugador automático siguen sin errores', () => {
   let pros = 0;
   for (let i = 0; i < 80; i++) {
     const g = MV.newGame({ seed: 6000 + i, country: MV.U.pick(['FR', 'KR', 'PH', 'TH', 'TR', 'GB', 'CN', 'IN']) });
+    if (i % 4 === 0) { // perfil deportivo: club desde chico y talento natural
+      const sp = MV.COUNTRIES[g.p.country].sport;
+      g.p.club = sp; g.p.talent[sp] = 15; g.p.skills.deporte = 60; g.p.skills.programacion = 60;
+    }
     live(MV, g, { acts: 4 });
     if (g.p.flags.exAtleta) pros++;
   }

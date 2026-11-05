@@ -367,6 +367,7 @@ button.row:disabled:hover { background: none; }
 .tat-result { display: flex; justify-content: center; margin-bottom: 8px; }
 .tat-album { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; }
 .tat-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
+.gift-preview { margin-top: 10px; text-align: center; }
 .empty { text-align: center; color: var(--pencil); padding: 24px 12px; }
 .skill-row { display: grid; grid-template-columns: 26px 110px 1fr 34px; gap: 8px; align-items: center; margin: 4px 0; font-size: 0.92rem; }
 .tag { display: inline-block; font-size: 0.78rem; border: 1.5px solid var(--ink); border-radius: 999px; padding: 0 8px; margin: 2px 4px 2px 0; }

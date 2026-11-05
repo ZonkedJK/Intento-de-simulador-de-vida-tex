@@ -386,6 +386,39 @@
     });
   };
 
+  /** Menú desplegable de regalos (con vista previa de la reacción). */
+  UI.showGiftPicker = function (a, scope, relRef) {
+    const g = UI.g, n = g.people[a.relId], r = MV.relOf(g, a.relId);
+    if (!n || !r) return;
+    if (MV.usesLeft(g, a, scope) <= 0) { UI.toast('⏳', '', 'Ya le hiciste un regalo este año.'); return; }
+    const opts = MV.sys.rels.giftOptions(g, n.id);
+    if (!opts.length) { UI.toast('🎁', 'Regalos', 'No te alcanza ni para una carta.'); return; }
+    UI.sheet({
+      title: `Regalo para ${n.first}`, icon: '🎁',
+      render: (body) => {
+        const sel = h('select', { class: 'select', id: 'gift-select', 'aria-label': 'Elige un regalo' },
+          MV.GIFT_GROUPS.map((grp) => {
+            const items = opts.filter((x) => x.group === grp);
+            return items.length ? h('optgroup', { label: grp }, items.map((x) => h('option', { value: x.id }, `${x.icon} ${x.name}, ${U.money(x.price)}`))) : null;
+          }));
+        const preview = h('div', { class: 'box gift-preview', 'aria-live': 'polite' });
+        const HINT = { love: ['💖', 'Le va a encantar'], like: ['🙂', 'Le va a gustar'], meh: ['😐', 'No le va a emocionar mucho'], hate: ['😬', 'No es lo suyo']};
+        const update = () => {
+          const gift = MV.GIFTS.find((x) => x.id === sel.value);
+          UI.clear(preview);
+          if (!gift) return;
+          const [ic, tx] = HINT[MV.giftReaction(n, gift, r.type)];
+          preview.append(h('p', { style: { margin: 0, fontSize: '1.6rem' } }, gift.icon), h('p', null, h('b', null, gift.name)), h('p', { class: 'note', style: { margin: 0 } }, `${U.money(gift.price)}. ${ic} ${tx}.`));
+        };
+        sel.addEventListener('change', update);
+        body.append(h('p', { class: 'note' }, `Tienes ${U.money(g.p.money)}. A cada persona le gustan cosas distintas según su edad y su forma de ser.`),
+          sel, preview,
+          h('button', { type: 'button', class: 'btn primary block', onclick: () => { const id = sel.value; UI.popSheet(); UI.execAction(a, id, scope, relRef); } }, '🎁 Regalar'));
+        update();
+      }
+    });
+  };
+
   // ——————————————————— ACTIVIDADES ———————————————————
   UI.showActivities = function () {
     UI.sheet({
