@@ -187,6 +187,10 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   if (await page.evaluate((m) => MV.UI.g.p.skills.musica <= m, mus0)) errors.push('Practicar con el instrumento no subió Música');
   await page.evaluate(() => MV.UI.closeSheets());
+  // Clubes y talleres: varios a la vez en Ocupación
+  const clubRows = await page.evaluate(() => { const g = MV.UI.g; if (MV.sys.sports.isPro(g.p)) return 2; g.p.clubs = []; MV.sys.edu.joinClub(g, 'sport:futbol'); MV.sys.edu.joinClub(g, 'robotica'); MV.UI.closeSheets(); MV.UI.showWork(); return document.querySelectorAll('#my-clubs .row').length; });
+  if (clubRows !== 2) errors.push('Ocupación no muestra los clubes y talleres: ' + clubRows);
+  await page.evaluate(() => MV.UI.closeSheets());
   // Relaciones con nietos: su propio encabezado
   await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
   const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));

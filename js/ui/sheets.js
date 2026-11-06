@@ -52,14 +52,18 @@
       UI.actionList(MV.sys.edu.actions(g)));
     }
     // Club deportivo (amateur)
-    if (p.club && !MV.sys.sports.isPro(p)) {
-      const S = MV.SPORTS[p.club];
-      body.append(title('Club deportivo'), h('div', { class: 'box' }, kv('Club', `${S.icon} ${S.club}`), kv('Años de práctica', String(MV.sys.sports.exp(p, p.club))),
-        h('div', { class: 'kv' }, h('span', null, 'Nivel deportivo'), h('span', { style: { width: '120px' } }, UI.bar(MV.sys.sports.rating(g, p.club)))),
-        h('p', { class: 'note' }, p.age < S.start[0] ? `Los profesionales empiezan desde los ${S.start[0]} años. Sigue entrenando: los cazatalentos miran a los clubes.` : 'Cuanto más alto tu nivel, más probable que te recluten.')));
-      const cl = h('div', { class: 'list' });
-      cl.append(UI.row('🚪', 'Dejar el club', '', null, () => UI.runSystem('🚪', () => MV.sys.sports.leaveClub(g))));
+    const clubs = MV.sys.edu.clubsOf(p);
+    if (clubs.length && !MV.sys.sports.isPro(p)) {
+      body.append(title(`Clubes y talleres (${clubs.length}/3)`));
+      const cl = h('div', { class: 'list', id: 'my-clubs' });
+      clubs.forEach((id) => {
+        const c = MV.sys.edu.clubInfo(id);
+        if (!c) return;
+        const sub = c.sport ? [`Años de práctica: ${MV.sys.sports.exp(p, c.sport)}`, UI.bar(MV.sys.sports.rating(g, c.sport))] : `Taller: sube ${MV.SKILLS[c.workshop.skill].name.toLowerCase()} cada año`;
+        cl.append(UI.row(c.icon, c.name, sub, 'Dejar', () => UI.runSystem('🚪', () => MV.sys.edu.leaveClub(g, id))));
+      });
       body.append(cl);
+      if (p.club) { const S = MV.SPORTS[p.club]; body.append(h('p', { class: 'note' }, p.age < S.start[0] ? `Los profesionales empiezan desde los ${S.start[0]} años. Sigue entrenando: los cazatalentos miran tu mejor deporte.` : 'Cuanto más alto tu nivel, más probable que te recluten. Los cazatalentos miran tu mejor deporte.')); }
     }
     // Trabajo
     if (p.job) {
