@@ -136,6 +136,24 @@
       return lines.filter(Boolean).join('\n');
     },
 
+    /** Qué recibe un heredero: la casa familiar siempre (donde vivías o tu casa más valiosa) y, si es el
+        único o el nombrado, todos los bienes. Su valor se descuenta de su parte (patrimonio × 0,9 × porcentaje). */
+    estateFor(g, heirId) {
+      const old = g.p, pool = legacy.heirs(g);
+      const n = Math.max(1, pool.length);
+      // El heredero nombrado solo cuenta si sigue entre los herederos (si murió, se reparte en partes iguales).
+      const named = old.heirId && pool.some((x) => x.id === old.heirId) ? old.heirId : null;
+      let share = named ? (named === heirId ? 0.85 : 0.15 / Math.max(1, n - 1)) : 1 / n;
+      if (n === 1) share = 1;
+      const worth = Math.max(0, g.summary ? g.summary.worth : MV.netWorth(g));
+      const total = Math.round(worth * 0.9 * share);
+      const houses = old.assets.filter((a) => a.type === 'casa');
+      const home = houses.find((a) => a.id === old.home) || houses.slice().sort((a, b) => b.value - a.value)[0] || null;
+      const all = n === 1 || named === heirId;
+      const assets = all ? old.assets.slice() : home ? [home] : [];
+      return { assets, home, total, cash: Math.max(0, total - U.sum(assets, (a) => a.value)) };
+    },
+
     /** Herederos: los hijos vivos; si no queda ninguno, los nietos vivos. */
     heirs(g) {
       const kids = MV.rels(g, 'hijo').map((x) => x.n);
@@ -188,24 +206,14 @@
       siblings.forEach(({ n }) => { copy(n); p.rels.push({ id: n.id, type: 'hermano', rel: U.int(35, 85), since: 0 }); });
       MV.rels(g, 'mascota').forEach(({ n, r }) => { if (c.age < 30) { copy(n); p.rels.push({ id: n.id, type: 'mascota', rel: r.rel, since: c.age }); } });
 
-      // Herencia
-      const pool = legacy.heirs(g);
-      const nKids = Math.max(1, pool.length);
-      // El heredero nombrado solo cuenta si sigue entre los herederos (si murió, se reparte en partes iguales).
-      const named = old.heirId && pool.some((x) => x.id === old.heirId) ? old.heirId : null;
-      let share = named ? (named === kidId ? 0.85 : 0.15 / Math.max(1, nKids - 1)) : 1 / nKids;
-      if (nKids === 1) share = 1;
-      const estate = Math.max(0, g.summary ? g.summary.worth : MV.netWorth(g));
-      let cash = Math.round(estate * 0.9 * share);
-      let houseTxt = '';
-      if (share >= 0.5) {
-        const house = old.assets.filter((a) => a.type === 'casa').sort((a, b) => b.value - a.value)[0];
-        if (house && house.value <= cash) {
-          const h = Object.assign({}, house, { id: U.uid('a'), bought: c.age });
-          p.assets.push(h); cash -= h.value; houseTxt = ` y ${h.name.toLowerCase()}`;
-          if (c.age >= 18) { p.housing = 'propia'; p.home = h.id; }
-        }
-      }
+      // Herencia: la casa familiar siempre; todos los bienes si es el único o el nombrado.
+      const est = legacy.estateFor(g, kidId);
+      const copies = est.assets.map((a) => Object.assign(U.deepClone(a), { id: U.uid('a'), bought: c.age }));
+      copies.forEach((a) => p.assets.push(a));
+      const cash = est.cash;
+      const homeCopy = est.home ? copies[est.assets.indexOf(est.home)] : null;
+      if (homeCopy && c.age >= 18) { p.housing = 'propia'; p.home = homeCopy.id; p.rent = null; homeCopy.rented = false; }
+      const houseTxt = copies.length ? ` y ${copies.length === 1 ? copies[0].name.toLowerCase() : `${copies.length} bienes (entre ellos ${(homeCopy || copies[0]).name.toLowerCase()})`}` : '';
       p.money = cash;
 
       // Educación y trabajo según la edad del heredero.
