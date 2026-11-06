@@ -34,6 +34,7 @@
       if (r.health && p.stats.health < r.health) why.push(`Salud ${r.health}+`);
       if (r.karma && p.karma < r.karma) why.push(`Karma ${r.karma}+`);
       if (r.license && !p.license) why.push('Licencia de conducir');
+      if (r.lic) r.lic.forEach((k) => { if (!MV.sys.license.has(g, k)) why.push(MV.LICENSES[k].name); });
       if (r.clean && p.record.length) why.push('Sin antecedentes penales');
       return { ok: !why.length, why };
     },
