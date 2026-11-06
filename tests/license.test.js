@@ -18,6 +18,7 @@ test('los bancos tienen preguntas válidas', () => {
   KINDS.forEach((k) => {
     const L = MV.LICENSES[k];
     assert.ok(L && L.name && L.icon && L.cost > 0 && L.n === 10 && L.pass === 7, k);
+    assert.ok(MV.ach.def(L.ach), 'logro de ' + k);
     const bank = MV.QUIZ[k];
     assert.ok(bank.length >= (k === 'auto' ? 20 : 12), k + ': ' + bank.length);
     const ids = new Set();

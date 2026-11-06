@@ -61,7 +61,7 @@
       const r = license.grade(g, kind, exam, answers);
       if (r.passed) {
         MV.fx.stat(g, 'happy', 6);
-        MV.ach.unlock(g, 'licencia_' + kind);
+        MV.ach.unlock(g, L.ach);
         return `¡Aprobaste el examen de la ${L.name.toLowerCase()}! ${r.correct} de ${r.total} correctas. ${U.pick(['El examinador respiró aliviado.', 'Te sacaste la peor foto de tu vida para el carnet.', 'Ya puedes presumirlo en el grupo de la familia.'])}`;
       }
       MV.fx.stat(g, 'happy', -4);

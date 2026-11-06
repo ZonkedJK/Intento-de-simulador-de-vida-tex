@@ -3,10 +3,10 @@
 (function (MV) {
   'use strict';
   MV.LICENSES = {
-    auto: { name: 'Licencia de conducir', label: 'Sacar la licencia de conducir', icon: '🚗', cost: 150, minAge: 16, requires: null, n: 10, pass: 7 },
-    yate: { name: 'Licencia de yate', label: 'Sacar la licencia de yate', icon: '⛵', cost: 3000, minAge: 18, requires: 'auto', n: 10, pass: 7 },
-    avion: { name: 'Licencia de avión', label: 'Sacar la licencia de piloto de avión', icon: '✈️', cost: 8000, minAge: 18, requires: 'auto', n: 10, pass: 7 },
-    helicoptero: { name: 'Licencia de helicóptero', label: 'Sacar la licencia de piloto de helicóptero', icon: '🚁', cost: 12000, minAge: 18, requires: 'auto', n: 10, pass: 7 }
+    auto: { name: 'Licencia de conducir', label: 'Sacar la licencia de conducir', icon: '🚗', cost: 150, minAge: 16, requires: null, n: 10, pass: 7, ach: 'licencia_auto' },
+    yate: { name: 'Licencia de yate', label: 'Sacar la licencia de yate', icon: '⛵', cost: 3000, minAge: 18, requires: 'auto', n: 10, pass: 7, ach: 'licencia_yate' },
+    avion: { name: 'Licencia de avión', label: 'Sacar la licencia de piloto de avión', icon: '✈️', cost: 8000, minAge: 18, requires: 'auto', n: 10, pass: 7, ach: 'licencia_avion' },
+    helicoptero: { name: 'Licencia de helicóptero', label: 'Sacar la licencia de piloto de helicóptero', icon: '🚁', cost: 12000, minAge: 18, requires: 'auto', n: 10, pass: 7, ach: 'licencia_helicoptero' }
   };
 
   const Q = (id, q, a, wrong, sign) => ({ id, q, a, wrong, sign });
