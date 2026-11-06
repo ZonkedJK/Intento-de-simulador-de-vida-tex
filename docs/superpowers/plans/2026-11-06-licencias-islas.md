@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Exámenes de licencia jugables (conducir, yate, avión, helicóptero), vehículos y trabajos que dependen de ellas, e islas privadas que se desarrollan como resort, parque temático, casino o reserva natural.
+**Goal:** Exámenes de licencia jugables (conducir, yate, avión, helicóptero), vehículos y trabajos que dependen de ellas, islas privadas que se desarrollan como resort, parque temático, casino o reserva natural, herencia de la casa y los bienes, instrumentos con carrera de músico y hasta 3 clubes o talleres a la vez.
 
 **Architecture:** Datos en `js/data` (licencias, preguntas, tipos de isla) y lógica en `js/systems` sin DOM (`license`, `vehicles`, `island`), con hojas de interfaz propias (`js/ui/quiz.js`, `js/ui/signs.js`, `js/ui/island.js`). Los ganchos en sistemas existentes son chicos: actividades, `career.meets`, la ficha de bienes, el año y el guardado.
 
@@ -81,9 +81,33 @@
 
 - [ ] Pruebas: `desarrollar cobra, guarda nombre y sube el valor`; `sin dinero no se desarrolla ni se mejora`; `mejorar hasta el nivel 5 y no más`; `la ganancia sube con el nivel y baja en una pandemia`; `la reserva da karma y fama`; `un evento de una isla vendida se descarta`; `cerrar el proyecto deja la isla sola y baja el valor`; `en la cárcel la isla sigue dando ganancia`; prueba de humo: desarrollar una isla con nombre y mascota y mejorarla.
 
-### Task 6: Versión 5, verificación, revisión y PR
+### Task 7: Herencia de la casa y de los bienes
+
+**Files:** Modify `js/systems/legacy.js` (`continueAs`) · Test: `tests/inheritance.test.js`
+
+**Interfaces — Produces:** `MV.sys.legacy.estateFor(g, heirId) → { assets: [asset], cash: number }` (usada por `continueAs`): casa familiar siempre; todos los bienes si es único o nombrado; `cash = max(0, total − valor de los bienes)` con `total = patrimonio × 0,9 × parte`.
+
+- [ ] Pruebas: `el heredero recibe la casa familiar con sus mejoras aunque valga más que su parte`; `si alquilabas, recibe tu casa más valiosa`; `el único heredero recibe todos los bienes y la isla con su proyecto`; `con varios herederos, uno que no es el nombrado recibe la casa solo si es el que juegas`; `un heredero adulto vive en la casa heredada`.
+
+### Task 8: Instrumentos y carrera de músico
+
+**Files:** Create `js/systems/music.js` (`MV.sys.music`); Modify `js/data/world.js` (`MV.INSTRUMENTS`), `js/systems/money.js` (comprar instrumentos, valor anual), `js/ui/sheets.js` (Tienda de música y acciones en la ficha), `js/systems/career.js` (bonus en audición de música), `js/systems/works.js` (bonus en canciones), eventos `representante` · Test: `tests/music.test.js`
+
+**Interfaces — Produces:** `MV.INSTRUMENTS = [{ id, name, icon, price, quality }]` (10, precios del spec); `MV.sys.music.buy(g, id) → msg` (bien `type: 'instrumento'`); `MV.sys.music.best(p) → quality 0..3`; `MV.sys.music.actions(g, asset) → [action]` (`practicar_inst`, `tocar_calle`, `tocar_bar`).
+
+- [ ] Pruebas: `comprar un instrumento cobra y lo deja en tus bienes`; `practicar con instrumento sube más Música que practicar sin él`; `tocar en un bar pide Música 30 y 16 años`; `el representante ofrece un contrato en la carrera musical`; `un instrumento mejora las canciones y las audiciones`; `en la cárcel no hay acciones`; `sin dinero no se compra`.
+
+### Task 9: Hasta 3 clubes o talleres
+
+**Files:** Modify `js/systems/edu.js` (acción de club y "Dejar un club"), `js/systems/sports.js` (`yearly`, `joinClub`, cazatalentos con el mejor deporte), `js/ui/sheets.js` (lista de clubes en Ocupación) · Test: `tests/clubs.test.js`
+
+**Interfaces — Produces:** `p.clubs = ['sport:futbol', 'robotica', ...]` (máx. 3); `p.club` sigue siendo el deporte principal (el de mejor nivel) para el resto del juego; `MV.sys.edu.joinClub(g, id) → msg`, `MV.sys.edu.leaveClub(g, id) → msg`, `MV.sys.edu.clubsYearly(g)`.
+
+- [ ] Pruebas: `se puede estar en 3 clubes y el cuarto pide dejar uno`; `cada deporte suma sus años de práctica cada año`; `cada taller sube su habilidad cada año`; `los talleres terminan al dejar de estudiar y los deportes siguen`; `el cazatalentos mira el mejor deporte`; `partidas con p.club se migran a p.clubs`.
+
+### Task 10: Versión 5, verificación, revisión y PR
 
 **Files:** `js/core/state.js`, `js/systems/save.js`, `tests/save.test.js`, `tests/agent.js`, `README.md`
 
-- [ ] Prueba: `una partida v4 con licencia de conducir se migra a v5` (`p.licenses.auto === true`, sigue jugando).
+- [ ] Prueba: `una partida v4 con licencia de conducir y club se migra a v5` (`p.licenses.auto === true`, `p.clubs` con el club, sigue jugando).
 - [ ] Jugador automático: rinde exámenes (sin opciones), usa vehículos y desarrolla islas; barrido de 1.000 vidas; prueba de humo; README; revisión independiente; PR; actualizar el juego publicado.

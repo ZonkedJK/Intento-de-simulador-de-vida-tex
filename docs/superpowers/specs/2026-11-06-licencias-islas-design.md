@@ -95,9 +95,43 @@ contenido explícito) ni la arquitectura (scripts clásicos bajo `MV`, motor sin
 - Se puede **cerrar el proyecto** (vuelve a ser una isla sola y pierde parte del valor agregado) y
   **vender la isla** con el proyecto incluido.
 
+## 6. Herencia de la casa (agregado aprobado)
+
+- El heredero con el que sigues jugando recibe **siempre la casa familiar**: la casa donde vivías o, si
+  alquilabas, tu casa más valiosa. Conserva sus mejoras. Su valor se descuenta de su parte en dinero
+  (si vale más que su parte, recibe la casa igual y $0 en efectivo).
+- Si es el **único heredero o el heredero nombrado**, recibe además todos los demás bienes (otras casas,
+  autos, lujos, instrumentos e islas con su proyecto), también descontados de su parte.
+- La parte total sigue siendo patrimonio × 0,9 (impuesto) × su porcentaje; los bienes se heredan sin deudas.
+- Si es mayor de edad, se muda a la casa heredada.
+
+## 7. Instrumentos y carrera de músico (agregado aprobado)
+
+- **Tienda de música** en Bienes con 10 instrumentos de precio fijo: guitarra criolla $150, guitarra
+  eléctrica $900, bajo $700, teclado $400, violín $600, saxofón $1.200, batería $1.500, equipo de DJ
+  $2.000, piano de cola $25.000, micrófono profesional $300. Cada uno tiene una calidad de 1 a 3.
+- Son bienes (pierden un poco de valor por año y se pueden vender). En su ficha, 1 vez por año cada una:
+  - **Practicar**: +4 a +8 de Música, más la calidad del instrumento.
+  - **Tocar en la calle**: algo de dinero según tu Música; a veces, un poco de fama.
+  - **Tocar en un bar** (Música 30+, 16+ años): más dinero y fama; con suerte aparece un
+    **representante** que te ofrece un contrato en la carrera musical que ya existe (Músico de bar o
+    Artista con contrato según tu Música). Si ya eres músico, sube tu rendimiento.
+- Tener un instrumento suma en las audiciones de música y en la calidad de las canciones que compones.
+- En la cárcel no se usan.
+
+## 8. Hasta 3 clubes o talleres a la vez (agregado aprobado)
+
+- En la escuela o la universidad puedes estar en **hasta 3 clubes o talleres a la vez**, mezclando deportes
+  y talleres (por ejemplo, fútbol, básquet y robótica). Para entrar a un cuarto, primero dejas uno
+  ("Dejar un club").
+- Cada año, cada deporte suma sus años de práctica y habilidad (con su cuota), y cada taller suma su
+  habilidad y su estadística. Los cazatalentos y reclutadores miran tu mejor deporte, así que te pueden
+  fichar en cualquiera.
+- Los talleres terminan cuando dejas de estudiar; los deportes siguen.
+
 ## Partidas guardadas
 
-`MV.VERSION = 5`. Migración v4→v5: `p.licenses = { auto: !!p.license }`. El resto de los campos nuevos
+`MV.VERSION = 5`. Migración v4→v5: `p.licenses = { auto: !!p.license }` y `p.clubs` a partir de `p.club`. El resto de los campos nuevos
 se leen con valores por defecto.
 
 ## Pruebas
