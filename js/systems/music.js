@@ -16,7 +16,8 @@
       MV.fx.money(g, -I.price);
       p.assets.push({ id: U.uid('a'), type: 'instrumento', kind: I.id, icon: I.icon, name: I.name, value: I.price, cond: 100, quality: I.quality, bought: p.age });
       MV.fx.stat(g, 'happy', 4);
-      return `Compraste ${I.art} ${I.name.toLowerCase()}. ${U.pick(['Los vecinos ya están preocupados.', 'Lo miraste un rato largo antes de animarte a tocarlo.', 'Ahora eres oficialmente "alguien que toca".'])}`;
+      const lo = I.art === 'una' ? 'la' : 'lo';
+      return `Compraste ${I.art} ${I.name.toLowerCase()}. ${U.pick(['Los vecinos ya están preocupados.', `${U.cap(lo)} miraste un rato largo antes de animarte a tocar${lo}.`, 'Ahora eres oficialmente "alguien que toca".'])}`;
     },
 
     actions(g, a) {
@@ -56,7 +57,7 @@
         MV.sys.career.hire(g, J, lvl); MV.fx.stat(g, 'fame', U.int(3, 6)); MV.fx.stat(g, 'happy', 10);
         return `Firmaste. Ahora eres ${MV.sys.career.title(g.p).toLowerCase()} y ganas ${U.money(g.p.job.salary)} al año.`;
       } },
-      { t: '🙅 Rechazar: prefiero ser independiente', eff: { happy: 2, msg: 'Le dijiste que no. Se fue murmurando "este es de los que se arrepienten".' } }
+      { t: '🙅 Rechazar: prefiero ser independiente', eff: (g) => { MV.fx.stat(g, 'happy', 2); return `Le dijiste que no. Se fue murmurando "${U.gw(g.p.gender, 'este es de los que se arrepienten', 'esta es de las que se arrepienten')}".`; } }
     ]
   });
 })(window.MV = window.MV || {});

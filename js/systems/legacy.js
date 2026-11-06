@@ -149,7 +149,9 @@
       const total = Math.round(worth * 0.9 * share);
       const houses = old.assets.filter((a) => a.type === 'casa');
       const home = houses.find((a) => a.id === old.home) || houses.slice().sort((a, b) => b.value - a.value)[0] || null;
-      const all = n === 1 || named === heirId;
+      // Un menor no puede administrar ni vender bienes: recibe la casa y el resto en dinero.
+      const minor = ((g.people[heirId] || {}).age || 0) < 18;
+      const all = (n === 1 || named === heirId) && !minor;
       const assets = all ? old.assets.slice() : home ? [home] : [];
       return { assets, home, total, cash: Math.max(0, total - U.sum(assets, (a) => a.value)) };
     },

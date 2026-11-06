@@ -28,7 +28,8 @@
       return `Inauguraste ${pr.name}, ${T.name.toLowerCase()} en tu isla${pr.mascot ? `, con ${pr.mascot} como mascota` : ''}. Inversión: ${U.money(T.cost)}.`;
     },
 
-    upgradeCost(a) { return Math.round(MV.ISLAND_TYPES[a.project.type].cost * 0.6 * a.project.level); },
+    /** Subir al nivel N cuesta la inversión inicial × 0,6 × N. */
+    upgradeCost(a) { return Math.round(MV.ISLAND_TYPES[a.project.type].cost * 0.6 * (a.project.level + 1)); },
 
     upgrade(g, assetId) {
       const a = island.find(g, assetId), p = g.p;
@@ -114,7 +115,7 @@
   ev({ id: 'isla_documental', icon: '🎥', title: 'Un documental en la reserva',
     text: (g, ctx) => `Un equipo de televisión quiere filmar un documental sobre las tortugas de ${name(g, ctx)}.`,
     choices: [
-      { t: '🎙️ Aparecer en el documental', eff: (g, ctx) => { const a = proj(g, ctx); if (!a) return gone; MV.fx.stat(g, 'fame', 6); MV.fx.stat(g, 'karma', 2); rep(a, 3); return 'Saliste en el documental hablando con una tortuga. Te volviste el "guardián de las tortugas" de internet.'; } },
+      { t: '🎙️ Aparecer en el documental', eff: (g, ctx) => { const a = proj(g, ctx); if (!a) return gone; MV.fx.stat(g, 'fame', 6); MV.fx.stat(g, 'karma', 2); rep(a, 3); return `Saliste en el documental hablando con una tortuga. Te volviste ${U.gw(g.p.gender, 'el "guardián', 'la "guardiana')} de las tortugas" de internet.`; } },
       { t: '🐢 Que las protagonistas sean las tortugas', eff: (g, ctx) => { const a = proj(g, ctx); if (!a) return gone; MV.fx.stat(g, 'karma', 4); rep(a, 6); return 'El documental ganó un premio. Las tortugas no fueron a buscarlo.'; } },
       { t: '💵 Cobrar por filmar ($50.000)', eff: (g, ctx) => { const a = proj(g, ctx); if (!a) return gone; MV.fx.money(g, 50000); rep(a, -4); return 'Cobraste por filmar. En el documental apareces de fondo contando billetes.'; } }
     ] });

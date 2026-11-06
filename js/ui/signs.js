@@ -22,7 +22,7 @@
     peatones: diamond(`${person(50, 26, 1)}<path d="M28 74 H72" stroke="${INK}" stroke-width="3" stroke-dasharray="6 4"/>`),
     no_estacionar: ring(txt(50, 64, 40, INK, 'E'), true),
     no_izquierda: ring(`${line('M60 74 V50 Q60 40 50 40 H40', 8)}<path d="M42 28 L26 40 L42 52 Z" fill="${INK}"/>`, true),
-    rotonda: `<circle cx="50" cy="50" r="44" fill="${BLUE}" stroke="${INK}" stroke-width="2"/>${line('M50 24 A26 26 0 1 1 26 60', 8, WHITE)}<path d="M15 54 L26 72 L37 56 Z" fill="${WHITE}"/>`,
+    rotonda: `<circle cx="50" cy="50" r="44" fill="${BLUE}" stroke="${INK}" stroke-width="2"/>${line('M50 24 A26 26 0 1 0 74 60', 8, WHITE)}<path d="M64 60 L79 42 L86 64 Z" fill="${WHITE}"/>`,
     escuela: diamond(`${person(40, 30, 0.9)}${person(60, 40, 0.65)}`),
     paso_nivel: `<g transform="rotate(45 50 50)"><rect x="6" y="42" width="88" height="16" fill="${WHITE}" stroke="${RED}" stroke-width="4"/></g><g transform="rotate(-45 50 50)"><rect x="6" y="42" width="88" height="16" fill="${WHITE}" stroke="${RED}" stroke-width="4"/></g>`,
     obras: diamond(`${person(42, 30, 0.85)}${line('M52 46 L66 70', 4)}<path d="M62 70 L72 70 L68 76 Z" fill="${INK}"/><path d="M28 76 Q40 64 52 76 Z" fill="${INK}"/>`),

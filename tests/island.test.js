@@ -47,11 +47,11 @@ test('sin dinero no se desarrolla ni se mejora', () => {
   assert.equal(a.project.level, 1);
 });
 
-test('mejorar cuesta 0,6 × inversión × nivel y llega hasta el nivel 5', () => {
+test('mejorar cuesta 0,6 × inversión × nivel al que subes y llega hasta el nivel 5', () => {
   const MV = load({ seed: 4 });
   const { g, a } = owner(MV, 4);
   I(MV).develop(g, 'isla1', 'resort', 'Bahía Serena');
-  assert.equal(I(MV).upgradeCost(a), 3e6);
+  assert.equal(I(MV).upgradeCost(a), 6e6);
   for (let i = 0; i < 6; i++) I(MV).upgrade(g, 'isla1');
   assert.equal(a.project.level, 5);
   assert.match(I(MV).upgrade(g, 'isla1'), /máximo/);

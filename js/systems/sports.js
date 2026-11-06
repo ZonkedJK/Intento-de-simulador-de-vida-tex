@@ -80,6 +80,8 @@
       p.job.salary = Math.max(offer.salary || 0, S.pay[offer.level || 0]);
       p.job.perf = 60;
       p.club = offer.sport;
+      // Al hacerte profesional dejas los clubes amateurs (los talleres siguen).
+      p.clubs = MV.sys.edu.clubsOf(p).filter((c) => !String(c).startsWith('sport:'));
       p.flags.exAtleta = offer.sport;
       p.flags.proSports = Object.assign({}, p.flags.proSports, { [offer.sport]: true });
       MV.fx.stat(g, 'happy', 15);
@@ -269,7 +271,7 @@
       const t = MV.sys.career.title(p), lvl = p.job.level;
       MV.sys.career.leave(g, 'retiro');
       p.flags.exAtleta = J.sport;
-      p.club = null;
+      p.club = null; p.clubs = MV.sys.edu.clubsOf(p).filter((c) => !String(c).startsWith('sport:'));
       MV.fx.stat(g, 'happy', lvl >= 2 ? 6 : -4);
       const homage = lvl >= 3 ? ' El estadio entero te despidió de pie y retiraron tu número.' : lvl >= 2 ? ' Te hicieron un homenaje emotivo.' : '';
       MV.EV.info(g, { title: 'Retiro', text: `${reason || `Te retiraste del ${S.name.toLowerCase()} profesional.`} Terminaste tu carrera como ${t.toLowerCase()}.${homage}`, icon: S.icon, scene: 'escenario' });

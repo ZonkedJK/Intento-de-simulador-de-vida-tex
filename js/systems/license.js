@@ -11,6 +11,9 @@
       return !!((p.licenses && p.licenses[kind]) || (kind === 'auto' && p.license));
     },
 
+    /** Nombres de las licencias que tienes. */
+    held(g) { return Object.keys(MV.LICENSES).filter((k) => license.has(g, k)).map((k) => MV.LICENSES[k].name); },
+
     /** ¿Puede rendir ahora? why: motivos que faltan. */
     canTake(g, kind) {
       const L = MV.LICENSES[kind], p = g.p, why = [];

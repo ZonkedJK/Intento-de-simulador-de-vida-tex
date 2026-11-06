@@ -171,6 +171,11 @@
       return p.clubs;
     },
 
+    /** "el club de robótica", "la banda de música". */
+    clubArt(name) { return (/^(banda|escuela|academia)/i.test(name) ? 'la ' : 'el ') + name.toLowerCase(); },
+    /** "al club de robótica", "a la banda de música". */
+    clubTo(name) { return edu.clubArt(name).replace(/^el /, 'al ').replace(/^la /, 'a la '); },
+
     clubInfo(id) {
       if (String(id).startsWith('sport:')) { const S = MV.SPORTS[String(id).slice(6)]; return S ? { sport: String(id).slice(6), name: S.club, icon: S.icon } : null; }
       const c = E.clubs.find((x) => x.id === id);
@@ -179,14 +184,33 @@
 
     /** El deporte principal (p.club) es el de mejor nivel entre tus clubes. */
     syncClub(g) {
+      if (MV.sys.sports.isPro(g.p)) { g.p.club = MV.jobById(g.p.job.id).sport; return; } // el deporte de tu contrato
       const sports = edu.clubsOf(g.p).filter((id) => String(id).startsWith('sport:')).map((id) => String(id).slice(6));
       g.p.club = sports.length ? sports.slice().sort((a, b) => MV.sys.sports.rating(g, b) - MV.sys.sports.rating(g, a))[0] : null;
+    },
+
+    /** Asegura que estés en ese club; si ya estás en 3, deja primero un taller (o el más viejo). */
+    ensureClub(g, id) {
+      const mine = edu.clubsOf(g.p);
+      if (mine.includes(id)) return;
+      if (mine.length >= MAX_CLUBS) { const drop = mine.find((c) => !String(c).startsWith('sport:')) || mine[0]; g.p.clubs = mine.filter((c) => c !== drop); }
+      g.p.clubs.push(id);
+    },
+
+    /** Motivo para no poder entrar (o null). */
+    joinRefusal(g, id) {
+      if (id == null) return null;
+      const mine = edu.clubsOf(g.p), c = edu.clubInfo(id);
+      if (!c) return 'Ese club no existe.';
+      if (mine.includes(id)) return `Ya estás en ${edu.clubArt(c.name)}.`;
+      if (mine.length >= MAX_CLUBS) return `Ya estás en ${MAX_CLUBS} clubes o talleres: deja uno primero.`;
+      return null;
     },
 
     joinClub(g, id) {
       const p = g.p, mine = edu.clubsOf(p), c = edu.clubInfo(id);
       if (!c) return 'Ese club no existe.';
-      if (mine.includes(id)) return `Ya estás en ${c.name.toLowerCase()}.`;
+      if (mine.includes(id)) return `Ya estás en ${edu.clubArt(c.name)}.`;
       if (mine.length >= MAX_CLUBS) return `Ya estás en ${MAX_CLUBS} clubes o talleres: deja uno primero.`;
       mine.push(id);
       if (c.sport) { const msg = MV.sys.sports.startTraining(g, c.sport); edu.syncClub(g); return msg; }
@@ -195,9 +219,9 @@
       if (U.chance(0.35)) {
         const f = MV.newNPC(g, { age: p.age + U.int(-1, 1), country: p.country, money: 0, job: 'Estudiante' });
         MV.addRel(g, f, 'amigo', U.int(50, 75));
-        return `Te uniste a ${w.name.toLowerCase()} y te hiciste amig${U.gw(f.gender, 'o', 'a')} de ${f.first}.`;
+        return `Te uniste ${edu.clubTo(w.name)} y te hiciste amig${U.gw(f.gender, 'o', 'a')} de ${f.first}.`;
       }
-      return `Te uniste a ${w.name.toLowerCase()}. ${U.pick([`Eres sorprendentemente buen${U.gw(p.gender, 'o', 'a')}.`, 'Eres del montón, pero el más entusiasta.', 'Te divertiste mucho.'])}`;
+      return `Te uniste ${edu.clubTo(w.name)}. ${U.pick([`Eres sorprendentemente buen${U.gw(p.gender, 'o', 'a')}.`, `Eres del montón, pero ${U.gw(p.gender, 'el', 'la')} más entusiasta.`, 'Te divertiste mucho.'])}`;
     },
 
     leaveClub(g, id) {
@@ -205,7 +229,7 @@
       if (!mine.includes(id)) return 'No estás en ese club.';
       p.clubs = mine.filter((x) => x !== id);
       edu.syncClub(g);
-      return `Dejaste ${c ? c.name.toLowerCase() : 'el club'}. ${U.pick(['Nadie lloró, pero alguien se quedó con tu casillero.', 'Te despidieron con una pizza tibia.', 'Tus zapatillas te extrañarán.'])}`;
+      return `Dejaste ${c ? edu.clubArt(c.name) : 'el club'}. ${U.pick(['Nadie lloró, pero alguien se quedó con tu casillero.', 'Te despidieron con una pizza tibia.', 'Tus zapatillas te extrañarán.'])}`;
     },
 
     /** Cada año: los talleres suben su habilidad mientras estudias; al dejar de estudiar, terminan. */
@@ -214,7 +238,7 @@
       mine.filter((id) => !String(id).startsWith('sport:')).forEach((id) => {
         const c = edu.clubInfo(id);
         if (!c) { p.clubs = p.clubs.filter((x) => x !== id); return; }
-        if (!p.edu.stage) { p.clubs = p.clubs.filter((x) => x !== id); MV.log(g, `Dejaste de estudiar, así que también terminó ${c.name.toLowerCase()}.`, c.icon); return; }
+        if (!p.edu.stage) { p.clubs = p.clubs.filter((x) => x !== id); MV.log(g, `Dejaste de estudiar, así que también terminó ${edu.clubArt(c.name)}.`, c.icon); return; }
         MV.fx.skill(g, c.workshop.skill, U.int(2, 4)); MV.fx.stat(g, c.workshop.stat, 1);
       });
       edu.syncClub(g);
@@ -253,6 +277,7 @@
               return { id, icon: S.icon, label: (higher ? S.club.replace('Equipo', 'Equipo universitario') : S.club), sub: mine.includes(id) ? 'Ya entrenas aquí' : full ? `Ya estás en ${MAX_CLUBS}: deja uno primero` : `Deporte. Años de práctica: ${MV.sys.sports.exp(p, k)}${S.clubCost ? `, cuota ${U.money(S.clubCost)}/año` : ''}` };
             }).concat(E.clubs.map((c) => ({ id: c.id, icon: c.icon, label: c.name, sub: mine.includes(c.id) ? 'Ya estás aquí' : full ? `Ya estás en ${MAX_CLUBS}: deja uno primero` : `Taller. Sube ${MV.SKILLS[c.skill].name.toLowerCase()} cada año` })));
           },
+          check: (g, opt) => edu.joinRefusal(g, opt),
           run: (g, opt) => edu.joinClub(g, opt) },
         { id: 'dejar_club', icon: '🚪', label: 'Dejar un club o taller', sub: 'Para hacer lugar a otro', limit: MAX_CLUBS, when: (g) => edu.clubsOf(g.p).length > 0,
           opts: (g) => edu.clubsOf(g.p).map((id) => { const c = edu.clubInfo(id); return { id, icon: c.icon, label: c.name }; }),
@@ -341,7 +366,7 @@
           return 'No te dieron la beca. Se la dieron al sobrino del rector.';
         } },
       { t: (g, ctx) => `🏅 Beca deportiva (${MV.SPORTS[ctx.becaDep || g.p.flags.becaOfrecida || g.p.club].name.toLowerCase()})`, when: (g, ctx) => !!ctx.becaDep || !!g.p.flags.becaOfrecida || (!!g.p.club && MV.sys.sports.rating(g, g.p.club) >= 60),
-        eff: (g, ctx) => { const sp = ctx.becaDep || g.p.flags.becaOfrecida || g.p.club; delete g.p.flags.becaOfrecida; g.p.club = sp; return edu.enrollUni(g, ctx.major, 'beca').replace('¡Con beca completa!', `¡Con beca deportiva! Jugarás en el equipo de ${MV.SPORTS[sp].name.toLowerCase()} de la universidad.`); } },
+        eff: (g, ctx) => { const sp = ctx.becaDep || g.p.flags.becaOfrecida || g.p.club; delete g.p.flags.becaOfrecida; edu.ensureClub(g, 'sport:' + sp); g.p.club = sp; return edu.enrollUni(g, ctx.major, 'beca').replace('¡Con beca completa!', `¡Con beca deportiva! Jugarás en el equipo de ${MV.SPORTS[sp].name.toLowerCase()} de la universidad.`); } },
       { t: '❌ Olvídalo', eff: { msg: 'Decidiste no estudiar por ahora.' } }
     ]
   });

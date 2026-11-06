@@ -36,7 +36,7 @@
             MV.fx.stat(g, 'happy', U.int(6, 12)); MV.fx.stat(g, 'stress', -U.int(10, 20)); MV.fx.skill(g, 'idiomas', 2);
             g.p.counters.viajes = (g.p.counters.viajes || 0) + 1;
             MV.ach.check(g);
-            return `Volaste en tu ${a.name.toLowerCase()} a ${D.name}${who}. ${U.pick(['Sin colas, sin escalas y con tu propia música.', 'Aterrizaste y alguien te pidió una foto pensando que eras famoso.', 'Hubo turbulencia. Dijiste que era a propósito.'])}`;
+            return `Volaste en tu ${a.name.toLowerCase()} a ${D.name}${who}. ${U.pick(['Sin colas, sin escalas y con tu propia música.', `Aterrizaste y alguien te pidió una foto pensando que eras ${U.gw(p.gender, 'famoso', 'famosa')}.`, 'Hubo turbulencia. Dijiste que era a propósito.'])}`;
           } });
       }
       if (k === 'helicoptero') {

@@ -57,6 +57,7 @@
   A({ id: 'club_deporte', cat: 'mente', icon: '🏟️', label: 'Entrenar en un club deportivo', sub: 'Elige un deporte (cuota anual)', minAge: 18, limit: 1,
     when: (g) => !MV.sys.sports.isPro(g.p),
     opts: (g) => Object.keys(MV.SPORTS).map((k) => ({ id: k, icon: MV.SPORTS[k].icon, label: MV.SPORTS[k].club, sub: MV.sys.sports.clubSports(g.p).includes(k) ? 'Ya entrenas aquí' : `Tu nivel: ${MV.sys.sports.rating(g, k)}/100, cuota ${U.money(MV.SPORTS[k].clubCost || 300)}/año` })),
+    check: (g, k) => (k == null ? null : MV.sys.edu.joinRefusal(g, 'sport:' + k)),
     run: (g, k) => MV.sys.sports.joinClub(g, k) });
   A({ id: 'practicar', cat: 'mente', icon: '🎯', label: 'Practicar una habilidad', sub: 'Elige qué entrenar', minAge: 6, limit: 3,
     opts: () => Object.keys(MV.SKILLS).filter((k) => k !== 'crimen').map((k) => ({ id: k, icon: MV.SKILLS[k].icon, label: MV.SKILLS[k].name })),

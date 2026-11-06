@@ -52,7 +52,7 @@
   J('programador', 'Software', '💻', ['Programador junior|Programadora junior', 'Programador|Programadora', 'Programador senior|Programadora senior', 'Arquitecto de software|Arquitecta de software', 'CTO'], [36000, 62000, 98000, 145000, 250000], { major: ['informatica', 'ingenieria'] }, { stress: 6, skillUp: 'programacion' });
   // — Con licencia de vehículo —
   J('piloto_comercial', 'Aerolínea', '✈️', ['Copiloto', 'Primer oficial|Primera oficial', 'Comandante', 'Comandante de vuelos internacionales'], [60000, 95000, 160000, 240000], { age: 21, edu: 'secundaria', lic: ['avion'] }, { stress: 6 });
-  J('piloto_heli', 'Aviación', '🚁', ['Piloto de helicóptero turístico', 'Piloto de rescate', 'Piloto ejecutivo|Piloto ejecutiva'], [50000, 85000, 140000], { age: 20, edu: 'secundaria', lic: ['helicoptero'] }, { stress: 6 });
+  J('piloto_heli', 'Aviación', '🚁', ['Piloto de helicóptero turístico', 'Piloto de rescate', 'Piloto ejecutivo|Piloto ejecutiva'], [50000, 85000, 140000], { age: 20, lic: ['helicoptero'] }, { stress: 6 });
   J('capitan_yate', 'Náutica', '⛵', ['Patrón de lancha|Patrona de lancha', 'Capitán de yate|Capitana de yate', 'Capitán de superyate|Capitana de superyate'], [32000, 70000, 150000], { age: 18, lic: ['yate'] }, { stress: 4 });
   J('psicologo', 'Psicología', '🛋️', ['Psicólogo|Psicóloga', 'Psicólogo clínico|Psicóloga clínica', 'Director de clínica|Directora de clínica'], [28000, 48000, 88000], { major: ['psicologia'] }, { stress: 5 });
   J('gerente', 'Corporación', '💼', ['Analista', 'Coordinador|Coordinadora', 'Gerente', 'Director|Directora', 'CEO'], [32000, 48000, 82000, 155000, 480000], { major: ['administracion', 'economia', 'ingenieria'] }, { stress: 8, skillUp: 'carisma' });
