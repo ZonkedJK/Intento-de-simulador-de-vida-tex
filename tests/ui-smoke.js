@@ -131,6 +131,22 @@ const SHOTS = process.argv[2] || null;
   if (await page.evaluate(() => MV.UI.g.challenge && !document.getElementById('profile-challenge'))) errors.push('La ficha no muestra el desafío');
   if (!/Memorias de un mapache/.test(worksText)) errors.push('Mis obras no muestra el libro: ' + worksText);
   await page.evaluate(() => MV.UI.closeSheets());
+  // Examen de conducir: cerrar a mitad no cobra; terminarlo muestra el resultado
+  await page.evaluate(() => { const g = MV.UI.g; g.p.age = Math.max(g.p.age, 16); g.p.money = Math.max(g.p.money, 5000); g.p.license = false; g.p.licenses = {}; g.p.yearActs = {}; MV.UI.closeSheets(); MV.UI.runAction(MV.ACTS.find((a) => a.id === 'lic_auto')); });
+  await page.waitForSelector('#quiz-q');
+  const money0 = await page.evaluate(() => MV.UI.g.p.money);
+  for (let i = 0; i < 3; i++) await page.click('.quiz-opt >> nth=0');
+  if (!/Pregunta 4 de 10/.test(await page.$eval('#quiz-progress', (e) => e.textContent))) errors.push('El examen no avanzó de pregunta');
+  await page.evaluate(() => MV.UI.closeSheets());
+  if (await page.evaluate((m) => MV.UI.g.p.money !== m || MV.usesLeft(MV.UI.g, MV.ACTS.find((a) => a.id === 'lic_auto')) !== 2, money0)) errors.push('Cerrar el examen a mitad cobró o gastó el intento');
+  await page.evaluate(() => MV.UI.runAction(MV.ACTS.find((a) => a.id === 'lic_auto')));
+  for (let i = 0; i < 10; i++) { await page.waitForSelector('.quiz-opt'); if (i === 0 && !(await page.$('.quiz-sign svg'))) errors.push('La pregunta no muestra el dibujo de la señal'); await page.click('.quiz-opt >> nth=1'); }
+  await page.waitForSelector('#layer .card');
+  const quizMsg = await page.$eval('#layer .card', (e) => e.textContent);
+  if (!/de 10 correctas/.test(quizMsg)) errors.push('El resultado del examen no dice los aciertos: ' + quizMsg.slice(0, 120));
+  if (!/Aprobaste/.test(quizMsg) && !(await page.$('#layer .card .quiz-mistakes'))) errors.push('Al reprobar no se ven los errores');
+  await resolve();
+  await page.evaluate(() => MV.UI.closeSheets());
   // Relaciones con nietos: su propio encabezado
   await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
   const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));
