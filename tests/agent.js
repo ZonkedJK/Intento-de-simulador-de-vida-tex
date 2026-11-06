@@ -28,6 +28,11 @@ function possibleActions(MV, g) {
     r.acts = r.acts || {};
     MV.sys.rels.actions(g, r, n).forEach((a) => add(a, r.acts));
   });
+  // Vehículos e instrumentos desde la ficha de cada bien
+  (p.assets || []).forEach((a) => {
+    MV.sys.vehicles.actions(g, a).forEach((x) => add(x));
+    MV.sys.music.actions(g, a).forEach((x) => add(x));
+  });
   return out;
 }
 
@@ -60,6 +65,19 @@ function special(MV, g) {
     MV.sys.money.rent(g, U.pick(MV.RENTALS).id);
   } else if (r < 0.48 && MV.sys.edu.canEnrollUni(p) && p.age >= 18) {
     MV.EV.push(g, 'elegir_carrera', {}, true);
+  } else if (r < 0.5 && p.age >= 8) {
+    MV.sys.music.buy(g, U.pick(MV.INSTRUMENTS).id);
+  } else if (r < 0.53 && p.age >= 18) {
+    // Islas: a veces regala una para probar el desarrollo; si hay una, la desarrolla o la mejora.
+    let isla = p.assets.find((a) => MV.sys.island.isIsland(a));
+    if (!isla && U.chance(0.3)) { isla = { id: MV.U.uid('a'), type: 'lujo', kind: 'Isla privada', icon: '🏝️', name: 'Isla privada', value: 15000000, cond: 100 }; p.assets.push(isla); p.money += 12000000; }
+    if (isla && !isla.project) MV.sys.island.develop(g, isla.id, U.pick(Object.keys(MV.ISLAND_TYPES)), U.chance(0.5) ? 'Isla <Prueba> ${x}' : '', '');
+    else if (isla && U.chance(0.5)) MV.sys.island.upgrade(g, isla.id);
+    else if (isla && U.chance(0.1)) MV.sys.island.close(g, isla.id);
+  } else if (r < 0.55 && p.age >= 18 && !p.prison) {
+    // Vehículos: a veces regala uno para probar sus acciones.
+    const kinds = ['Avión privado', 'Helicóptero', 'Yate'];
+    if (!p.assets.some((a) => kinds.includes(a.kind))) { const k = U.pick(kinds); p.assets.push({ id: MV.U.uid('a'), type: 'lujo', kind: k, icon: '🛥️', name: k, value: 1000000, cond: 100 }); }
   }
 }
 

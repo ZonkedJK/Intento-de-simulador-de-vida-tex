@@ -19,14 +19,18 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 |---|---|
 | Estadísticas | Felicidad, salud, inteligencia y apariencia, más estrés, karma y fama visibles |
 | Habilidades | Música, deporte, cocina, programación, arte, carisma, idiomas y crimen; suben con la práctica |
-| Educación | Primaria, secundaria, 17 carreras universitarias, 6 técnicas, 4 posgrados, escuela nocturna, clubes, becas y préstamos estudiantiles |
-| Trabajo | 46 empleos con requisitos y ascensos (incluye entrenador y comentarista para exdeportistas), 10 de medio tiempo, entrevistas con preguntas, jubilación y pensión |
+| Educación | Primaria, secundaria, 17 carreras universitarias, 6 técnicas, 4 posgrados, escuela nocturna, hasta 3 clubes o talleres a la vez, becas y préstamos estudiantiles |
+| Trabajo | 49 empleos con requisitos y ascensos (incluye entrenador y comentarista para exdeportistas, y piloto comercial, piloto de helicóptero y capitán de yate con su licencia), 10 de medio tiempo, entrevistas con preguntas, jubilación y pensión |
 | Deporte profesional | 11 deportes (fútbol, básquet con draft en una liga norteamericana, tenis, vóley, béisbol, boxeo, golf, atletismo, natación, automovilismo y e-sports), con sueldos de hasta decenas de millones, contratos, lesiones, títulos y retiro; puedes buscar un equipo, escudería o patrocinador mejor para subir de categoría (hasta campeón de la Fórmula Mundial) y volver del retiro |
 | Reclutamiento | Clubes por deporte desde la escuela, cazatalentos al terminar la secundaria, beca deportiva, reclutadores universitarios y pruebas abiertas; cuentan la habilidad Deporte, la salud, los años de práctica y un talento natural oculto |
 | Fama | Actor/actriz, música, moda y política (con elecciones), más redes sociales con seguidores y patrocinios |
 | Mafia | Carrera criminal con encargos, ascensos y riesgo de arresto |
 | Dinero | Impuestos, gastos de vida, alquiler, hipotecas, préstamos, 4 tipos de inversión y 8 negocios propios |
 | Noticias del mundo | Cada año puede traer uno de 15 titulares (recesión, fiebre cripto, burbuja inmobiliaria, pandemia, inflación, auge tecnológico…) que mueven inversiones, casas, costo de vida, empleo y salud |
+| Licencias | Examen en pantalla de 10 preguntas (apruebas con 7): conducir desde los 16 con 20 señales dibujadas, y yate, avión y helicóptero desde los 18 (instrumentos, luces, banderas náuticas y radio) |
+| Vehículos | Con tu avión vuelas a cualquier destino pagando solo combustible; paseos y fiestas en helicóptero y yate. Sin licencia pagas piloto o capitán |
+| Islas | Convierte una isla privada en resort, parque temático con mascota propia, casino o reserva natural: 5 niveles, ganancias según el turismo y escándalos con decisiones |
+| Música | Tienda con 10 instrumentos para practicar, tocar en la calle o en un bar; un representante puede firmarte en la carrera musical |
 | Bienes | Mercado anual de casas, autos y lujos con barras de estado (rojo, amarillo, verde), mantenimiento anual visible y venta eligiendo el precio (con contraofertas) |
 | Casas | 14 mejoras (piscina, sauna, cancha de tenis, gimnasio, cine, paneles solares, búnker, tobogán…) que suben o bajan el valor, cuestan mantenimiento y dan beneficios si vives ahí |
 | Tatuajes | Minijuego: elige tatuador y lugar, dibuja sobre la piel con 6 tintas, plantillas y texto; el tatuador lo califica y queda en tu álbum (se puede borrar con láser) |
@@ -39,11 +43,11 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Viajes | 10 destinos; eliges si vas solo o con tu pareja, familia o amigos |
 | Salud | 21 enfermedades, 4 niveles de tratamiento (del curandero al tratamiento experimental), adicciones y rehabilitación |
 | Crimen | 11 delitos, juicio con elección de abogado (o soborno), cárcel con pandillas, motines, fuga, apelación y libertad condicional |
-| Actividades | 61: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, demandas, emigrar a 28 países y más |
+| Actividades | 64: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, demandas, emigrar a 28 países y más |
 | Países | 28 países de Latinoamérica, Norteamérica, Europa y Asia, cada uno con sus nombres, ciudades y un deporte popular |
-| Eventos | 184 eventos al azar (131 con decisiones), más 24 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
-| Metas | 16 aspiraciones de vida, 57 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
-| Legado | Muerte con epitafio y veredicto, resumen para copiar o compartir, testamento, herencia, árbol genealógico y cementerio de todas tus vidas |
+| Eventos | 184 eventos al azar (131 con decisiones), más 33 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
+| Metas | 16 aspiraciones de vida, 62 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
+| Legado | Muerte con epitafio y veredicto, resumen para copiar o compartir, testamento, herencia (el heredero recibe la casa familiar; si es el único o el nombrado, todos los bienes), árbol genealógico y cementerio de todas tus vidas |
 | Imágenes | Avatares SVG con 9 peinados, barbas, 5 expresiones, ropa según tu ocupación y accesorios; 16 escenas ilustradas; tema claro (cuaderno) y oscuro (pizarrón) |
 
 ## Estructura
