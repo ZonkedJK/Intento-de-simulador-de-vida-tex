@@ -60,6 +60,7 @@
     { kind: 'NFT de un mono aburrido', icon: '🐒', price: [500, 300000], vol: 0.7 },
     { kind: 'Yate', icon: '🛥️', price: [300000, 15000000], vol: 0.08, upkeep: 0.06 },
     { kind: 'Avión privado', icon: '🛩️', price: [3000000, 60000000], vol: 0.06, upkeep: 0.08 },
+    { kind: 'Helicóptero', icon: '🚁', price: [700000, 9000000], vol: 0.07, upkeep: 0.07 },
     { kind: 'Isla privada', icon: '🏝️', price: [10000000, 90000000], vol: 0.05, upkeep: 0.02 }
   ];
 

@@ -147,6 +147,14 @@ const SHOTS = process.argv[2] || null;
   if (!/Aprobaste/.test(quizMsg) && !(await page.$('#layer .card .quiz-mistakes'))) errors.push('Al reprobar no se ven los errores');
   await resolve();
   await page.evaluate(() => MV.UI.closeSheets());
+  // Vehículos: usar el yate desde su ficha
+  await page.evaluate(() => { const g = MV.UI.g; g.p.age = Math.max(g.p.age, 20); g.p.money = Math.max(g.p.money, 50000); g.p.yearActs = {}; g.p.assets.push({ id: 'yate1', type: 'lujo', kind: 'Yate', icon: '🛥️', name: 'Yate de prueba', value: 500000, cond: 100 }); MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Yate de prueba")');
+  await page.click('#layer button.row:has-text("Paseo en yate")');
+  await page.waitForSelector('#layer .card');
+  if (!/yate/i.test(await page.$eval('#layer .card', (e) => e.textContent))) errors.push('Usar el yate no mostró el resultado');
+  await resolve();
+  await page.evaluate(() => { const g = MV.UI.g; g.p.assets = g.p.assets.filter((a) => a.id !== 'yate1'); MV.UI.closeSheets(); });
   // Relaciones con nietos: su propio encabezado
   await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
   const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));

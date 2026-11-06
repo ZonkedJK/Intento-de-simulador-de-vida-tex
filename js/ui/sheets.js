@@ -286,6 +286,11 @@
           })));
           body.append(ul);
         }
+        if (MV.sys.vehicles.kindOf(a)) {
+          const va = MV.sys.vehicles.actions(g, a);
+          body.append(h('h3', { class: 'section-title' }, 'Usar'));
+          body.append(va.length ? UI.actionList(va) : note(p.prison ? 'Desde la cárcel no puedes usarlo.' : 'Ahora no te alcanza el dinero para usarlo.'));
+        }
         body.append(h('h3', { class: 'section-title' }, 'Opciones'));
         const l = h('div', { class: 'list' });
         l.append(UI.row('🏷️', 'Vender', `Valor estimado ${U.money(M.estimate(a))}. Elige cuánto pedir`, '›', () => showSell(a.id)));
