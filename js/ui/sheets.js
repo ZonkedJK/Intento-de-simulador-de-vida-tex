@@ -207,7 +207,17 @@
       p.loans.length ? h('div', null, p.loans.map((l) => h('p', { class: 'note' }, `${l.name}: debes ${U.money(l.left)} (${l.start > p.age ? 'empiezas a pagar a los ' + l.start : U.money(l.pay) + ' al año'})`))) : null));
     const news = MV.sys.world.current(g);
     body.append(h('div', { class: 'box news', id: 'world-news' }, h('b', null, `${news ? news.icon : '🌤️'} Clima económico: ${news ? news.title : 'año tranquilo'}`), h('p', { class: 'note', style: { margin: '4px 0 0' } }, MV.sys.world.describe(news))));
-    if (p.age < 18) { body.append(note('Eres menor de edad: todavía no puedes comprar casas, autos ni invertir.')); return; }
+    if (p.age < 18) {
+      body.append(note('Eres menor de edad: todavía no puedes comprar casas, autos ni invertir.'));
+      if (p.age >= 8) {
+        const mine = MV.sys.music.owned(p);
+        const ml = h('div', { class: 'list' });
+        mine.forEach((a) => ml.append(UI.row(a.icon, a.name, `Valor ${U.money(a.value)}`, '›', () => showAsset(a.id))));
+        ml.append(UI.row('🎸', 'Tienda de música', 'Con tus ahorros sí puedes comprar un instrumento', '›', () => UI.showMusicShop()));
+        body.append(title('Música'), ml);
+      }
+      return;
+    }
     // Vivienda
     body.append(title('Vivienda'));
     const home = p.home && p.assets.find((a) => a.id === p.home);
@@ -233,6 +243,7 @@
     body.append(title('Comprar'));
     const buy = h('div', { class: 'list' });
     [['casa', '🏡', 'Casas y departamentos'], ['auto', '🚗', 'Autos y motos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
+    buy.append(UI.row('🎸', 'Tienda de música', 'Instrumentos para practicar, tocar y hacer carrera', '›', () => UI.showMusicShop()));
     body.append(buy);
     // Inversiones
     body.append(title('Inversiones'));
@@ -252,6 +263,21 @@
     });
     body.append(inv);
   }
+
+  /** Tienda de música: instrumentos de precio fijo. */
+  UI.showMusicShop = function () {
+    UI.sheet({
+      title: 'Tienda de música', icon: '🎸',
+      render: (body) => {
+        const g = UI.g;
+        body.append(note(`Tienes ${U.money(g.p.money)}. Los mejores instrumentos suben más tu Música y ayudan en audiciones y canciones.`));
+        const l = h('div', { class: 'list' });
+        MV.INSTRUMENTS.forEach((I) => l.append(UI.row(I.icon, I.name, `${U.money(I.price)} · calidad ${'★'.repeat(I.quality)}${'☆'.repeat(3 - I.quality)}`, g.p.money >= I.price ? 'Comprar' : '',
+          () => UI.runSystem(I.icon, () => MV.sys.music.buy(g, I.id)), g.p.money < I.price)));
+        body.append(l);
+      }
+    });
+  };
 
   function showAsset(id) {
     UI.sheet({
@@ -287,6 +313,11 @@
           body.append(ul);
         }
         if (MV.sys.island.isIsland(a)) UI.islandSection(body, a);
+        if (a.type === 'instrumento') {
+          const ma = MV.sys.music.actions(g, a);
+          body.append(h('h3', { class: 'section-title' }, 'Tocar'));
+          body.append(ma.length ? UI.actionList(ma) : note('Desde la cárcel solo puedes tocar la armónica imaginaria.'));
+        }
         if (MV.sys.vehicles.kindOf(a)) {
           const va = MV.sys.vehicles.actions(g, a);
           body.append(h('h3', { class: 'section-title' }, 'Usar'));

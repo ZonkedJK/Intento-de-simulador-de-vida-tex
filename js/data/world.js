@@ -64,6 +64,20 @@
     { kind: 'Isla privada', icon: '🏝️', price: [10000000, 90000000], vol: 0.05, upkeep: 0.02 }
   ];
 
+  /** Instrumentos de la tienda de música (precio fijo). quality: 1 a 3. */
+  MV.INSTRUMENTS = [
+    { id: 'criolla', name: 'Guitarra criolla', art: 'una', icon: '🎸', price: 150, quality: 1 },
+    { id: 'electrica', name: 'Guitarra eléctrica', art: 'una', icon: '🎸', price: 900, quality: 2 },
+    { id: 'bajo', name: 'Bajo', art: 'un', icon: '🎸', price: 700, quality: 2 },
+    { id: 'teclado', name: 'Teclado', art: 'un', icon: '🎹', price: 400, quality: 1 },
+    { id: 'violin', name: 'Violín', art: 'un', icon: '🎻', price: 600, quality: 2 },
+    { id: 'saxo', name: 'Saxofón', art: 'un', icon: '🎷', price: 1200, quality: 2 },
+    { id: 'bateria', name: 'Batería', art: 'una', icon: '🥁', price: 1500, quality: 2 },
+    { id: 'dj', name: 'Equipo de DJ', art: 'un', icon: '🎧', price: 2000, quality: 2 },
+    { id: 'piano', name: 'Piano de cola', art: 'un', icon: '🎹', price: 25000, quality: 3 },
+    { id: 'microfono', name: 'Micrófono profesional', art: 'un', icon: '🎤', price: 300, quality: 1 }
+  ];
+
   /** Enfermedades: drain=[min,max] de salud por año, heal=prob. de curarse sola por año,
       cure=prob. de cura con tratamiento, cost=precio del tratamiento. */
   MV.CONDITIONS = {

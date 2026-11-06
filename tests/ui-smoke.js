@@ -174,6 +174,19 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   if (await page.evaluate(() => MV.UI.g.p.assets.find((a) => a.id === 'isla1').project.level) !== 2) errors.push('Mejorar la isla no subió el nivel');
   await page.evaluate(() => { const g = MV.UI.g; g.p.assets = g.p.assets.filter((a) => a.id !== 'isla1'); MV.UI.closeSheets(); });
+  // Instrumentos: comprar una guitarra y practicar desde su ficha
+  await page.evaluate(() => { const g = MV.UI.g; g.p.money = Math.max(g.p.money, 5000); g.p.yearActs = {}; MV.UI.closeSheets(); MV.UI.showMusicShop(); });
+  await page.click('#layer button.row:has-text("Guitarra criolla")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Guitarra criolla")');
+  const mus0 = await page.evaluate(() => MV.UI.g.p.skills.musica);
+  await page.click('#layer button.row:has-text("Practicar con tu guitarra criolla")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  if (await page.evaluate((m) => MV.UI.g.p.skills.musica <= m, mus0)) errors.push('Practicar con el instrumento no subió Música');
+  await page.evaluate(() => MV.UI.closeSheets());
   // Relaciones con nietos: su propio encabezado
   await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
   const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));

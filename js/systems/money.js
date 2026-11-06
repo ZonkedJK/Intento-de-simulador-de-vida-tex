@@ -131,6 +131,9 @@
         } else if (a.type === 'auto') {
           a.value = Math.round(a.value * (a.classic ? U.float(0.98, 1.08) : U.float(0.82, 0.92)));
           a.cond = U.clamp(a.cond - U.int(3, 9), 0, 100);
+        } else if (a.type === 'instrumento') {
+          a.value = Math.max(20, Math.round(a.value * U.float(0.9, 0.98)));
+          a.cond = U.clamp(a.cond - U.int(0, 3), 0, 100);
         } else {
           const L = MV.LUXURY.find((x) => x.kind === a.kind) || { vol: 0.1 };
           a.value = Math.max(50, Math.round(a.value * (1 + U.float(-L.vol, L.vol * 1.1))));

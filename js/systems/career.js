@@ -290,6 +290,7 @@
       eff: (g, ctx) => {
         const J = MV.FAME[ctx.job], p = g.p;
         let ch = J.key(p) / 100 + [0.05, 0.05, -0.05, 0.15][i] - 0.1;
+        if (J.id === 'musico') ch += MV.sys.music.best(p) * 0.05; // tocar con tu instrumento ayuda
         if (i === 3) { MV.fx.money(g, -5000); MV.fx.stat(g, 'karma', -5); }
         if (i === 2) MV.fx.stat(g, 'karma', -3);
         if (U.chance(U.clamp(ch, 0.05, 0.9))) {
