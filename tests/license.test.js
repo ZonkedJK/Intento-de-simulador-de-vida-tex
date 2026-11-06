@@ -142,3 +142,20 @@ test('los trabajos pueden pedir una licencia', () => {
   g.p.licenses = { auto: true, avion: true };
   assert.equal(MV.sys.career.meets(g, J).ok, true);
 });
+
+test('los trabajos de piloto y capitán piden su licencia, edad y pagan bien', () => {
+  const MV = load({ seed: 10 });
+  const g = person(MV, 10, 22); g.p.license = true; g.p.licenses = { auto: true };
+  const cases = [['piloto_comercial', 'avion', 'Licencia de avión', 21, 240000], ['piloto_heli', 'helicoptero', 'Licencia de helicóptero', 20, 140000], ['capitan_yate', 'yate', 'Licencia de yate', 18, 150000]];
+  cases.forEach(([id, lic, name, age, top]) => {
+    const J = MV.jobById(id);
+    assert.ok(J, id);
+    assert.equal(J.pay[J.pay.length - 1], top, id);
+    assert.equal(J.req.age, age, id);
+    assert.ok(MV.sys.career.meets(g, J).why.includes(name), id);
+    g.p.licenses[lic] = true;
+    assert.equal(MV.sys.career.meets(g, J).ok, true, id + ': ' + MV.sys.career.meets(g, J).why.join(', '));
+  });
+  assert.equal(MV.gt(MV.jobById('piloto_comercial').titles[1], 'f'), 'Primera oficial');
+  assert.equal(MV.gt(MV.jobById('capitan_yate').titles[1], 'f'), 'Capitana de yate');
+});
