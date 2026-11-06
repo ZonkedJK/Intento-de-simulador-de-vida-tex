@@ -155,6 +155,25 @@ const SHOTS = process.argv[2] || null;
   if (!/yate/i.test(await page.$eval('#layer .card', (e) => e.textContent))) errors.push('Usar el yate no mostró el resultado');
   await resolve();
   await page.evaluate(() => { const g = MV.UI.g; g.p.assets = g.p.assets.filter((a) => a.id !== 'yate1'); MV.UI.closeSheets(); });
+  // Isla: desarrollar un parque con nombre y mascota, y mejorarlo
+  await page.evaluate(() => { const g = MV.UI.g; g.p.money = Math.max(g.p.money, 3e7); g.p.assets.push({ id: 'isla1', type: 'lujo', kind: 'Isla privada', icon: '🏝️', name: 'Isla de prueba', value: 2e7, cond: 100 }); MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Isla de prueba")');
+  await page.click('#layer button.row:has-text("Desarrollar la isla")');
+  await page.click('#layer .layer-item:last-child button.row:has-text("Parque temático")');
+  await page.fill('#island-name', 'Mundo Mapache');
+  await page.fill('#island-mascot', 'Mapache Pepe');
+  await page.click('#island-go');
+  await page.waitForSelector('#layer .card');
+  if (!/Mundo Mapache/.test(await page.$eval('#layer .card', (e) => e.textContent))) errors.push('Desarrollar la isla no usó el nombre');
+  await resolve();
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Isla de prueba")');
+  if (!/Mapache Pepe/.test(await page.$eval('#island-project', (e) => e.textContent).catch(() => ''))) errors.push('La ficha de la isla no muestra el proyecto');
+  await page.click('#layer button.row:has-text("Mejorar al nivel 2")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  if (await page.evaluate(() => MV.UI.g.p.assets.find((a) => a.id === 'isla1').project.level) !== 2) errors.push('Mejorar la isla no subió el nivel');
+  await page.evaluate(() => { const g = MV.UI.g; g.p.assets = g.p.assets.filter((a) => a.id !== 'isla1'); MV.UI.closeSheets(); });
   // Relaciones con nietos: su propio encabezado
   await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
   const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));

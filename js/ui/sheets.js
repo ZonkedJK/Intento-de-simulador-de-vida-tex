@@ -286,6 +286,7 @@
           })));
           body.append(ul);
         }
+        if (MV.sys.island.isIsland(a)) UI.islandSection(body, a);
         if (MV.sys.vehicles.kindOf(a)) {
           const va = MV.sys.vehicles.actions(g, a);
           body.append(h('h3', { class: 'section-title' }, 'Usar'));

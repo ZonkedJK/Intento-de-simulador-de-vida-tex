@@ -269,6 +269,7 @@
       if (loan) { net -= loan.left; p.loans = p.loans.filter((l) => l !== loan); }
       MV.fx.money(g, net);
       p.assets = p.assets.filter((x) => x !== a);
+      g.queue = g.queue.filter((q) => !(q.ctx && q.ctx.asset === a.id));
       if (p.home === a.id) {
         p.home = null;
         const other = p.assets.find((x) => x.type === 'casa' && !x.rented);
