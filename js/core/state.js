@@ -210,7 +210,7 @@
       license: false, aspiration: null,
       counters: {}, flags: {}, yearActs: {},
       rels: [], heirId: null, followers: 0, club: null, sportsExp: {}, talent: MV.rollTalent ? MV.rollTalent() : {}, tattoos: [],
-      hobbies: {}, routine: { exercise: 'ninguno', diet: 'libre' },
+      hobbies: {}, routine: { exercise: 'ninguno', diet: 'libre' }, history: [],
       orientation: o.orientation || (U.chance(0.88) ? 'hetero' : U.pick(['homo', 'bi']))
     };
   }
@@ -286,6 +286,7 @@
       MV.log(g, `Tienes ${U.gw(s.gender, 'un hermano mayor', 'una hermana mayor')}, ${s.first}, que ya te mira con desconfianza.`, '🧒');
     } else if (nSib > 1) MV.log(g, `Tienes ${nSib} hermanos mayores. Serás el último en elegir el postre.`, '🧒');
     MV.sys.challenge.start(g, opts.challenge);
+    MV.sys.history.record(g);
     g.rng = MV.rng.getState();
     return g;
   };

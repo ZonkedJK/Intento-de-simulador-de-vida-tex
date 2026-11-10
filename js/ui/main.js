@@ -224,6 +224,7 @@
     if (!g || g.over) return;
     if (g.queue.length) { UI.flushQueue(); return; }
     UI.closeSheets();
+    const before = MV.sys.history.snapshot(g);
     try {
       MV.ageUp(g);
     } catch (e) {
@@ -234,7 +235,7 @@
     UI.refreshGame(true);
     window.scrollTo({ top: document.body.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     if (g.over) { setTimeout(() => UI.showDeath(), 650); return; }
-    UI.flushQueue();
+    UI.flushQueue(() => UI.showYearSummary(before));
   };
 
   /** Avanza hasta `n` años seguidos; se detiene ante una decisión, un aviso o la muerte. */
@@ -243,6 +244,7 @@
     if (!g || g.over) return;
     if (g.queue.length) { UI.flushQueue(); return; }
     UI.closeSheets();
+    const before = MV.sys.history.snapshot(g);
     for (let i = 0; i < n; i++) {
       let ok = false;
       try { ok = MV.ageUp(g); } catch (e) {
@@ -256,7 +258,20 @@
     UI.refreshGame(true);
     window.scrollTo({ top: document.body.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
     if (g.over) { setTimeout(() => UI.showDeath(), 650); return; }
-    UI.flushQueue();
+    UI.flushQueue(() => UI.showYearSummary(before));
+  };
+
+  /** Tarjeta "Tu año a los N": cuánto cambió cada estadística y el dinero, y lo más importante del diario. */
+  UI.showYearSummary = function (before) {
+    const g = UI.g;
+    if (!g || g.over || !before || MV.global().settings.yearSummary === false) return;
+    const s = MV.sys.history.yearSummary(before, g);
+    if (s.age <= before.age) return;
+    const c = UI.card([h('div', { id: 'year-summary' },
+      h('h2', null, h('span', { 'aria-hidden': 'true' }, '🗓️ '), s.from === s.age ? `Tu año a los ${s.age}` : `Tus años de ${s.from} a ${s.age}`),
+      s.changes.length ? UI.deltas(s.changes) : h('p', { class: 'note' }, 'Nada cambió. Un año de esos que no se cuentan.'),
+      s.highlights.length ? h('ul', { class: 'year-highlights' }, s.highlights.map((t) => h('li', null, t))) : null,
+      h('button', { class: 'btn primary block', onclick: () => c.close() }, 'Seguir'))]);
   };
 
   const STAT_NAME = (k) => {

@@ -443,3 +443,26 @@ html[data-font="muy_grande"] { font-size: 125%; }
 .slot { margin: 0 0 10px; }
 .slot .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .font-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 12px; }
+
+/* — Gráficos de la vida (paleta categórica validada: CVD y contraste en claro y oscuro) — */
+:root { --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; } }
+:root[data-theme="dark"] { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; }
+.viz-fig { margin: 0 0 10px; }
+.viz-fig figcaption { font-weight: 700; font-size: 0.9rem; margin-bottom: 2px; }
+.viz { width: 100%; height: auto; display: block; overflow: visible; }
+.viz-grid { stroke: var(--grid); stroke-width: 1; }
+.viz-axis { stroke: var(--pencil); stroke-width: 1; opacity: 0.6; }
+.viz-tick { fill: var(--pencil); font-size: 9px; font-family: var(--font-body); }
+.viz-label { fill: var(--ink); font-size: 9.5px; font-family: var(--font-body); }
+.viz-dot { stroke: var(--card); stroke-width: 2; }
+.viz-hit { fill: transparent; }
+.viz-hit:hover { fill: color-mix(in srgb, var(--hl-yellow) 35%, transparent); }
+.viz-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8rem; color: var(--pencil); margin: -4px 0 6px; }
+.viz-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.viz-table summary { cursor: pointer; font-size: 0.85rem; color: var(--pencil); }
+.viz-table table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 6px; }
+.viz-table th, .viz-table td { text-align: right; padding: 2px 4px; border-bottom: 1px dashed var(--grid); }
+.viz-table th:first-child, .viz-table td:first-child { text-align: left; }
+.year-highlights { margin: 8px 0 12px; padding-left: 18px; }
+.year-highlights li { margin: 3px 0; }

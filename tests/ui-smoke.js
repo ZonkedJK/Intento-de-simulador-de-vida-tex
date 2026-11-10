@@ -264,6 +264,30 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   await page.evaluate(() => { delete MV.global().settings.anim; MV.UI.closeSheets(); });
 
+  // Resumen del año (y que no aparezca si se apaga) y gráficos de la ficha
+  const yearCards = async () => {
+    let seen = false;
+    await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.g.queue = []; });
+    await page.click('.ageup');
+    for (let k = 0; k < 25; k++) {
+      await page.waitForTimeout(40);
+      if (await page.$('#year-summary')) { seen = true; await page.click('#year-summary .btn.primary'); continue; }
+      if (await page.$('#layer .choice')) { await tryClick('#layer .choice >> nth=0'); continue; }
+      if (await page.$('#layer .card .btn.primary')) { await tryClick('#layer .card .btn.primary'); continue; }
+      break;
+    }
+    return seen;
+  };
+  if (!(await yearCards())) errors.push('No apareció el resumen del año');
+  await page.evaluate(() => { MV.global().settings.yearSummary = false; });
+  if (await yearCards()) errors.push('El resumen del año apareció con el ajuste apagado');
+  await page.evaluate(() => { MV.global().settings.yearSummary = true; });
+  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 })));
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
+  const charts = await page.$$eval('#profile-charts svg.viz', (els) => els.length);
+  if (charts !== 2) errors.push('La ficha no muestra los 2 gráficos: ' + charts);
+  await page.evaluate(() => MV.UI.closeSheets());
+
   // Bienestar en la tarjeta y rutina en la ficha
   const wbChip = await page.$eval('#wellbeing-chip', (e) => e.textContent).catch(() => '');
   if (!/Bienestar \d+ · (Floreciendo|Bien|Regular|Mal)/.test(wbChip)) errors.push('Falta el chip de bienestar: ' + wbChip);
@@ -344,6 +368,7 @@ const SHOTS = process.argv[2] || null;
   // Darle hijos y morir para probar la herencia
   await page.evaluate(() => { const g = MV.UI.g; const k = MV.newNPC(g, { age: 3, last: g.p.last, money: 0 }); MV.addRel(g, k, 'hijo', 80); MV.sys.legacy.die(g, 'una prueba automatizada'); MV.UI.save(); MV.UI.showDeath(); });
   await page.waitForSelector('.tomb');
+  if ((await page.$$('#death-charts svg.viz')).length !== 2) errors.push('La pantalla de la muerte no muestra los gráficos de la vida');
   await shot('muerte');
   await page.click('#copy-summary');
   await page.waitForTimeout(1900);

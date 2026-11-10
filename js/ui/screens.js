@@ -123,6 +123,7 @@
       kv('Delitos', String(s.crimes)), kv('Karma', String(s.karma)), kv('Fama', String(s.fame)), kv('Generación', `${s.generation} de la dinastía ${s.dynasty ? s.dynasty.name : ''}`),
       s.aspiration ? kv('Aspiración', `${s.aspiration.name || ''}: ${s.aspiration.done ? 'cumplida' : 'sin cumplir'}`) : null));
     const shareText = MV.sys.legacy.summaryText(g);
+    root.append(title('Tu vida en gráficos'), UI.lifeCharts(g.p, 'death-charts'));
     root.append(h('div', { class: 'btn-row' },
       h('button', { class: 'btn', id: 'copy-summary', style: { flex: 1 }, onclick: () => UI.copyText(shareText) }, '📋 Copiar resumen'),
       typeof navigator !== 'undefined' && navigator.share ? h('button', { class: 'btn', style: { flex: 1 }, onclick: () => navigator.share({ title: 'Mil Vidas', text: shareText }).catch(() => {}) }, '📤 Compartir') : null));
@@ -194,6 +195,8 @@
         sb.append(h('div', { class: 'skill-row' }, h('span', null, '⭐'), h('span', null, 'Fama'), UI.bar(p.fame), h('b', null, p.fame)));
         body.append(sb);
         const wb = MV.sys.wellbeing.score(g);
+        body.append(title('Tu vida en gráficos'));
+        body.append(UI.lifeCharts(p, 'profile-charts'));
         body.append(title('Bienestar y rutina'));
         const wbox = h('div', { class: 'box', id: 'profile-wellbeing' });
         wbox.append(h('div', { class: 'skill-row' }, h('span', null, '💚'), h('span', null, `Bienestar: ${wb.label}`), UI.bar(wb.score), h('b', null, wb.score)));
