@@ -193,6 +193,25 @@
         sb.append(h('div', { class: 'skill-row' }, h('span', null, '☯️'), h('span', null, 'Karma'), UI.bar(p.karma + 100, 200), h('b', null, p.karma)));
         sb.append(h('div', { class: 'skill-row' }, h('span', null, '⭐'), h('span', null, 'Fama'), UI.bar(p.fame), h('b', null, p.fame)));
         body.append(sb);
+        const wb = MV.sys.wellbeing.score(g);
+        body.append(title('Bienestar y rutina'));
+        const wbox = h('div', { class: 'box', id: 'profile-wellbeing' });
+        wbox.append(h('div', { class: 'skill-row' }, h('span', null, '💚'), h('span', null, `Bienestar: ${wb.label}`), UI.bar(wb.score), h('b', null, wb.score)));
+        wbox.append(note('Mezcla tu felicidad (35 %), tu salud (30 %), tu calma (20 %) y tus vínculos cercanos (15 %).'));
+        const routine = Object.assign({ exercise: 'ninguno', diet: 'libre' }, p.routine);
+        [['exercise', '🏃 Ejercicio'], ['diet', '🥗 Dieta']].forEach(([part, lbl]) => {
+          wbox.append(h('b', null, lbl));
+          const row = h('div', { class: 'font-row', role: 'radiogroup', 'aria-label': lbl });
+          Object.keys(MV.ROUTINES[part]).forEach((k) => {
+            const R = MV.ROUTINES[part][k];
+            row.append(h('button', { type: 'button', id: `routine-${part}-${k}`, class: 'chip-btn' + (routine[part] === k ? ' on' : ''), role: 'radio', 'aria-checked': String(routine[part] === k),
+              title: R.cost ? `${U.money(R.cost)} al año` : 'Gratis', onclick: () => { MV.sys.wellbeing.setRoutine(g, part, k); UI.save(); UI.refreshSheets(); } }, `${R.name}${R.cost ? ' · ' + U.money(R.cost) : ''}`));
+          });
+          wbox.append(row);
+        });
+        const hob = Object.keys(p.hobbies || {}).filter((k) => p.hobbies[k].streak > 0 && MV.HOBBIES[k]);
+        wbox.append(note(hob.length ? 'Rachas: ' + hob.map((k) => `${MV.HOBBIES[k].icon} ${MV.HOBBIES[k].name.toLowerCase()} ${p.hobbies[k].streak}`).join(', ') + '.' : 'Practica un hobby en Actividades → Mente y cuerpo para sumar rachas.'));
+        body.append(wbox);
         body.append(title('Habilidades'));
         const sk = h('div', { class: 'box' });
         Object.keys(MV.SKILLS).forEach((k) => sk.append(h('div', { class: 'skill-row' }, h('span', null, MV.SKILLS[k].icon), h('span', null, MV.SKILLS[k].name), UI.bar(p.skills[k]), h('b', null, Math.round(p.skills[k])))));

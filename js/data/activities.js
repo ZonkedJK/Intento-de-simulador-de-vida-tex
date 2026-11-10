@@ -42,6 +42,9 @@
     run: (g) => { const amt = U.int(0, 40) + Math.round(g.p.skills.carisma / 4); fx.money(g, amt); fx.skill(g, 'carisma', 2); return amt > 20 ? `Vendiste limonada y ganaste ${U.money(amt)}. Futuro magnate.` : `Vendiste dos vasos. Uno a tu madre. Ganaste ${U.money(amt)}.`; } });
 
   // ——— Mente y cuerpo ———
+  A({ id: 'hobby', cat: 'mente', icon: '🎨', label: 'Practicar un hobby', sub: 'Cada año seguido suma racha y baja más el estrés', minAge: 8, limit: 2,
+    opts: (g) => Object.keys(MV.HOBBIES).map((k) => { const s = ((g.p.hobbies || {})[k] || {}).streak || 0; return { id: k, icon: MV.HOBBIES[k].icon, label: MV.HOBBIES[k].name, sub: s ? `Racha de ${s} año${s === 1 ? '' : 's'}` : 'Sin racha todavía' }; }),
+    run: (g, k) => MV.sys.wellbeing.hobby(g, k) });
   A({ id: 'gimnasio', cat: 'mente', icon: '🏋️', label: 'Ir al gimnasio', sub: '+salud, +apariencia', minAge: 13, limit: 3,
     run: (g) => { fx.stat(g, 'health', U.int(1, 4)); fx.stat(g, 'looks', U.int(0, 2)); fx.stat(g, 'stress', -3); fx.skill(g, 'deporte', 2);
       if (U.chance(0.04)) { MV.sys.health.add(g, 'fractura'); return 'Intentaste levantar más peso del que podías. Crack.'; }
@@ -205,6 +208,9 @@
     run: (g) => { fx.stat(g, 'karma', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5));
       if (U.chance(0.03)) { const pet = MV.sys.mythic.grant(g, 'guardian'); if (pet) return `Limpiando un bosque, una criaturita de musgo te siguió hasta casa. Se llama ${pet.first}, dice que es guardián del bosque y que te va a vigilar.`; }
       return U.pick(['Serviste comida en un comedor. Una señora te dio un abrazo que no olvidarás.', 'Limpiaste una playa. Encontraste 3 zapatos izquierdos.', 'Paseaste perros de un refugio. Quieres adoptar a todos.', 'Le leíste a ancianos en un geriátrico. Te contaron chismes de 1960.']); } });
+  A({ id: 'retiro_descanso', cat: 'ocio', icon: '🧖', label: 'Retiro de descanso', sub: '$3.000 · spa, silencio y cero celular', minAge: 18, limit: 1, when: (g) => g.p.money >= 3000,
+    run: (g) => { fx.money(g, -3000); fx.stat(g, 'stress', -U.int(25, 40)); fx.stat(g, 'health', U.int(2, 5)); fx.stat(g, 'happy', U.int(4, 8));
+      return U.pick(['Pasaste una semana en un spa de montaña. Te dieron una bata y te sacaron el celular. Volviste a nacer.', 'Hiciste un retiro de silencio. El tercer día hablaste con una piedra, pero volviste en paz.', 'Fuiste a unas termas. Saliste tan relajad' + U.gw(g.p.gender, 'o', 'a') + ' que olvidaste dónde estacionaste.']); } });
   A({ id: 'plantar_arboles', cat: 'ocio', icon: '🌱', label: 'Plantar árboles', sub: '$200 · +karma', minAge: 12, limit: 2, when: (g) => g.p.money >= 200,
     run: (g) => { fx.money(g, -200); fx.stat(g, 'karma', U.int(2, 5)); fx.stat(g, 'happy', U.int(1, 3)); fx.stat(g, 'stress', -2);
       if (U.chance(0.08)) { const pet = MV.sys.mythic.grant(g, 'guardian'); if (pet) return `Mientras plantabas, salió de entre las raíces una criaturita de musgo con cejas enormes. Se llama ${pet.first}, habla por los árboles y decidió mudarse contigo para vigilarte.`; }

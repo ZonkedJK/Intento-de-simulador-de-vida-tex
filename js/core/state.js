@@ -210,6 +210,7 @@
       license: false, aspiration: null,
       counters: {}, flags: {}, yearActs: {},
       rels: [], heirId: null, followers: 0, club: null, sportsExp: {}, talent: MV.rollTalent ? MV.rollTalent() : {}, tattoos: [],
+      hobbies: {}, routine: { exercise: 'ninguno', diet: 'libre' },
       orientation: o.orientation || (U.chance(0.88) ? 'hetero' : U.pick(['homo', 'bi']))
     };
   }

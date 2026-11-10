@@ -264,6 +264,17 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   await page.evaluate(() => { delete MV.global().settings.anim; MV.UI.closeSheets(); });
 
+  // Bienestar en la tarjeta y rutina en la ficha
+  const wbChip = await page.$eval('#wellbeing-chip', (e) => e.textContent).catch(() => '');
+  if (!/Bienestar \d+ · (Floreciendo|Bien|Regular|Mal)/.test(wbChip)) errors.push('Falta el chip de bienestar: ' + wbChip);
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
+  await page.click('#routine-exercise-ligero');
+  await page.click('#routine-diet-equilibrada');
+  const routine = await page.evaluate(() => MV.UI.g.p.routine);
+  if (routine.exercise !== 'ligero' || routine.diet !== 'equilibrada') errors.push('La rutina no se guardó desde la ficha: ' + JSON.stringify(routine));
+  if (!/Bienestar/.test(await page.$eval('#profile-wellbeing', (e) => e.textContent).catch(() => ''))) errors.push('La ficha no muestra el bienestar');
+  await page.evaluate(() => MV.UI.closeSheets());
+
   // Comodidad: buscador y favoritos en Actividades
   await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.favs = []; MV.UI.showActivities(); });
   await page.fill('#act-search', 'gim');

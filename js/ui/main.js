@@ -163,6 +163,8 @@
         h('span', { class: 'val' }, v)));
     });
     const chips = h('div', { class: 'chips' });
+    const wb = MV.sys.wellbeing.score(g);
+    chips.append(h('span', { class: 'chip' + (wb.score < 40 ? ' warn' : ''), id: 'wellbeing-chip', title: 'Bienestar: felicidad, salud, calma y vínculos' }, `💚 Bienestar ${wb.score} · ${wb.label}`));
     chips.append(h('span', { class: 'chip' + (p.stress >= 70 ? ' warn' : '') }, `😰 Estrés ${p.stress}`));
     chips.append(h('span', { class: 'chip' }, `☯️ Karma ${p.karma > 0 ? '+' : ''}${p.karma}`));
     if (p.fame > 0) chips.append(h('span', { class: 'chip' }, `⭐ Fama ${p.fame}`));
