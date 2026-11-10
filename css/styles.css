@@ -379,6 +379,24 @@ button.row:disabled:hover { background: none; }
   .stat { grid-template-columns: 22px 1fr 28px; }
 }
 
+/* — Animaciones de cambios de estado — */
+#float-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; }
+.float-num {
+  position: fixed; font-family: var(--font-hand); font-weight: 700; font-size: 1rem; white-space: nowrap;
+  padding: 0 6px; border-radius: 4px; color: var(--on-hl); animation: float-up 1s ease-out forwards;
+}
+.float-num.up { background: var(--hl-green); }
+.float-num.down { background: var(--hl-pink); }
+@keyframes float-up { 0% { opacity: 0; transform: translateY(6px) scale(0.8); } 15% { opacity: 1; transform: translateY(0) scale(1.08); } 100% { opacity: 0; transform: translateY(-34px) scale(1); } }
+.stat.flash .bar { animation: bar-flash 0.7s ease-out; }
+@keyframes bar-flash { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--hl-yellow) 90%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+.avatar.jump { animation: av-jump 0.5s ease-out; }
+.avatar.shake { animation: av-shake 0.5s ease-in-out; }
+@keyframes av-jump { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-9px) scale(1.06); } 65% { transform: translateY(1px); } }
+@keyframes av-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px) rotate(-3deg); } 40% { transform: translateX(4px) rotate(3deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+.money.count-up { box-shadow: 0 0 0 2px var(--hl-green); }
+.money.count-down { box-shadow: 0 0 0 2px var(--hl-pink); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }

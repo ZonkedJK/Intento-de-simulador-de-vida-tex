@@ -215,6 +215,24 @@ const SHOTS = process.argv[2] || null;
   if (!/Recesión mundial/.test(newsText)) errors.push('Bienes y dinero no muestra el clima económico: ' + newsText);
   await page.evaluate(() => MV.UI.closeSheets());
 
+  // Animaciones: números flotantes, avatar que reacciona y dinero que cuenta (y nada si se apagan)
+  const animRun = () => page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.yearActs = {}; g.p.age = Math.max(g.p.age, 20); g.p.stats.health = 50; MV.UI.execAction(MV.ACTS.find((x) => x.id === 'gimnasio')); });
+  await animRun();
+  await page.waitForTimeout(120);
+  const anim = await page.evaluate(() => ({ floats: document.querySelectorAll('.float-num').length, av: !!document.querySelector('.idcard .avatar.jump, .idcard .avatar.shake') }));
+  if (!anim.floats || !anim.av) errors.push('Una acción con cambios no animó: ' + JSON.stringify(anim));
+  await resolve();
+  const moneyAnim = await page.evaluate(() => { MV.UI.g.p.money += 1000; MV.UI.refreshGame(true); return document.querySelector('[data-money]').className; });
+  if (!/count-up/.test(moneyAnim)) errors.push('El dinero no cuenta al subir: ' + moneyAnim);
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => { MV.global().settings.anim = false; });
+  await animRun();
+  await page.waitForTimeout(120);
+  const off = await page.evaluate(() => document.querySelectorAll('.float-num, .avatar.jump, .avatar.shake, .count-up, .count-down').length);
+  if (off) errors.push('Con las animaciones apagadas igual se animó (' + off + ')');
+  await resolve();
+  await page.evaluate(() => { delete MV.global().settings.anim; MV.UI.closeSheets(); });
+
   // Recargar: la partida debe continuar
   const state = await page.evaluate(() => ({ age: MV.UI.g.p.age, over: MV.UI.g.over }));
   if (state.over) { console.log('El personaje murió joven durante la prueba; se empieza otra vida.'); await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 }))); }

@@ -138,6 +138,7 @@
   UI.refreshGame = function (fresh) {
     const g = UI.g, p = g.p, R = UI.refs;
     if (!R) return;
+    const before = R.snap;
     // Carnet
     UI.clear(R.idcard);
     const C = MV.COUNTRIES[p.country] || { flag: '' };
@@ -148,7 +149,7 @@
           h('span', { class: 'name' }, MV.fullName(p)),
           h('span', { class: 'sub', style: { display: 'block' } }, `${p.age} año${p.age === 1 ? '' : 's'}, ${UI.occupation(p).toLowerCase()} ${C.flag}`))),
       h('span', { class: 'right' },
-        h('span', { class: 'money' + (p.money < 0 ? ' neg' : ''), title: 'Dinero en efectivo' }, U.moneyShort(p.money)),
+        h('span', { class: 'money' + (p.money < 0 ? ' neg' : ''), title: 'Dinero en efectivo', 'data-money': '' }, U.moneyShort(p.money)),
         h('button', { class: 'icon-btn', 'aria-label': 'Menú', onclick: () => UI.showMenu() }, '☰')));
     // Diario
     renderDiary(fresh);
@@ -156,7 +157,7 @@
     UI.clear(R.stats);
     ['happy', 'health', 'smarts', 'looks'].forEach((k) => {
       const v = p.stats[k];
-      R.stats.append(h('div', { class: 'stat' },
+      R.stats.append(h('div', { class: 'stat', 'data-stat': k },
         h('span', { 'aria-hidden': 'true' }, MV.STATS[k].icon),
         h('div', null, h('div', { class: 'lbl' }, MV.STATS[k].name), UI.bar(v)),
         h('span', { class: 'val' }, v)));
@@ -171,6 +172,8 @@
     R.stats.append(chips);
     // Navegación
     renderNav();
+    R.snap = UI.snap();
+    if (fresh && before) UI.animateChange(before);
   };
 
   function renderDiary(fresh) {
