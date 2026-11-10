@@ -82,6 +82,16 @@
       if (!Array.isArray(p.clubs)) p.clubs = p.club ? ['sport:' + p.club] : [];
       g.version = 5;
     }
+    if (g.version === 5) {
+      // v6: historia para gráficos, hobbies, rutina, favoritos; los autos viejos siguen siendo autos (sin modelo, tuneo ni seguro).
+      const p = g.p;
+      g.favs = Array.isArray(g.favs) ? g.favs : [];
+      p.history = Array.isArray(p.history) ? p.history : [];
+      p.hobbies = p.hobbies && typeof p.hobbies === 'object' ? p.hobbies : {};
+      p.routine = Object.assign({ exercise: 'ninguno', diet: 'libre' }, p.routine);
+      (p.assets || []).forEach((a) => { if (a.type === 'auto') { a.tune = a.tune || {}; a.insured = !!a.insured; } });
+      g.version = 6;
+    }
     return g;
   };
 
