@@ -38,6 +38,13 @@ forma propia, tiene dibujo SVG propio, trucos propios y vida larga.
 | Unicornio gruñón | Una noche, si tu karma es ≥ 60 (3 % por año) | +felicidad; se va si tu karma baja de 40 |
 | Fantasma doméstico | Si tienes una casa embrujada (10 % por año) | −estrés (te hace compañía) y asusta a las visitas |
 
+**Gatos callejeros** (pedido del usuario al aprobar el plan): una actividad "Recoger un gato callejero"
+(gratis, con un gasto de veterinario de $50 a $150; 12+, y si vives con tus padres pueden decir que no)
+con cuatro edades para elegir: gatito (0 años), joven (1 a 3), adulto (4 a 9) y anciano (10 a 15). El
+gato llega con un rasgo y una historia de la calle; recoger un anciano da más karma ("nadie adopta a
+los viejitos") y su vida restante es corta pero nunca termina el mismo año. Además, un evento: un gato
+callejero de edad al azar te sigue hasta casa (adoptarlo, darle de comer o seguir de largo).
+
 ## 3. Autos
 
 - **Concesionaria por categorías** (reemplaza el mercado de autos actual): unos 40 modelos en 9
