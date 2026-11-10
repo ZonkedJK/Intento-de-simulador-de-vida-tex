@@ -246,7 +246,8 @@
     // Comprar
     body.append(title('Comprar'));
     const buy = h('div', { class: 'list' });
-    [['casa', '🏡', 'Casas y departamentos'], ['auto', '🚗', 'Autos y motos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
+    [['casa', '🏡', 'Casas y departamentos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
+    buy.append(UI.row('🚗', 'Concesionaria', `${MV.CAR_CATALOG.length} modelos 0 km en 9 categorías, en el color que quieras`, '›', () => UI.showDealer()));
     buy.append(UI.row('🎸', 'Tienda de música', 'Instrumentos para practicar, tocar y hacer carrera', '›', () => UI.showMusicShop()));
     body.append(buy);
     // Inversiones
@@ -291,6 +292,7 @@
         if (!a) { body.append(note('Ya no tienes esto.')); return; }
         const M = MV.sys.money;
         const loan = p.loans.find((l) => l.assetId === a.id);
+        if (a.type === 'auto') { const pic = h('div', { class: 'car-art big' }); pic.innerHTML = UI.carSVG(a); body.append(pic); }
         body.append(h('div', { class: 'box' }, h('p', null, h('b', null, `${a.icon} ${a.name}`)), kv('Valor', U.money(a.value)), kv('Estado', UI.condBar(a.cond)),
           kv('Mantenimiento', U.money(M.upkeep(g, a)) + ' al año'),
           loan ? kv('Hipoteca pendiente', U.money(loan.left)) : null,
@@ -321,6 +323,35 @@
           const ma = MV.sys.music.actions(g, a);
           body.append(h('h3', { class: 'section-title' }, 'Tocar'));
           body.append(ma.length ? UI.actionList(ma) : note('Desde la cárcel solo puedes tocar la armónica imaginaria.'));
+        }
+        if (a.type === 'auto') {
+          const C = MV.sys.cars;
+          body.append(title(`Tuneo · rendimiento ${C.perf(a)}`));
+          const tl = h('div', { class: 'list' });
+          Object.keys(MV.CAR_TUNES).forEach((k) => {
+            const T = MV.CAR_TUNES[k], has = !!(a.tune || {})[k];
+            tl.append(UI.row(T.icon, T.name, has ? 'Instalado' : `${U.money(T.cost)} · +${T.perf} de rendimiento`, has ? '✓' : null, has ? null : () => UI.runSystem(T.icon, () => C.tune(g, a.id, k)), !has && p.money < T.cost));
+          });
+          body.append(tl);
+          body.append(title('Carreras'));
+          const rl = h('div', { class: 'list' });
+          const noLic = MV.sys.license.has(g, 'auto') ? '' : ' · necesitas licencia';
+          rl.append(UI.row('🏁', 'Correr en circuito', `Inscripción $500. Premios hasta $8.000, sin riesgo legal${noLic}`, null, () => UI.runSystem('🏁', () => C.race(g, a.id, 'circuito')), p.money < 500));
+          rl.append(UI.row('🌃', 'Picada callejera', `18+. Apuestas plata; puede venir la policía o terminar en choque${noLic}`, '›', () => UI.sheet({
+            title: 'Picada callejera', icon: '🌃',
+            render: (b2) => {
+              b2.append(note(`Tu ${a.name} tiene rendimiento ${C.perf(a)}. ¿Cuánto apuestas?`));
+              const bl = h('div', { class: 'list' });
+              [0, 500, 2000, 10000, 50000].forEach((bet) => bl.append(UI.row('💵', bet ? `Apostar ${U.money(bet)}` : 'Correr por el honor', bet ? 'Si ganas, lo duplicas' : 'Sin apuesta', null, () => { UI.popSheet(); UI.runSystem('🌃', () => C.race(g, a.id, 'calle', bet)); }, p.money < bet)));
+              b2.append(bl);
+            }
+          })));
+          body.append(rl);
+          body.append(title('Seguro'));
+          const sl = h('div', { class: 'list' });
+          sl.append(a.insured ? UI.row('🛡️', 'Asegurado', `Cubre choques y robos. ${U.money(C.premium(a))} al año`, 'Cancelar', () => UI.runSystem('🛡️', () => C.insure(g, a.id, false)))
+            : UI.row('🛡️', 'Asegurar', `${U.money(C.premium(a))} al año (3 % del valor). Cubre choques y robos`, null, () => UI.runSystem('🛡️', () => C.insure(g, a.id, true)), p.money < C.premium(a)));
+          body.append(sl);
         }
         if (MV.sys.vehicles.kindOf(a)) {
           const va = MV.sys.vehicles.actions(g, a);
@@ -468,7 +499,10 @@
   };
 
   // ——————————————————— ACTIVIDADES ———————————————————
+  let actQuery = '';
+  const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   UI.showActivities = function () {
+    actQuery = '';
     UI.sheet({
       title: 'Actividades', icon: '🎲',
       render: (body) => {
@@ -476,15 +510,32 @@
         if (g.p.prison) { body.append(note('Estás tras las rejas. Las opciones son... limitadas.'), UI.actionList(MV.sys.crime.prisonActions(g))); return; }
         const cats = MV.catsFor(g);
         if (!cats.length) { body.append(h('p', { class: 'empty' }, 'Eres un bebé. Tu única actividad es existir adorablemente. Toca "+1 año".')); return; }
+        const all = cats.flatMap((c) => MV.actsFor(g, c.id));
+        const results = h('div', { id: 'act-results' });
+        const main = h('div');
+        const showResults = () => {
+          UI.clear(results);
+          const q = fold(actQuery.trim());
+          main.hidden = !!q;
+          if (!q) return;
+          const hits = all.filter((a) => fold(a.label + ' ' + (a.sub || '')).includes(q));
+          results.append(hits.length ? UI.actionList(hits, undefined, undefined, { fav: true }) : note(`Nada con "${actQuery.trim()}". Prueba otra palabra.`));
+        };
+        body.append(h('input', { type: 'search', id: 'act-search', class: 'act-search', placeholder: 'Buscar actividad…', 'aria-label': 'Buscar actividad', value: actQuery,
+          oninput: (e) => { actQuery = e.target.value; showResults(); } }), results, main);
+        const favs = (g.favs || []).map((id) => all.find((a) => a.id === id)).filter(Boolean);
+        if (favs.length) main.append(h('h3', { class: 'section-title' }, '⭐ Favoritas'), h('div', { id: 'act-favs' }, UI.actionList(favs, undefined, undefined, { fav: true })));
+        body = main;
         const grid = h('div', { class: 'grid-cats' });
         cats.forEach((c) => grid.append(h('button', { class: 'cat', onclick: () => showCat(c) }, h('span', { class: 'e', 'aria-hidden': 'true' }, c.icon), c.name)));
         body.append(grid);
         if (g.p.wanted) body.append(note('Eres prófug' + U.gw(g.p.gender, 'o', 'a') + '. Cada año existe la posibilidad de que te atrapen.'));
+        showResults();
       }
     });
   };
 
   function showCat(c) {
-    UI.sheet({ title: c.name, icon: c.icon, render: (body) => body.append(UI.actionList(MV.actsFor(UI.g, c.id))) });
+    UI.sheet({ title: c.name, icon: c.icon, render: (body) => body.append(note('Toca ☆ para fijar una actividad arriba.'), UI.actionList(MV.actsFor(UI.g, c.id), undefined, undefined, { fav: true })) });
   }
 })(window.MV = window.MV || {});

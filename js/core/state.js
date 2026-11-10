@@ -3,7 +3,7 @@
   'use strict';
   const U = MV.U;
 
-  MV.VERSION = 5;
+  MV.VERSION = 6;
 
   MV.LOOK = {
     SKIN: ['#f7dcc8', '#efc6a4', '#dfab84', '#c48b62', '#9c6644', '#6e4529', '#4a2e1c'],
@@ -145,6 +145,15 @@
     return pet;
   };
 
+  /** Marca o desmarca una actividad como favorita. Devuelve true si quedó marcada. */
+  MV.toggleFav = function (g, id) {
+    g.favs = Array.isArray(g.favs) ? g.favs : [];
+    const i = g.favs.indexOf(id);
+    if (i >= 0) { g.favs.splice(i, 1); return false; }
+    g.favs.push(id);
+    return true;
+  };
+
   MV.person = (g, id) => g.people[id] || (g.p && g.p.id === id ? g.p : null);
 
   /** Relaciones del jugador; filtra por tipo(s). Por defecto solo vivos. */
@@ -201,6 +210,7 @@
       license: false, aspiration: null,
       counters: {}, flags: {}, yearActs: {},
       rels: [], heirId: null, followers: 0, club: null, sportsExp: {}, talent: MV.rollTalent ? MV.rollTalent() : {}, tattoos: [],
+      hobbies: {}, routine: { exercise: 'ninguno', diet: 'libre' }, history: [],
       orientation: o.orientation || (U.chance(0.88) ? 'hetero' : U.pick(['homo', 'bi']))
     };
   }
@@ -217,7 +227,7 @@
     const year = opts.year || new Date().getFullYear();
     const g = {
       version: MV.VERSION, year, startYear: year, people: {}, log: [], queue: [], evDone: {},
-      generation: opts.generation || 1, dynasty: opts.dynasty || null, over: false, rng: 0
+      generation: opts.generation || 1, dynasty: opts.dynasty || null, over: false, rng: 0, favs: []
     };
     const clsKey = U.pickW(Object.keys(MV.CLASSES), (k) => MV.CLASSES[k].w);
     const cls = MV.CLASSES[clsKey];
@@ -276,6 +286,7 @@
       MV.log(g, `Tienes ${U.gw(s.gender, 'un hermano mayor', 'una hermana mayor')}, ${s.first}, que ya te mira con desconfianza.`, '🧒');
     } else if (nSib > 1) MV.log(g, `Tienes ${nSib} hermanos mayores. Serás el último en elegir el postre.`, '🧒');
     MV.sys.challenge.start(g, opts.challenge);
+    MV.sys.history.record(g);
     g.rng = MV.rng.getState();
     return g;
   };

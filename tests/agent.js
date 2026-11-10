@@ -74,7 +74,25 @@ function special(MV, g) {
     if (isla && !isla.project) MV.sys.island.develop(g, isla.id, U.pick(Object.keys(MV.ISLAND_TYPES)), U.chance(0.5) ? 'Isla <Prueba> ${x}' : '', '');
     else if (isla && U.chance(0.5)) MV.sys.island.upgrade(g, isla.id);
     else if (isla && U.chance(0.1)) MV.sys.island.close(g, isla.id);
-  } else if (r < 0.55 && p.age >= 18 && !p.prison) {
+  } else if (r < 0.6 && p.age >= 16) {
+    // Autos de la concesionaria: comprar, tunear, correr y asegurar (los viejos también).
+    const cars = p.assets.filter((a) => a.type === 'auto');
+    const k = U.rand();
+    const check = (t) => { if (typeof t !== 'string' || BAD_TEXT.test(t)) throw new Error('Texto roto en autos: ' + t); };
+    if (!cars.length || k < 0.25) {
+      const m = U.pick(MV.CAR_CATALOG.filter((x) => x.price <= Math.max(0, p.money)));
+      if (m) check(MV.sys.money.buyCar(g, m.id, U.pick(MV.CAR_COLORS).id));
+    } else {
+      const a = U.pick(cars);
+      if (k < 0.5) check(MV.sys.cars.tune(g, a.id, U.pick(Object.keys(MV.CAR_TUNES))));
+      else if (k < 0.8) check(MV.sys.cars.race(g, a.id, U.pick(['calle', 'circuito']), U.pick([0, 500, 2000])));
+      else check(MV.sys.cars.insure(g, a.id, U.chance(0.7)));
+    }
+    if (U.chance(0.3)) {
+      const part = U.pick(['exercise', 'diet']);
+      check(MV.sys.wellbeing.setRoutine(g, part, U.pick(Object.keys(MV.ROUTINES[part]))));
+    }
+  } else if (r < 0.62 && p.age >= 18 && !p.prison) {
     // Vehículos: a veces regala uno para probar sus acciones.
     const kinds = ['Avión privado', 'Helicóptero', 'Yate'];
     if (!p.assets.some((a) => kinds.includes(a.kind))) { const k = U.pick(kinds); p.assets.push({ id: MV.U.uid('a'), type: 'lujo', kind: k, icon: '🛥️', name: k, value: 1000000, cond: 100 }); }

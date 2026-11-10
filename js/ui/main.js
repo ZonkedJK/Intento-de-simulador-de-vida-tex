@@ -138,6 +138,7 @@
   UI.refreshGame = function (fresh) {
     const g = UI.g, p = g.p, R = UI.refs;
     if (!R) return;
+    const before = R.snap;
     // Carnet
     UI.clear(R.idcard);
     const C = MV.COUNTRIES[p.country] || { flag: '' };
@@ -148,7 +149,7 @@
           h('span', { class: 'name' }, MV.fullName(p)),
           h('span', { class: 'sub', style: { display: 'block' } }, `${p.age} año${p.age === 1 ? '' : 's'}, ${UI.occupation(p).toLowerCase()} ${C.flag}`))),
       h('span', { class: 'right' },
-        h('span', { class: 'money' + (p.money < 0 ? ' neg' : ''), title: 'Dinero en efectivo' }, U.moneyShort(p.money)),
+        h('span', { class: 'money' + (p.money < 0 ? ' neg' : ''), title: 'Dinero en efectivo', 'data-money': '' }, U.moneyShort(p.money)),
         h('button', { class: 'icon-btn', 'aria-label': 'Menú', onclick: () => UI.showMenu() }, '☰')));
     // Diario
     renderDiary(fresh);
@@ -156,12 +157,14 @@
     UI.clear(R.stats);
     ['happy', 'health', 'smarts', 'looks'].forEach((k) => {
       const v = p.stats[k];
-      R.stats.append(h('div', { class: 'stat' },
+      R.stats.append(h('div', { class: 'stat', 'data-stat': k },
         h('span', { 'aria-hidden': 'true' }, MV.STATS[k].icon),
         h('div', null, h('div', { class: 'lbl' }, MV.STATS[k].name), UI.bar(v)),
         h('span', { class: 'val' }, v)));
     });
     const chips = h('div', { class: 'chips' });
+    const wb = MV.sys.wellbeing.score(g);
+    chips.append(h('span', { class: 'chip' + (wb.score < 40 ? ' warn' : ''), id: 'wellbeing-chip', title: 'Bienestar: felicidad, salud, calma y vínculos' }, `💚 Bienestar ${wb.score} · ${wb.label}`));
     chips.append(h('span', { class: 'chip' + (p.stress >= 70 ? ' warn' : '') }, `😰 Estrés ${p.stress}`));
     chips.append(h('span', { class: 'chip' }, `☯️ Karma ${p.karma > 0 ? '+' : ''}${p.karma}`));
     if (p.fame > 0) chips.append(h('span', { class: 'chip' }, `⭐ Fama ${p.fame}`));
@@ -171,6 +174,8 @@
     R.stats.append(chips);
     // Navegación
     renderNav();
+    R.snap = UI.snap();
+    if (fresh && before) UI.animateChange(before);
   };
 
   function renderDiary(fresh) {
@@ -209,7 +214,8 @@
       h('button', { class: 'ageup' + (pending ? ' pending' : ''), onclick: () => UI.ageUp(), 'aria-label': pending ? 'Ver evento pendiente' : 'Avanzar un año' },
         h('span', { class: 'big' }, pending ? '¡!' : '+1'), h('span', { class: 'small' }, pending ? 'evento' : 'año')),
       btn('👥', 'Relaciones', () => UI.showRelations()),
-      btn('🎲', 'Actividades', () => UI.showActivities()));
+      btn('🎲', 'Actividades', () => UI.showActivities()),
+      h('button', { class: 'ageup5', onclick: () => UI.ageUpMany(5), disabled: pending || g.over, 'aria-label': 'Avanzar hasta 5 años', title: 'Avanzar hasta 5 años: se detiene en cada decisión o aviso' }, '⏩ 5'));
   }
 
   // ——— Flujo de juego ———
@@ -218,6 +224,7 @@
     if (!g || g.over) return;
     if (g.queue.length) { UI.flushQueue(); return; }
     UI.closeSheets();
+    const before = MV.sys.history.snapshot(g);
     try {
       MV.ageUp(g);
     } catch (e) {
@@ -227,8 +234,45 @@
     UI.save();
     UI.refreshGame(true);
     window.scrollTo({ top: document.body.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-    if (g.over) { setTimeout(() => UI.showDeath(), 650); return; }
-    UI.flushQueue();
+    if (g.over) { setTimeout(() => { if (UI.g === g) UI.showDeath(); }, 650); return; }
+    UI.flushQueue(() => UI.showYearSummary(before));
+  };
+
+  /** Avanza hasta `n` años seguidos; se detiene ante una decisión, un aviso o la muerte. */
+  UI.ageUpMany = function (n) {
+    const g = UI.g;
+    if (!g || g.over) return;
+    if (g.queue.length) { UI.flushQueue(); return; }
+    UI.closeSheets();
+    const before = MV.sys.history.snapshot(g);
+    for (let i = 0; i < n; i++) {
+      const prev = MV.sys.history.snapshot(g);
+      let ok = false;
+      try { ok = MV.ageUp(g); } catch (e) {
+        console.error(e);
+        UI.toast('⚠️', 'Algo falló al avanzar el año', 'La partida se guardó igual. Si se repite, exporta la partida desde el menú.');
+        break;
+      }
+      if (!ok || g.over || g.queue.length || MV.sys.history.shouldPause(prev, g)) break;
+    }
+    UI.save();
+    UI.refreshGame(true);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    if (g.over) { setTimeout(() => { if (UI.g === g) UI.showDeath(); }, 650); return; }
+    UI.flushQueue(() => UI.showYearSummary(before));
+  };
+
+  /** Tarjeta "Tu año a los N": cuánto cambió cada estadística y el dinero, y lo más importante del diario. */
+  UI.showYearSummary = function (before) {
+    const g = UI.g;
+    if (!g || g.over || !before || MV.global().settings.yearSummary === false) return;
+    const s = MV.sys.history.yearSummary(before, g);
+    if (s.age <= before.age) return;
+    const c = UI.card([h('div', { id: 'year-summary' },
+      h('h2', null, h('span', { 'aria-hidden': 'true' }, '🗓️ '), s.title),
+      s.changes.length ? UI.deltas(s.changes) : h('p', { class: 'note' }, 'Nada cambió. Un año de esos que no se cuentan.'),
+      s.highlights.length ? h('ul', { class: 'year-highlights' }, s.highlights.map((t) => h('li', null, t))) : null,
+      h('button', { class: 'btn primary block', onclick: () => c.close() }, 'Seguir'))]);
   };
 
   const STAT_NAME = (k) => {
@@ -351,12 +395,17 @@
   };
 
   /** Lista de acciones (con usos restantes). */
-  UI.actionList = function (actions, scope, relRef) {
+  UI.actionList = function (actions, scope, relRef, opts) {
     const list = h('div', { class: 'list' });
     actions.forEach((a) => {
       const left = MV.usesLeft(UI.g, a, scope);
       const right = a.limit ? (left > 0 ? `${left}/${a.limit}` : 'Hecho') : '';
-      list.append(UI.row(a.icon, a.label, a.sub, right, () => UI.runAction(a, scope, relRef), left <= 0));
+      const row = UI.row(a.icon, a.label, a.sub, right, () => UI.runAction(a, scope, relRef), left <= 0);
+      if (!(opts && opts.fav)) { list.append(row); return; }
+      const on = (UI.g.favs || []).includes(a.id);
+      list.append(h('div', { class: 'row-fav' }, row, h('button', { type: 'button', class: 'fav-btn' + (on ? ' on' : ''), 'aria-pressed': String(on),
+        'aria-label': on ? `Quitar ${a.label} de favoritas` : `Marcar ${a.label} como favorita`, title: on ? 'Quitar de favoritas' : 'Marcar como favorita',
+        onclick: () => { MV.toggleFav(UI.g, a.id); UI.save(); UI.refreshSheets(); } }, on ? '★' : '☆')));
     });
     return list;
   };

@@ -97,3 +97,17 @@ test('cada pregunta con dibujo tiene su SVG', () => {
   });
   assert.equal(MV.UI.signSVG('no_existe'), '');
 });
+
+test('diffSnap devuelve solo los cambios con su signo', () => {
+  const MV = load({ seed: 3 });
+  const g = MV.newGame({ first: 'Ana', gender: 'f', country: 'AR' });
+  MV.UI.g = g;
+  const a = MV.UI.snap();
+  assert.deepEqual(Object.keys(a).sort(), ['happy', 'health', 'id', 'looks', 'money', 'smarts']);
+  g.p.stats.happy += 5; g.p.stats.health -= 3; g.p.money += 120;
+  const d = MV.UI.diffSnap(a, MV.UI.snap());
+  assert.deepEqual(d, [{ k: 'happy', d: 5 }, { k: 'health', d: -3 }, { k: 'money', d: 120 }]);
+  assert.deepEqual(MV.UI.diffSnap(a, a), []);
+  assert.deepEqual(MV.UI.diffSnap(null, a), [], 'sin instantánea previa no hay cambios');
+  assert.deepEqual(MV.UI.diffSnap(Object.assign({}, a, { id: 'otro' }), MV.UI.snap()), [], 'otra persona (heredero) no se anima');
+});

@@ -140,6 +140,7 @@
         }
       });
       out += maint;
+      if (money.carPrestige(p) >= 70) { MV.fx.stat(g, 'looks', 1); MV.fx.stat(g, 'fame', 1); }
       money.homeYearly(g);
       // Inversiones (con el clima económico del año)
       const world = MV.sys.world.mods(g);
@@ -229,6 +230,30 @@
       if (a.type === 'auto' && !p.license) return `Compraste ${a.name}. Detalle menor: no tienes licencia de conducir.`;
       MV.fx.stat(g, 'happy', a.type === 'lujo' ? 6 : 8);
       return `Compraste ${a.name}${mortgage ? ' con hipoteca' : ''} por ${U.money(item.value)}.`;
+    },
+
+    /** Compra un auto nuevo de la concesionaria en el color elegido. */
+    buyCar(g, modelId, colorId) {
+      const p = g.p, m = MV.CAR_CATALOG.find((x) => x.id === modelId);
+      if (!m) return 'Ese modelo no existe (todavía).';
+      if (p.age < 18) return 'Eres menor de edad. El vendedor llamó a tus padres.';
+      if (p.money < m.price) return `No te alcanza. Necesitas ${U.money(m.price)}.`;
+      const C = MV.CAR_COLORS.find((c) => c.id === colorId) || MV.CAR_COLORS[0], cat = MV.CAR_CATS[m.cat];
+      MV.fx.money(g, -m.price);
+      const a = { id: U.uid('a'), type: 'auto', kind: cat.name, icon: cat.icon, name: `${m.brand} ${m.model} ${C.name.toLowerCase()}`, value: m.price, price: m.price, cond: 100,
+        bought: p.age, model: m.id, color: C.id, tune: {}, insured: false, classic: m.cat === 'clasico' };
+      p.assets.push(a);
+      MV.fx.stat(g, 'happy', m.prestige >= 70 ? 10 : 6);
+      const lic = MV.sys.license.has(g, 'auto') ? '' : ' Detalle menor: no tienes licencia de conducir.';
+      return `Compraste un ${m.brand} ${m.model} ${C.name.toLowerCase()} 0 km por ${U.money(m.price)}. ${U.pick(['Huele a nuevo y a deuda emocional.', 'El vendedor lloró de emoción (por la comisión).', 'Ya le sacaste 40 fotos.'])}${lic}`;
+    },
+
+    /** Prestigio máximo entre tus autos de la concesionaria (0 si no tienes). */
+    carPrestige(p) {
+      return p.assets.reduce((mx, a) => {
+        const m = a.type === 'auto' && a.model ? MV.CAR_CATALOG.find((x) => x.id === a.model) : null;
+        return m ? Math.max(mx, m.prestige) : mx;
+      }, 0);
     },
 
     /** Precio estimado de venta de un bien. */

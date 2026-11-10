@@ -168,7 +168,7 @@
       if (!c || !c.alive) throw new Error('Ese heredero no está disponible.');
       const grand = (MV.relOf(g, kidId) || {}).type === 'nieto';
       const ng = {
-        version: MV.VERSION, year: g.year, startYear: g.year - c.age, people: {}, log: [], queue: [], evDone: {},
+        version: MV.VERSION, year: g.year, startYear: g.year - c.age, people: {}, log: [], queue: [], evDone: {}, favs: (g.favs || []).slice(),
         generation: (g.generation || 1) + 1, dynasty: g.dynasty, over: false, achLife: [], rng: 0,
         challenge: null
       };

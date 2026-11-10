@@ -20,7 +20,7 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Estadísticas | Felicidad, salud, inteligencia y apariencia, más estrés, karma y fama visibles |
 | Habilidades | Música, deporte, cocina, programación, arte, carisma, idiomas y crimen; suben con la práctica |
 | Educación | Primaria, secundaria, 17 carreras universitarias, 6 técnicas, 4 posgrados, escuela nocturna, hasta 3 clubes o talleres a la vez, becas y préstamos estudiantiles |
-| Trabajo | 49 empleos con requisitos y ascensos (incluye entrenador y comentarista para exdeportistas, y piloto comercial, piloto de helicóptero y capitán de yate con su licencia), 10 de medio tiempo, entrevistas con preguntas, jubilación y pensión |
+| Trabajo | 49 empleos con requisitos y ascensos (incluye entrenador y comentarista para exdeportistas, y piloto comercial, piloto de helicóptero y capitán de yate con su licencia), 10 de medio tiempo, entrevistas con preguntas, trabajar desde casa, capacitarte para un ascenso, año sabático, jubilación y pensión |
 | Deporte profesional | 11 deportes (fútbol, básquet con draft en una liga norteamericana, tenis, vóley, béisbol, boxeo, golf, atletismo, natación, automovilismo y e-sports), con sueldos de hasta decenas de millones, contratos, lesiones, títulos y retiro; puedes buscar un equipo, escudería o patrocinador mejor para subir de categoría (hasta campeón de la Fórmula Mundial) y volver del retiro |
 | Reclutamiento | Clubes por deporte desde la escuela, cazatalentos al terminar la secundaria, beca deportiva, reclutadores universitarios y pruebas abiertas; cuentan la habilidad Deporte, la salud, los años de práctica y un talento natural oculto |
 | Fama | Actor/actriz, música, moda y política (con elecciones), más redes sociales con seguidores y patrocinios |
@@ -31,24 +31,30 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Vehículos | Con tu avión vuelas a cualquier destino pagando solo combustible; paseos y fiestas en helicóptero y yate. Sin licencia pagas piloto o capitán |
 | Islas | Convierte una isla privada en resort, parque temático con mascota propia, casino o reserva natural: 5 niveles, ganancias según el turismo y escándalos con decisiones |
 | Música | Tienda con 10 instrumentos para practicar, tocar en la calle o en un bar; un representante puede firmarte en la carrera musical |
-| Bienes | Mercado anual de casas, autos y lujos con barras de estado (rojo, amarillo, verde), mantenimiento anual visible y venta eligiendo el precio (con contraofertas) |
+| Bienes | Mercado anual de casas y lujos con barras de estado (rojo, amarillo, verde), mantenimiento anual visible y venta eligiendo el precio (con contraofertas) |
+| Autos | Concesionaria con 41 modelos inventados en 9 categorías (hiperautos, deportivos, sedanes, SUV, pickups, eléctricos, clásicos, motos y lujo), dibujados en pixel art en el color que elijas; tuneo de 5 piezas que se ve en el dibujo, picadas callejeras con apuesta, policía y choques, carreras en circuito con premios, seguro anual y robos, choques y multas. Los autos de prestigio suman apariencia y fama |
 | Casas | 14 mejoras (piscina, sauna, cancha de tenis, gimnasio, cine, paneles solares, búnker, tobogán…) que suben o bajan el valor, cuestan mantenimiento y dan beneficios si vives ahí |
 | Tatuajes | Minijuego: elige tatuador y lugar, dibuja sobre la piel con 6 tintas, plantillas y texto; el tatuador lo califica y queda en tu álbum (se puede borrar con láser) |
 | Relaciones | Padres, hermanos, abuelos, parejas, cónyuges, amantes, hijos, nietos, amigos, enemigos, ex y 12 especies de mascotas, con más de 40 acciones (cenas, poemas, mudarse juntos, renovar votos, tareas con los hijos, malcriar a los nietos, llevar a los mayores al médico…) |
 | Citas y ligues | Después de un match o de una noche decides qué son (pareja, aventura en secreto, amigos o nada); antes de la intimidad eliges con protección (0 % de embarazo) o sin protección (60 %) |
 | Familia | Los hijos adultos se casan (con boda incluida), cambian de trabajo y te dan nietos de verdad; si no quedan hijos, heredan los nietos |
-| Mascotas | Trucos propios de cada especie y concursos con premios, trofeos y logro |
+| Mascotas | Trucos propios de cada especie y concursos con premios, trofeos y logro; gatos callejeros para recoger de cualquier edad (gatito, joven, adulto o anciano) |
+| Mascotas míticas | Un guardián del bosque cascarrabias (al plantar árboles), un dragoncito de bolsillo (lo vende un mercader en tus viajes), un unicornio gruñón (con buen karma) y un fantasma doméstico (en casas embrujadas), cada uno con dibujo, trucos y manías propias |
+| Vivir mejor | Bienestar de 0 a 100 en la tarjeta, 6 hobbies con racha, retiro de descanso y rutina anual de ejercicio y dieta |
 | Obras | Escribe libros, compone canciones y pinta cuadros con título y género propios; la crítica da estrellas, y los éxitos pagan regalías |
 | Regalos | Menú desplegable con 37 regalos de $2 a $5 millones; cada persona tiene gustos según su edad y personalidad |
 | Viajes | 10 destinos; eliges si vas solo o con tu pareja, familia o amigos |
 | Salud | 21 enfermedades, 4 niveles de tratamiento (del curandero al tratamiento experimental), adicciones y rehabilitación |
 | Crimen | 11 delitos, juicio con elección de abogado (o soborno), cárcel con pandillas, motines, fuga, apelación y libertad condicional |
-| Actividades | 64: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, demandas, emigrar a 28 países y más |
+| Actividades | 76: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, karaoke, escape room, clases, maratón, refugio de animales, demandas, emigrar a 28 países y más; con buscador y favoritas |
 | Países | 28 países de Latinoamérica, Norteamérica, Europa y Asia, cada uno con sus nombres, ciudades y un deporte popular |
-| Eventos | 184 eventos al azar (131 con decisiones), más 33 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
+| Eventos | 185 eventos al azar (132 con decisiones), más 34 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
 | Metas | 16 aspiraciones de vida, 62 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
 | Legado | Muerte con epitafio y veredicto, resumen para copiar o compartir, testamento, herencia (el heredero recibe la casa familiar; si es el único o el nombrado, todos los bienes), árbol genealógico y cementerio de todas tus vidas |
 | Imágenes | Avatares SVG con 9 peinados, barbas, 5 expresiones, ropa según tu ocupación y accesorios; 16 escenas ilustradas; tema claro (cuaderno) y oscuro (pizarrón) |
+| Animaciones | Números que flotan al cambiar una estadística, avatar que salta o tiembla y dinero que cuenta (se apagan en Ajustes o con "reducir movimiento") |
+| Resúmenes y gráficos | Tarjeta "Tu año a los N" con lo más importante, y gráficos de patrimonio y estadísticas en la ficha y al morir |
+| Comodidad | Avanzar 5 años de una vez (se detiene en cada decisión), 3 partidas guardadas y ajustes de tema, tamaño de letra, animaciones y resumen del año |
 
 ## Estructura
 
@@ -56,10 +62,12 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 index.html            carga los scripts en orden (sin compilación)
 css/styles.css        estética de cuaderno cuadriculado y modo pizarrón
 js/core/              utilidades y azar con semilla, estado, efectos, motor de eventos
-js/data/              países, educación, empleos, deportes, mundo (bienes, salud, crimen...), noticias, obras, desafíos, logros, actividades
+js/data/              países, educación, empleos, deportes, mundo (bienes, salud, crimen...), noticias, obras, desafíos, licencias, islas, autos, actividades
 js/data/events/       eventos por etapa: infancia, adolescencia, adultez, vejez, generales y deportes
-js/systems/           bucle anual: mundo, personas, salud, educación, trabajo, deportes, tatuajes, obras, desafíos, dinero, crimen, relaciones, legado, guardado
-js/ui/                interfaz: avatares, escenas, pantalla principal, pestañas y pantallas
+js/systems/           bucle anual: mundo, personas, salud, educación, trabajo, deportes, tatuajes, obras, desafíos, licencias, vehículos,
+                      islas, música, mascotas míticas, autos, bienestar, historia, dinero, crimen, relaciones, legado, guardado
+js/ui/                interfaz: avatares, escenas, animaciones, pantalla principal, pestañas, tatuajes, obras, señales, examen, islas,
+                      concesionaria, gráficos y pantallas
 tests/                pruebas con node --test y prueba de interfaz con Playwright
 ```
 

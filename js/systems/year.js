@@ -18,12 +18,16 @@
     MV.sys.career.yearly(g);
     MV.sys.sports.yearly(g);
     MV.sys.money.yearly(g);
+    MV.sys.cars.yearly(g);
     MV.sys.works.yearly(g);
     MV.sys.island.yearly(g);
+    MV.sys.mythic.yearly(g);
+    MV.sys.wellbeing.yearly(g);
     MV.sys.crime.yearly(g);
     MV.sys.rels.yearly(g);
     MV.sys.legacy.yearly(g);
     MV.sys.challenge.yearly(g);
+    MV.sys.history.record(g);
     const cause = MV.sys.health.deathCheck(g);
     if (cause) { MV.sys.legacy.die(g, cause); return true; }
     MV.EV.runYear(g);

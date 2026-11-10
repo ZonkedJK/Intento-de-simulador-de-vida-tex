@@ -114,6 +114,18 @@
         career.fire(g, 'Faltar al trabajo por estar en prisión no está bien visto.');
         return;
       }
+      const sab = p.flags.sabbatical;
+      if (sab && (p.job || p.age >= sab.until)) {
+        delete p.flags.sabbatical;
+        const SJ = MV.jobById(sab.job.id);
+        if (!p.job && !p.prison && SJ && U.chance(0.5 + sab.perf / 200)) {
+          p.job = Object.assign(sab.job, { lvlYears: 0, start: p.age });
+          p.retired = false;
+          MV.log(g, `Volviste de tu año sabático y tu puesto de ${career.title(p)} te estaba esperando. Nadie notó que te habías ido.`, '🌍', 'good');
+          return;
+        }
+        if (!p.job) MV.log(g, 'Volviste de tu año sabático y tu puesto ya lo tenía otra persona. Te dejaron una caja con tus cosas y una planta muerta.', '📦', 'bad');
+      }
       if (!p.job) { if (p.fame > 0 && U.chance(0.6)) MV.fx.stat(g, 'fame', -U.int(1, 3)); return; }
       const J = MV.jobById(p.job.id);
       if (!J) { p.job = null; return; }
@@ -131,7 +143,7 @@
       if (J.type === 'sport') { MV.sys.sports.careerYearly(g, J); return; }
       if (J.type === 'fame' || J.type === 'crime') { career.yearlySpecial(g, J); return; }
       job.salary = Math.round(job.salary * U.float(1.01, 1.05));
-      if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45)) career.promote(g);
+      if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45 + (job.trained === p.age - 1 ? 0.2 : 0))) career.promote(g);
       else if (job.perf <= 22 && U.chance(0.4)) career.fire(g, 'Tu rendimiento fue "decepcionante", según el correo de Recursos Humanos.');
       else if (U.chance(MV.sys.world.mods(g).layoff * (job.perf < 60 ? 1.5 : 0.6))) career.fire(g, `Recorte de personal por la crisis: "${MV.sys.world.current(g).title.toLowerCase()}", decía el correo.`);
       if (p.job && p.age >= 72 && U.chance(0.3)) MV.log(g, 'En el trabajo te preguntan "sutilmente" cuándo piensas jubilarte.', '👴');
@@ -197,6 +209,21 @@
             const c = MV.newNPC(g, { age: U.clamp(p.age + U.int(-8, 8), 18, 70), country: p.country, job: career.title(p) });
             if (U.chance(0.75)) { MV.addRel(g, c, 'companero', U.int(40, 70)); MV.fx.stat(g, 'happy', 3); return `Tomaste café con ${MV.fullName(c)}. ${U.pick(['Odian al mismo jefe. Base sólida.', 'Te contó todos los chismes de la oficina.', 'Resultó ser muy simpátic' + (c.gender === 'f' ? 'a' : 'o') + '.'])}`; }
             MV.addRel(g, c, 'enemigo', U.int(5, 25)); return `Discutiste con ${MV.fullName(c)} por el último café. Ahora es tu enemig${c.gender === 'f' ? 'a' : 'o'} declarad${c.gender === 'f' ? 'a' : 'o'}.`;
+          } });
+        list.push({ id: 'desde_casa', icon: '🏠', label: 'Trabajar desde casa', sub: '-estrés, un poco menos de rendimiento', limit: 1,
+          run: (g) => { MV.fx.stat(g, 'stress', -U.int(5, 9)); MV.fx.stat(g, 'happy', 2); job.perf = U.clamp(job.perf - U.int(1, 4), 0, 100);
+            return U.pick(['Trabajaste en pijama toda la semana. Nadie notó que en las videollamadas no tenías pantalón.', 'Respondiste correos desde el sillón con el gato encima del teclado. Productividad: discutible. Paz: total.', 'Hiciste home office. Tu jefe te escribió "¿estás?" 14 veces. Estabas (durmiendo la siesta).']); } });
+        list.push({ id: 'capacitacion', icon: '🎓', label: 'Capacitarte para un ascenso', sub: '$1.500 · +rendimiento y más chance de ascenso', limit: 1,
+          check: (g) => (g.p.money < 1500 ? 'La capacitación cuesta $1.500 y no te alcanza.' : null),
+          run: (g) => { MV.fx.money(g, -1500); job.perf = U.clamp(job.perf + U.int(8, 14), 0, 100); job.trained = p.age; MV.fx.stat(g, 'smarts', 1); if (J.skillUp) MV.fx.skill(g, J.skillUp, 2);
+            return U.pick(['Hiciste un curso intensivo. Ahora usas palabras como "sinergia" sin ironía.', 'Te certificaste en algo con siglas larguísimas. Tu jefe quedó impresionado (no entendió qué era).']); } });
+        list.push({ id: 'sabatico', icon: '🌍', label: 'Tomarte un año sabático', sub: 'Dejas el trabajo un año; si te fue bien, te lo guardan', limit: 1, confirm: '¿Tomarte un año sabático? Dejas el trabajo y lo recuperas el año que viene solo si te lo guardan.',
+          run: (g) => {
+            const t = career.title(p);
+            p.flags.sabbatical = { job: Object.assign({}, job), until: p.age + 1, perf: job.perf };
+            career.leave(g, 'año sabático');
+            MV.fx.stat(g, 'stress', -25); MV.fx.stat(g, 'happy', 10);
+            return `Te tomaste un año sabático de tu puesto de ${t}. ${U.pick(['Vas a "encontrarte a ti mism' + U.gw(p.gender, 'o', 'a') + '". O por lo menos dormir.', 'Vendiste la computadora del trabajo mentalmente.', 'Tu primer día libre dormiste 14 horas.'])}`;
           } });
         list.push({ id: 'jefe', icon: '👔', label: 'Hablar con tu jefe', sub: 'Lotería emocional', limit: 1,
           run: (g) => U.pick([

@@ -215,6 +215,149 @@ const SHOTS = process.argv[2] || null;
   if (!/Recesión mundial/.test(newsText)) errors.push('Bienes y dinero no muestra el clima económico: ' + newsText);
   await page.evaluate(() => MV.UI.closeSheets());
 
+  // Concesionaria: filtrar por categoría, elegir color y comprar
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 20); g.p.money = Math.max(g.p.money, 5e6); MV.UI.showAssets(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Concesionaria")');
+  await page.click('.dealer-cats [data-cat="suv"]');
+  const suvNames = await page.$$eval('#layer .layer-item:last-child .list button.row .rl', (els) => els.map((e) => e.textContent));
+  const suvModels = await page.evaluate(() => MV.CAR_CATALOG.filter((m) => m.cat === 'suv').map((m) => `${m.brand} ${m.model}`));
+  if (!suvNames.length || suvNames.some((n) => !suvModels.includes(n))) errors.push('El filtro de SUV muestra otros autos: ' + suvNames.join(', '));
+  if (!(await page.$('#layer .layer-item:last-child .car-thumb svg'))) errors.push('La concesionaria no dibuja los autos');
+  await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
+  await page.click('.color-swatch[data-color="verde"]');
+  const buyLabel = await page.$eval('#dealer-buy', (e) => e.textContent);
+  if (!/verde/.test(buyLabel)) errors.push('El botón de compra no muestra el color elegido: ' + buyLabel);
+  await page.click('#dealer-buy');
+  await resolve();
+  const bought = await page.evaluate(() => { const a = MV.UI.g.p.assets.filter((x) => x.type === 'auto').pop(); return a ? { model: a.model, color: a.color } : null; });
+  if (!bought || bought.color !== 'verde' || !/okami_trekker|aurora_xl|tundra_montaraz|kaiserwerk_gelande|vellano_toro/.test(bought.model)) errors.push('La compra en la concesionaria no guardó modelo y color: ' + JSON.stringify(bought));
+  // Ficha del auto: dibujo, tuneo, carreras y seguro
+  await page.evaluate(() => { const g = MV.UI.g; g.p.licenses = Object.assign({}, g.p.licenses, { auto: true }); g.p.license = true; MV.UI.closeSheets(); MV.UI.showAssets(); });
+  const carName = await page.evaluate(() => MV.UI.g.p.assets.filter((x) => x.type === 'auto').pop().name);
+  await page.click(`#layer .layer-item:last-child button.row:has-text("${carName}")`);
+  if (!(await page.$('#layer .layer-item:last-child .car-art svg'))) errors.push('La ficha del auto no tiene dibujo');
+  await page.click('#layer .layer-item:last-child button.row:has-text("Motor preparado")');
+  await resolve();
+  await page.click('#layer .layer-item:last-child button.row:has-text("Asegurar")');
+  await resolve();
+  await page.click('#layer .layer-item:last-child button.row:has-text("Correr en circuito")');
+  await resolve();
+  const carState = await page.evaluate(() => { const a = MV.UI.g.p.assets.filter((x) => x.type === 'auto').pop(); return { motor: !!(a.tune || {}).motor, insured: a.insured }; });
+  if (!carState.motor || !carState.insured) errors.push('Tunear o asegurar desde la ficha no funcionó: ' + JSON.stringify(carState));
+  await page.evaluate(() => MV.UI.closeSheets());
+
+  // Animaciones: números flotantes, avatar que reacciona y dinero que cuenta (y nada si se apagan)
+  const animRun = () => page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.yearActs = {}; g.p.age = Math.max(g.p.age, 20); g.p.stats.health = 50; MV.UI.execAction(MV.ACTS.find((x) => x.id === 'gimnasio')); });
+  await animRun();
+  await page.waitForTimeout(120);
+  const anim = await page.evaluate(() => ({ floats: document.querySelectorAll('.float-num').length, av: !!document.querySelector('.idcard .avatar.jump, .idcard .avatar.shake') }));
+  if (!anim.floats || !anim.av) errors.push('Una acción con cambios no animó: ' + JSON.stringify(anim));
+  const zs = await page.evaluate(() => [Number(getComputedStyle(document.getElementById('float-layer')).zIndex), Number(getComputedStyle(document.getElementById('layer')).zIndex)]);
+  if (!(zs[0] < zs[1])) errors.push('Los números flotantes se dibujan encima de las hojas abiertas: ' + zs.join(' vs '));
+  await resolve();
+  const moneyAnim = await page.evaluate(() => { MV.UI.g.p.money += 1000; MV.UI.refreshGame(true); return document.querySelector('[data-money]').className; });
+  if (!/count-up/.test(moneyAnim)) errors.push('El dinero no cuenta al subir: ' + moneyAnim);
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => { MV.global().settings.anim = false; });
+  await animRun();
+  await page.waitForTimeout(120);
+  const off = await page.evaluate(() => document.querySelectorAll('.float-num, .avatar.jump, .avatar.shake, .count-up, .count-down').length);
+  if (off) errors.push('Con las animaciones apagadas igual se animó (' + off + ')');
+  await resolve();
+  await page.evaluate(() => { delete MV.global().settings.anim; MV.UI.closeSheets(); });
+
+  // Resumen del año (y que no aparezca si se apaga) y gráficos de la ficha
+  const yearCards = async () => {
+    let seen = false;
+    await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.g.queue = []; });
+    await page.click('.ageup');
+    for (let k = 0; k < 25; k++) {
+      await page.waitForTimeout(40);
+      if (await page.$('#year-summary')) { seen = true; await page.click('#year-summary .btn.primary'); continue; }
+      if (await page.$('#layer .choice')) { await tryClick('#layer .choice >> nth=0'); continue; }
+      if (await page.$('#layer .card .btn.primary')) { await tryClick('#layer .card .btn.primary'); continue; }
+      break;
+    }
+    return seen;
+  };
+  if (!(await yearCards())) errors.push('No apareció el resumen del año');
+  await page.evaluate(() => { MV.global().settings.yearSummary = false; });
+  if (await yearCards()) errors.push('El resumen del año apareció con el ajuste apagado');
+  await page.evaluate(() => { MV.global().settings.yearSummary = true; });
+  await page.waitForTimeout(800); // si murió, la tumba aparece a los 650 ms
+  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => { const g = MV.newGame({ seed: 7 }); g.p.age = 25; MV.UI.startGame(g); });
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
+  const charts = await page.$$eval('#profile-charts svg.viz', (els) => els.length);
+  if (charts !== 2) errors.push('La ficha no muestra los 2 gráficos: ' + charts);
+  await page.evaluate(() => MV.UI.closeSheets());
+
+  // Bienestar en la tarjeta y rutina en la ficha
+  const wbChip = await page.$eval('#wellbeing-chip', (e) => e.textContent).catch(() => '');
+  if (!/Bienestar \d+ · (Floreciendo|Bien|Regular|Mal)/.test(wbChip)) errors.push('Falta el chip de bienestar: ' + wbChip);
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
+  await page.click('#routine-exercise-ligero');
+  await page.click('#routine-diet-equilibrada');
+  const routine = await page.evaluate(() => MV.UI.g.p.routine);
+  if (routine.exercise !== 'ligero' || routine.diet !== 'equilibrada') errors.push('La rutina no se guardó desde la ficha: ' + JSON.stringify(routine));
+  if (!/Bienestar/.test(await page.$eval('#profile-wellbeing', (e) => e.textContent).catch(() => ''))) errors.push('La ficha no muestra el bienestar');
+  await page.evaluate(() => MV.UI.closeSheets());
+
+  // Comodidad: buscador y favoritos en Actividades
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.favs = []; MV.UI.showActivities(); });
+  await page.fill('#act-search', 'gim');
+  const found = await page.$$eval('#act-results button.row .rl', (els) => els.map((e) => e.textContent));
+  if (!found.includes('Ir al gimnasio')) errors.push('Buscar "gim" no muestra Ir al gimnasio: ' + found.join(', '));
+  await page.click('#act-results .row-fav:has-text("Ir al gimnasio") .fav-btn');
+  if (!(await page.evaluate(() => MV.UI.g.favs.includes('gimnasio')))) errors.push('La estrella no marcó el favorito');
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showActivities(); });
+  const favTop = await page.$eval('#act-favs', (e) => e.textContent).catch(() => '');
+  if (!/Ir al gimnasio/.test(favTop)) errors.push('El favorito no aparece arriba en Actividades');
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
+  let stopped = 0;
+  for (let t = 0; t < 4; t++) {
+    await resolve();
+    const before5 = await page.evaluate(() => { const g = MV.UI.g; if (g.over) return null; g.queue = []; return g.p.age; });
+    if (before5 == null) break;
+    await page.click('.ageup5');
+    await page.waitForTimeout(80);
+    const st5 = await page.evaluate(() => ({ age: MV.UI.g.p.age, q: MV.UI.g.queue.length, over: MV.UI.g.over, sick: MV.UI.g.p.stats.health < 30, card: !!document.querySelector('#layer .card') }));
+    const adv = st5.age - before5;
+    if (adv < 1 || adv > 5) errors.push('⏩ avanzó ' + adv + ' años');
+    if (adv < 5 && !st5.q && !st5.over && !st5.sick) errors.push('⏩ se detuvo sin una decisión ni un aviso');
+    if (st5.q && !st5.card) errors.push('⏩ se detuvo pero no mostró la decisión');
+    if (adv < 5) stopped++;
+  }
+  await resolve();
+  if (!stopped) errors.push('⏩ nunca se detuvo en una decisión en 4 intentos');
+  await page.waitForTimeout(800); // si murió, la tumba aparece a los 650 ms
+  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => { const g = MV.newGame({ seed: 7 }); g.p.age = 25; MV.UI.startGame(g); });
+  // Ajustes: tamaño de letra y animaciones
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showMenu(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Ajustes")');
+  await page.click('#set-font-muy_grande');
+  const fontState = await page.evaluate(() => ({ attr: document.documentElement.getAttribute('data-font'), px: parseFloat(getComputedStyle(document.documentElement).fontSize), saved: MV.global().settings.font }));
+  if (fontState.attr !== 'muy_grande' || fontState.px < 18 || fontState.saved !== 'muy_grande') errors.push('El tamaño de letra no cambió: ' + JSON.stringify(fontState));
+  await page.click('#set-anim');
+  if (await page.evaluate(() => MV.global().settings.anim) !== false) errors.push('El ajuste no apagó las animaciones');
+  await page.click('#set-anim');
+  await page.click('#set-font-normal');
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Partidas guardadas: guardar en una ranura y volver a cargarla
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showMenu(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Partidas guardadas")');
+  await page.click('#slot-save-0');
+  const savedAge = await page.evaluate(() => MV.UI.g.p.age);
+  if (!(await page.evaluate(() => MV.slotsInfo()[0]))) errors.push('Guardar en la ranura 1 no guardó');
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; MV.ageUp(g); g.queue = []; MV.UI.save(); MV.UI.renderGame(); MV.UI.showMenu(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Partidas guardadas")');
+  await page.click('#slot-load-0');
+  await page.click('#layer .card .btn.danger');
+  await page.waitForTimeout(100);
+  const loadedAge = await page.evaluate(() => MV.UI.g.p.age);
+  if (loadedAge !== savedAge) errors.push(`Cargar la ranura no volvió a la edad guardada (${savedAge} → ${loadedAge})`);
+  await page.evaluate(() => { MV.deleteSlot(0); MV.UI.closeSheets(); });
+
   // Recargar: la partida debe continuar
   const state = await page.evaluate(() => ({ age: MV.UI.g.p.age, over: MV.UI.g.over }));
   if (state.over) { console.log('El personaje murió joven durante la prueba; se empieza otra vida.'); await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 }))); }
@@ -229,12 +372,18 @@ const SHOTS = process.argv[2] || null;
   // Darle hijos y morir para probar la herencia
   await page.evaluate(() => { const g = MV.UI.g; const k = MV.newNPC(g, { age: 3, last: g.p.last, money: 0 }); MV.addRel(g, k, 'hijo', 80); MV.sys.legacy.die(g, 'una prueba automatizada'); MV.UI.save(); MV.UI.showDeath(); });
   await page.waitForSelector('.tomb');
+  if ((await page.$$('#death-charts svg.viz')).length !== 2) errors.push('La pantalla de la muerte no muestra los gráficos de la vida');
   await shot('muerte');
   await page.click('#copy-summary');
   await page.waitForTimeout(1900);
   const copied = await page.evaluate(() => { const ta = document.getElementById('summary-text'); return ta ? ta.value : (document.getElementById('toasts').textContent || ''); });
   if (!/Copiado|Mil Vidas/.test(copied)) errors.push('Copiar resumen no copió ni mostró el texto: ' + copied.slice(0, 80));
   await page.evaluate(() => MV.UI.closeSheets());
+  // Partidas guardadas desde la pantalla de la muerte
+  await page.evaluate(() => { MV.saveSlot(1, JSON.parse(JSON.stringify(MV.UI.g))); MV.UI.showDeath(); });
+  await page.waitForSelector('.tomb');
+  if (!(await tryClick('#death-slots'))) errors.push('La pantalla de la muerte no ofrece las partidas guardadas');
+  else { if (!(await page.$('#slot-load-1'))) errors.push('Desde la muerte no se ven las ranuras'); await page.evaluate(() => MV.UI.closeSheets()); }
   await page.click('.death button.row >> nth=0');
   await page.waitForSelector('.idcard');
   const gen = await page.evaluate(() => MV.UI.g.generation);
@@ -246,11 +395,19 @@ const SHOTS = process.argv[2] || null;
   await page.click('text=Cementerio'); await page.waitForTimeout(100); await page.evaluate(() => MV.UI.popSheet());
   await page.click('text=Árbol de la dinastía'); await page.waitForTimeout(100);
   await shot('arbol');
+  // Portada: cargar una partida guardada sin crear un personaje
+  await page.evaluate(() => { const g = MV.UI.g; g.queue = []; MV.saveSlot(0, g); MV.UI.closeAll(); MV.UI.showCover(); });
+  if (!(await tryClick('#cover-slots'))) errors.push('La portada no ofrece las partidas guardadas');
+  else {
+    await page.click('#slot-load-0');
+    await page.click('#layer .card .btn.danger');
+    try { await page.waitForSelector('.idcard', { timeout: 3000 }); } catch (e) { errors.push('Cargar una ranura desde la portada no abrió la partida'); }
+  }
   await browser.close();
   if (errors.length) { console.error('Errores en la interfaz:\n' + errors.join('\n')); process.exit(1); }
   console.log('Interfaz OK');
 })().catch(async (e) => {
-  console.error(e.message.split('\n')[0]);
+  console.error(e.message.split('\n').slice(0, 3).join(' | '));
   if (global.__page) {
     try {
       console.error('Pantalla:', (await global.__page.evaluate(() => document.getElementById('app').innerText.slice(0, 200))).replace(/\n/g, ' | '));

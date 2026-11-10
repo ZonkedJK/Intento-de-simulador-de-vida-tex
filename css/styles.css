@@ -79,7 +79,7 @@ body {
   background-size: 22px 22px;
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -379,6 +379,24 @@ button.row:disabled:hover { background: none; }
   .stat { grid-template-columns: 22px 1fr 28px; }
 }
 
+/* — Animaciones de cambios de estado — */
+#float-layer { position: fixed; inset: 0; pointer-events: none; z-index: 15; }
+.float-num {
+  position: fixed; font-family: var(--font-hand); font-weight: 700; font-size: 1rem; white-space: nowrap;
+  padding: 0 6px; border-radius: 4px; color: var(--on-hl); animation: float-up 1s ease-out forwards;
+}
+.float-num.up { background: var(--hl-green); }
+.float-num.down { background: var(--hl-pink); }
+@keyframes float-up { 0% { opacity: 0; transform: translateY(6px) scale(0.8); } 15% { opacity: 1; transform: translateY(0) scale(1.08); } 100% { opacity: 0; transform: translateY(-34px) scale(1); } }
+.stat.flash .bar { animation: bar-flash 0.7s ease-out; }
+@keyframes bar-flash { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--hl-yellow) 90%, transparent); } 100% { box-shadow: 0 0 0 7px transparent; } }
+.avatar.jump { animation: av-jump 0.5s ease-out; }
+.avatar.shake { animation: av-shake 0.5s ease-in-out; }
+@keyframes av-jump { 0%, 100% { transform: translateY(0); } 35% { transform: translateY(-9px) scale(1.06); } 65% { transform: translateY(1px); } }
+@keyframes av-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px) rotate(-3deg); } 40% { transform: translateX(4px) rotate(3deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+.money.count-up { box-shadow: 0 0 0 2px var(--hl-green); }
+.money.count-down { box-shadow: 0 0 0 2px var(--hl-pink); }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
@@ -391,3 +409,60 @@ button.row:disabled:hover { background: none; }
 .quiz-mistakes { margin-top: 10px; display: grid; gap: 8px; text-align: left; }
 .quiz-mistake { display: flex; gap: 10px; align-items: center; }
 .quiz-mini { flex: 0 0 40px; width: 40px; height: 40px; }
+
+/* — Concesionaria y autos pixelados — */
+.dealer-cats { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.chip-btn { font: inherit; font-size: 0.85rem; border: 1.5px solid var(--ink); border-radius: 999px; padding: 3px 10px; background: transparent; color: inherit; cursor: pointer; }
+.chip-btn.on { background: var(--hl-yellow); color: var(--on-hl); font-weight: 700; }
+.car-thumb { width: 64px; height: 32px; }
+.car-thumb svg, .car-art svg { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.row:has(.car-thumb) { grid-template-columns: 64px 1fr auto; }
+.car-art { height: 90px; margin: 4px auto 8px; display: flex; justify-content: center; }
+.car-art.big { height: 120px; }
+.car-art svg { width: auto; max-width: 100%; }
+.color-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 12px; }
+.color-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--ink); cursor: pointer; }
+.color-swatch.on { outline: 3px solid var(--hl-yellow); outline-offset: 2px; }
+
+/* — Comodidad: letra, buscador, favoritos, ⏩ y ranuras — */
+html[data-font="grande"] { font-size: 112.5%; }
+html[data-font="muy_grande"] { font-size: 125%; }
+.act-search { width: 100%; padding: 9px 12px; border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--card); margin: 2px 0 10px; }
+.row-fav { display: grid; grid-template-columns: 1fr auto; align-items: stretch; border-bottom: 1.5px dashed var(--grid); }
+.row-fav:last-child { border-bottom: 0; }
+.row-fav .row { border-bottom: 0; }
+.fav-btn { background: none; border: 0; border-left: 1.5px dashed var(--grid); width: 46px; font-size: 1.3rem; color: var(--pencil); }
+.fav-btn.on { color: #d9a400; }
+.fav-btn:hover { background: color-mix(in srgb, var(--hl-yellow) 45%, transparent); }
+.ageup5 {
+  position: absolute; left: calc(50% + 40px); top: -13px; z-index: 1;
+  border: 2px solid var(--ink); border-radius: 999px; padding: 2px 9px; background: var(--card); color: var(--ink);
+  font-family: var(--font-hand); font-weight: 700; font-size: 0.85rem; box-shadow: 2px 2px 0 var(--ink);
+}
+.ageup5:disabled { opacity: 0.35; cursor: not-allowed; }
+.slot { margin: 0 0 10px; }
+.slot .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.font-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 12px; }
+
+/* — Gráficos de la vida (paleta categórica validada: CVD y contraste en claro y oscuro) — */
+:root { --series-1: #2a78d6; --series-2: #eb6834; --series-3: #1baf7a; --series-4: #eda100; }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; } }
+:root[data-theme="dark"] { --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70; --series-4: #c98500; }
+.viz-fig { margin: 0 0 10px; }
+.viz-fig figcaption { font-weight: 700; font-size: 0.9rem; margin-bottom: 2px; }
+.viz { width: 100%; height: auto; display: block; overflow: visible; }
+.viz-grid { stroke: var(--grid); stroke-width: 1; }
+.viz-axis { stroke: var(--pencil); stroke-width: 1; opacity: 0.6; }
+.viz-tick { fill: var(--pencil); font-size: 9px; font-family: var(--font-body); }
+.viz-label { fill: var(--ink); font-size: 9.5px; font-family: var(--font-body); }
+.viz-dot { stroke: var(--card); stroke-width: 2; }
+.viz-hit { fill: transparent; }
+.viz-hit:hover { fill: color-mix(in srgb, var(--hl-yellow) 35%, transparent); }
+.viz-legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.8rem; color: var(--pencil); margin: -4px 0 6px; }
+.viz-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; }
+.viz-table summary { cursor: pointer; font-size: 0.85rem; color: var(--pencil); }
+.viz-table table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 6px; }
+.viz-table th, .viz-table td { text-align: right; padding: 2px 4px; border-bottom: 1px dashed var(--grid); }
+.viz-table th:first-child, .viz-table td:first-child { text-align: left; }
+.year-highlights { margin: 8px 0 12px; padding-left: 18px; }
+.year-highlights li { margin: 3px 0; }
