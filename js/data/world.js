@@ -60,7 +60,22 @@
     { kind: 'NFT de un mono aburrido', icon: '🐒', price: [500, 300000], vol: 0.7 },
     { kind: 'Yate', icon: '🛥️', price: [300000, 15000000], vol: 0.08, upkeep: 0.06 },
     { kind: 'Avión privado', icon: '🛩️', price: [3000000, 60000000], vol: 0.06, upkeep: 0.08 },
+    { kind: 'Helicóptero', icon: '🚁', price: [700000, 9000000], vol: 0.07, upkeep: 0.07 },
     { kind: 'Isla privada', icon: '🏝️', price: [10000000, 90000000], vol: 0.05, upkeep: 0.02 }
+  ];
+
+  /** Instrumentos de la tienda de música (precio fijo). quality: 1 a 3. */
+  MV.INSTRUMENTS = [
+    { id: 'criolla', name: 'Guitarra criolla', art: 'una', icon: '🎸', price: 150, quality: 1 },
+    { id: 'electrica', name: 'Guitarra eléctrica', art: 'una', icon: '🎸', price: 900, quality: 2 },
+    { id: 'bajo', name: 'Bajo', art: 'un', icon: '🎸', price: 700, quality: 2 },
+    { id: 'teclado', name: 'Teclado', art: 'un', icon: '🎹', price: 400, quality: 1 },
+    { id: 'violin', name: 'Violín', art: 'un', icon: '🎻', price: 600, quality: 2 },
+    { id: 'saxo', name: 'Saxofón', art: 'un', icon: '🎷', price: 1200, quality: 2 },
+    { id: 'bateria', name: 'Batería', art: 'una', icon: '🥁', price: 1500, quality: 2 },
+    { id: 'dj', name: 'Equipo de DJ', art: 'un', icon: '🎧', price: 2000, quality: 2 },
+    { id: 'piano', name: 'Piano de cola', art: 'un', icon: '🎹', price: 25000, quality: 3 },
+    { id: 'microfono', name: 'Micrófono profesional', art: 'un', icon: '🎤', price: 300, quality: 1 }
   ];
 
   /** Enfermedades: drain=[min,max] de salud por año, heal=prob. de curarse sola por año,

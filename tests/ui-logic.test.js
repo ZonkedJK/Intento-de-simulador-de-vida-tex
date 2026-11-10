@@ -84,3 +84,16 @@ test('el piloto lleva casco y la banda presidencial es solo para Presidente', ()
   pol.job.level = 4;
   assert.equal(MV.UI.outfitFor(pol), 'presidente');
 });
+
+test('cada pregunta con dibujo tiene su SVG', () => {
+  const MV = load();
+  const keys = new Set();
+  Object.values(MV.QUIZ).forEach((bank) => bank.forEach((q) => { if (q.sign) keys.add(q.sign); }));
+  assert.ok(keys.size >= 25, 'dibujos: ' + keys.size);
+  keys.forEach((k) => {
+    const svg = MV.UI.signSVG(k);
+    assert.match(svg, /^<svg[^>]*viewBox="0 0 100 100"/, k);
+    assert.ok(!BAD_TEXT.test(svg), k);
+  });
+  assert.equal(MV.UI.signSVG('no_existe'), '');
+});

@@ -317,6 +317,7 @@
     const g = UI.g;
     if (a.ui === 'tattoo') { UI.showTattooStudio(a); return; }
     if (a.ui === 'work') { UI.showWorkStudio(a); return; }
+    if (a.ui === 'quiz') { UI.showQuiz(a); return; }
     if (a.ui === 'gift' && UI.showGiftPicker) { UI.showGiftPicker(a, scope, relRef); return; }
     const go = (opt, opt2) => (a.confirm ? UI.confirm(a.confirm, () => UI.execAction(a, opt, scope, relRef, opt2)) : UI.execAction(a, opt, scope, relRef, opt2));
     const pickList = (title, os, onPick) => UI.sheet({

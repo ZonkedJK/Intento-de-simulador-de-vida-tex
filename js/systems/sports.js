@@ -28,26 +28,28 @@
 
     title(p, id, level) { return MV.gt(MV.SPORTS[id].titles[level || 0], p.gender); },
 
-    joinClub(g, id) {
+    /** Unirse a un club deportivo (cuenta para el máximo de clubes y talleres). */
+    joinClub(g, id) { return MV.sys.edu.joinClub(g, 'sport:' + id); },
+
+    /** Primer entrenamiento al entrar a un club. */
+    startTraining(g, id) {
       const p = g.p, S = MV.SPORTS[id];
       p.sportsExp = p.sportsExp || {};
-      if (p.club === id) return `Ya entrenas en ${S.club.toLowerCase()}.`;
-      const prev = p.club ? MV.SPORTS[p.club] : null;
-      p.club = id;
       p.sportsExp[id] = p.sportsExp[id] || 0;
       MV.fx.skill(g, S.skill || 'deporte', U.int(2, 4));
       MV.fx.stat(g, 'happy', 3);
       const where = MV.sys.edu.inHigher(p) ? 'el equipo de la universidad' : p.age < 18 ? 'el equipo de la escuela' : U.pick(S.clubs);
-      return `${prev ? `Dejaste ${prev.club.toLowerCase()} y te` : 'Te'} uniste a ${S.club.toLowerCase()} (${where}). ${S.clubCost && p.age >= 18 ? `Cuota: ${U.money(S.clubCost)} al año.` : ''}`.trim();
+      return `Te uniste a ${S.club.toLowerCase()} (${where}). ${S.clubCost && p.age >= 18 ? `Cuota: ${U.money(S.clubCost)} al año.` : ''}`.trim();
     },
 
-    leaveClub(g) {
-      const p = g.p;
-      if (!p.club) return '';
-      const S = MV.SPORTS[p.club];
-      p.club = null;
-      return `Dejaste ${S.club.toLowerCase()}. Tus zapatillas te extrañarán.`;
+    /** Dejar un club deportivo (por defecto, el principal). */
+    leaveClub(g, id) {
+      const k = id || g.p.club;
+      return k ? MV.sys.edu.leaveClub(g, 'sport:' + k) : '';
     },
+
+    /** Deportes en los que entrenas (de tus clubes). */
+    clubSports(p) { return MV.sys.edu.clubsOf(p).filter((x) => String(x).startsWith('sport:')).map((x) => String(x).slice(6)).filter((k) => MV.SPORTS[k]); },
 
     /** Oferta de contrato para un deporte (objeto serializable para los eventos). */
     makeOffer(g, id, level) {
@@ -59,6 +61,7 @@
     /** ¿Aparece un cazatalentos al terminar la secundaria? */
     scoutAtGraduation(g) {
       const p = g.p;
+      MV.sys.edu.syncClub(g); // p.club = tu mejor deporte
       if (!p.club) return null;
       const S = MV.SPORTS[p.club];
       if (p.age < S.start[0] - 1 || p.age > S.start[1]) return null;
@@ -77,6 +80,8 @@
       p.job.salary = Math.max(offer.salary || 0, S.pay[offer.level || 0]);
       p.job.perf = 60;
       p.club = offer.sport;
+      // Al hacerte profesional dejas los clubes amateurs (los talleres siguen).
+      p.clubs = MV.sys.edu.clubsOf(p).filter((c) => !String(c).startsWith('sport:'));
       p.flags.exAtleta = offer.sport;
       p.flags.proSports = Object.assign({}, p.flags.proSports, { [offer.sport]: true });
       MV.fx.stat(g, 'happy', 15);
@@ -162,17 +167,22 @@
     yearly(g) {
       const p = g.p;
       p.sportsExp = p.sportsExp || {};
-      if (!p.club || p.prison || sports.isPro(p)) return;
+      if (p.prison || sports.isPro(p)) return;
+      sports.clubSports(p).forEach((k) => {
+        const S = MV.SPORTS[k];
+        if (p.age >= 18 && !MV.sys.edu.inHigher(p)) MV.fx.money(g, -(S.clubCost || 300));
+        else if (S.clubCost && p.age < 18) {
+          const parent = MV.rels(g, 'padre').find((x) => x.n.money >= S.clubCost);
+          if (parent) parent.n.money -= S.clubCost; else { MV.log(g, `Tus padres ya no pueden pagar ${S.club.toLowerCase()}. Lo dejaste.`, S.icon, 'bad'); MV.sys.edu.leaveClub(g, 'sport:' + k); return; }
+        }
+        p.sportsExp[k] = (p.sportsExp[k] || 0) + 1;
+        MV.fx.skill(g, S.skill || 'deporte', U.int(1, 3));
+        if (k !== 'esports') MV.fx.stat(g, 'health', 1);
+        if (S.team) MV.fx.skill(g, 'carisma', 1);
+      });
+      MV.sys.edu.syncClub(g);
+      if (!p.club) return;
       const S = MV.SPORTS[p.club];
-      p.sportsExp[p.club] = (p.sportsExp[p.club] || 0) + 1;
-      MV.fx.skill(g, S.skill || 'deporte', U.int(1, 3));
-      if (p.club !== 'esports') MV.fx.stat(g, 'health', 1);
-      if (S.team) MV.fx.skill(g, 'carisma', 1);
-      if (p.age >= 18 && !MV.sys.edu.inHigher(p)) MV.fx.money(g, -(S.clubCost || 300));
-      else if (S.clubCost && p.age < 18) {
-        const parent = MV.rels(g, 'padre').find((x) => x.n.money >= S.clubCost);
-        if (parent) parent.n.money -= S.clubCost; else { MV.log(g, `Tus padres ya no pueden pagar ${S.club.toLowerCase()}. Lo dejaste.`, S.icon, 'bad'); p.club = null; return; }
-      }
       // Reclutadores en la universidad
       if (MV.sys.edu.inHigher(p) && p.age >= S.start[0] && p.age <= S.start[1]) {
         const r = sports.rating(g, p.club);
@@ -261,7 +271,7 @@
       const t = MV.sys.career.title(p), lvl = p.job.level;
       MV.sys.career.leave(g, 'retiro');
       p.flags.exAtleta = J.sport;
-      p.club = null;
+      p.club = null; p.clubs = MV.sys.edu.clubsOf(p).filter((c) => !String(c).startsWith('sport:'));
       MV.fx.stat(g, 'happy', lvl >= 2 ? 6 : -4);
       const homage = lvl >= 3 ? ' El estadio entero te despidió de pie y retiraron tu número.' : lvl >= 2 ? ' Te hicieron un homenaje emotivo.' : '';
       MV.EV.info(g, { title: 'Retiro', text: `${reason || `Te retiraste del ${S.name.toLowerCase()} profesional.`} Terminaste tu carrera como ${t.toLowerCase()}.${homage}`, icon: S.icon, scene: 'escenario' });

@@ -131,6 +131,66 @@ const SHOTS = process.argv[2] || null;
   if (await page.evaluate(() => MV.UI.g.challenge && !document.getElementById('profile-challenge'))) errors.push('La ficha no muestra el desafío');
   if (!/Memorias de un mapache/.test(worksText)) errors.push('Mis obras no muestra el libro: ' + worksText);
   await page.evaluate(() => MV.UI.closeSheets());
+  // Examen de conducir: cerrar a mitad no cobra; terminarlo muestra el resultado
+  await page.evaluate(() => { const g = MV.UI.g; g.p.age = Math.max(g.p.age, 16); g.p.money = Math.max(g.p.money, 5000); g.p.license = false; g.p.licenses = {}; g.p.yearActs = {}; MV.UI.closeSheets(); MV.UI.runAction(MV.ACTS.find((a) => a.id === 'lic_auto')); });
+  await page.waitForSelector('#quiz-q');
+  const money0 = await page.evaluate(() => MV.UI.g.p.money);
+  for (let i = 0; i < 3; i++) await page.click('.quiz-opt >> nth=0');
+  if (!/Pregunta 4 de 10/.test(await page.$eval('#quiz-progress', (e) => e.textContent))) errors.push('El examen no avanzó de pregunta');
+  await page.evaluate(() => MV.UI.closeSheets());
+  if (await page.evaluate((m) => MV.UI.g.p.money !== m || MV.usesLeft(MV.UI.g, MV.ACTS.find((a) => a.id === 'lic_auto')) !== 2, money0)) errors.push('Cerrar el examen a mitad cobró o gastó el intento');
+  await page.evaluate(() => MV.UI.runAction(MV.ACTS.find((a) => a.id === 'lic_auto')));
+  for (let i = 0; i < 10; i++) { await page.waitForSelector('.quiz-opt'); if (i === 0 && !(await page.$('.quiz-sign svg'))) errors.push('La pregunta no muestra el dibujo de la señal'); await page.click('.quiz-opt >> nth=1'); }
+  await page.waitForSelector('#layer .card');
+  const quizMsg = await page.$eval('#layer .card', (e) => e.textContent);
+  if (!/de 10 correctas/.test(quizMsg)) errors.push('El resultado del examen no dice los aciertos: ' + quizMsg.slice(0, 120));
+  if (!/Aprobaste/.test(quizMsg) && !(await page.$('#layer .card .quiz-mistakes'))) errors.push('Al reprobar no se ven los errores');
+  await resolve();
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Vehículos: usar el yate desde su ficha
+  await page.evaluate(() => { const g = MV.UI.g; g.p.age = Math.max(g.p.age, 20); g.p.money = Math.max(g.p.money, 50000); g.p.yearActs = {}; g.p.assets.push({ id: 'yate1', type: 'lujo', kind: 'Yate', icon: '🛥️', name: 'Yate de prueba', value: 500000, cond: 100 }); MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Yate de prueba")');
+  await page.click('#layer button.row:has-text("Paseo en yate")');
+  await page.waitForSelector('#layer .card');
+  if (!/yate/i.test(await page.$eval('#layer .card', (e) => e.textContent))) errors.push('Usar el yate no mostró el resultado');
+  await resolve();
+  await page.evaluate(() => { const g = MV.UI.g; g.p.assets = g.p.assets.filter((a) => a.id !== 'yate1'); MV.UI.closeSheets(); });
+  // Isla: desarrollar un parque con nombre y mascota, y mejorarlo
+  await page.evaluate(() => { const g = MV.UI.g; g.p.money = Math.max(g.p.money, 3e7); g.p.assets.push({ id: 'isla1', type: 'lujo', kind: 'Isla privada', icon: '🏝️', name: 'Isla de prueba', value: 2e7, cond: 100 }); MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Isla de prueba")');
+  await page.click('#layer button.row:has-text("Desarrollar la isla")');
+  await page.click('#layer .layer-item:last-child button.row:has-text("Parque temático")');
+  await page.fill('#island-name', 'Mundo Mapache');
+  await page.fill('#island-mascot', 'Mapache Pepe');
+  await page.click('#island-go');
+  await page.waitForSelector('#layer .card');
+  if (!/Mundo Mapache/.test(await page.$eval('#layer .card', (e) => e.textContent))) errors.push('Desarrollar la isla no usó el nombre');
+  await resolve();
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Isla de prueba")');
+  if (!/Mapache Pepe/.test(await page.$eval('#island-project', (e) => e.textContent).catch(() => ''))) errors.push('La ficha de la isla no muestra el proyecto');
+  await page.click('#layer button.row:has-text("Mejorar al nivel 2")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  if (await page.evaluate(() => MV.UI.g.p.assets.find((a) => a.id === 'isla1').project.level) !== 2) errors.push('Mejorar la isla no subió el nivel');
+  await page.evaluate(() => { const g = MV.UI.g; g.p.assets = g.p.assets.filter((a) => a.id !== 'isla1'); MV.UI.closeSheets(); });
+  // Instrumentos: comprar una guitarra y practicar desde su ficha
+  await page.evaluate(() => { const g = MV.UI.g; g.p.money = Math.max(g.p.money, 5000); g.p.yearActs = {}; MV.UI.closeSheets(); MV.UI.showMusicShop(); });
+  await page.click('#layer button.row:has-text("Guitarra criolla")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showAssets(); });
+  await page.click('#layer button.row:has-text("Guitarra criolla")');
+  const mus0 = await page.evaluate(() => MV.UI.g.p.skills.musica);
+  await page.click('#layer button.row:has-text("Practicar con tu guitarra criolla")');
+  await page.waitForSelector('#layer .card');
+  await resolve();
+  if (await page.evaluate((m) => MV.UI.g.p.skills.musica <= m, mus0)) errors.push('Practicar con el instrumento no subió Música');
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Clubes y talleres: varios a la vez en Ocupación
+  const clubRows = await page.evaluate(() => { const g = MV.UI.g; if (MV.sys.sports.isPro(g.p)) return 2; g.p.clubs = []; MV.sys.edu.joinClub(g, 'sport:futbol'); MV.sys.edu.joinClub(g, 'robotica'); MV.UI.closeSheets(); MV.UI.showWork(); return document.querySelectorAll('#my-clubs .row').length; });
+  if (clubRows !== 2) errors.push('Ocupación no muestra los clubes y talleres: ' + clubRows);
+  await page.evaluate(() => MV.UI.closeSheets());
   // Relaciones con nietos: su propio encabezado
   await page.evaluate(() => { const g = MV.UI.g; const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80); kid.married = true; kid.spouseName = 'Ana Pérez'; MV.sys.people.grandchild(g, kid); g.queue = []; MV.UI.closeSheets(); MV.UI.showRelations(); });
   const relHeads = await page.$$eval('#layer .section-title', (els) => els.map((e) => e.textContent.trim()));

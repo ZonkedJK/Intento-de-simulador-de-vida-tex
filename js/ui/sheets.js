@@ -52,14 +52,18 @@
       UI.actionList(MV.sys.edu.actions(g)));
     }
     // Club deportivo (amateur)
-    if (p.club && !MV.sys.sports.isPro(p)) {
-      const S = MV.SPORTS[p.club];
-      body.append(title('Club deportivo'), h('div', { class: 'box' }, kv('Club', `${S.icon} ${S.club}`), kv('Años de práctica', String(MV.sys.sports.exp(p, p.club))),
-        h('div', { class: 'kv' }, h('span', null, 'Nivel deportivo'), h('span', { style: { width: '120px' } }, UI.bar(MV.sys.sports.rating(g, p.club)))),
-        h('p', { class: 'note' }, p.age < S.start[0] ? `Los profesionales empiezan desde los ${S.start[0]} años. Sigue entrenando: los cazatalentos miran a los clubes.` : 'Cuanto más alto tu nivel, más probable que te recluten.')));
-      const cl = h('div', { class: 'list' });
-      cl.append(UI.row('🚪', 'Dejar el club', '', null, () => UI.runSystem('🚪', () => MV.sys.sports.leaveClub(g))));
+    const clubs = MV.sys.edu.clubsOf(p);
+    if (clubs.length && !MV.sys.sports.isPro(p)) {
+      body.append(title(`Clubes y talleres (${clubs.length}/3)`));
+      const cl = h('div', { class: 'list', id: 'my-clubs' });
+      clubs.forEach((id) => {
+        const c = MV.sys.edu.clubInfo(id);
+        if (!c) return;
+        const sub = c.sport ? [`Años de práctica: ${MV.sys.sports.exp(p, c.sport)}`, UI.bar(MV.sys.sports.rating(g, c.sport))] : `Taller: sube ${MV.SKILLS[c.workshop.skill].name.toLowerCase()} cada año`;
+        cl.append(UI.row(c.icon, c.name, sub, 'Dejar', () => UI.runSystem('🚪', () => MV.sys.edu.leaveClub(g, id))));
+      });
       body.append(cl);
+      if (p.club) { const S = MV.SPORTS[p.club]; body.append(h('p', { class: 'note' }, p.age < S.start[0] ? `Los profesionales empiezan desde los ${S.start[0]} años. Sigue entrenando: los cazatalentos miran tu mejor deporte.` : 'Cuanto más alto tu nivel, más probable que te recluten. Los cazatalentos miran tu mejor deporte.')); }
     }
     // Trabajo
     if (p.job) {
@@ -207,7 +211,17 @@
       p.loans.length ? h('div', null, p.loans.map((l) => h('p', { class: 'note' }, `${l.name}: debes ${U.money(l.left)} (${l.start > p.age ? 'empiezas a pagar a los ' + l.start : U.money(l.pay) + ' al año'})`))) : null));
     const news = MV.sys.world.current(g);
     body.append(h('div', { class: 'box news', id: 'world-news' }, h('b', null, `${news ? news.icon : '🌤️'} Clima económico: ${news ? news.title : 'año tranquilo'}`), h('p', { class: 'note', style: { margin: '4px 0 0' } }, MV.sys.world.describe(news))));
-    if (p.age < 18) { body.append(note('Eres menor de edad: todavía no puedes comprar casas, autos ni invertir.')); return; }
+    if (p.age < 18) {
+      body.append(note('Eres menor de edad: todavía no puedes comprar casas, autos ni invertir.'));
+      if (p.age >= 8) {
+        const mine = MV.sys.music.owned(p);
+        const ml = h('div', { class: 'list' });
+        mine.forEach((a) => ml.append(UI.row(a.icon, a.name, `Valor ${U.money(a.value)}`, '›', () => showAsset(a.id))));
+        ml.append(UI.row('🎸', 'Tienda de música', 'Con tus ahorros sí puedes comprar un instrumento', '›', () => UI.showMusicShop()));
+        body.append(title('Música'), ml);
+      }
+      return;
+    }
     // Vivienda
     body.append(title('Vivienda'));
     const home = p.home && p.assets.find((a) => a.id === p.home);
@@ -233,6 +247,7 @@
     body.append(title('Comprar'));
     const buy = h('div', { class: 'list' });
     [['casa', '🏡', 'Casas y departamentos'], ['auto', '🚗', 'Autos y motos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
+    buy.append(UI.row('🎸', 'Tienda de música', 'Instrumentos para practicar, tocar y hacer carrera', '›', () => UI.showMusicShop()));
     body.append(buy);
     // Inversiones
     body.append(title('Inversiones'));
@@ -252,6 +267,21 @@
     });
     body.append(inv);
   }
+
+  /** Tienda de música: instrumentos de precio fijo. */
+  UI.showMusicShop = function () {
+    UI.sheet({
+      title: 'Tienda de música', icon: '🎸',
+      render: (body) => {
+        const g = UI.g;
+        body.append(note(`Tienes ${U.money(g.p.money)}. Los mejores instrumentos suben más tu Música y ayudan en audiciones y canciones.`));
+        const l = h('div', { class: 'list' });
+        MV.INSTRUMENTS.forEach((I) => l.append(UI.row(I.icon, I.name, `${U.money(I.price)} · calidad ${'★'.repeat(I.quality)}${'☆'.repeat(3 - I.quality)}`, g.p.money >= I.price ? 'Comprar' : '',
+          () => UI.runSystem(I.icon, () => MV.sys.music.buy(g, I.id)), g.p.money < I.price)));
+        body.append(l);
+      }
+    });
+  };
 
   function showAsset(id) {
     UI.sheet({
@@ -285,6 +315,17 @@
             }
           })));
           body.append(ul);
+        }
+        if (MV.sys.island.isIsland(a)) UI.islandSection(body, a);
+        if (a.type === 'instrumento') {
+          const ma = MV.sys.music.actions(g, a);
+          body.append(h('h3', { class: 'section-title' }, 'Tocar'));
+          body.append(ma.length ? UI.actionList(ma) : note('Desde la cárcel solo puedes tocar la armónica imaginaria.'));
+        }
+        if (MV.sys.vehicles.kindOf(a)) {
+          const va = MV.sys.vehicles.actions(g, a);
+          body.append(h('h3', { class: 'section-title' }, 'Usar'));
+          body.append(va.length ? UI.actionList(va) : note(p.prison ? 'Desde la cárcel no puedes usarlo.' : 'Ahora no te alcanza el dinero para usarlo.'));
         }
         body.append(h('h3', { class: 'section-title' }, 'Opciones'));
         const l = h('div', { class: 'list' });

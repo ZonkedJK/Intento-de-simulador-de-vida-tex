@@ -234,7 +234,7 @@
           body.append(h('div', { class: 'box' }, p.record.map((r) => kv(r.crime, `${r.age} años, ${r.years ? r.years + ' año' + (r.years > 1 ? 's' : '') : 'multa'}`))));
         }
         body.append(title('Otros datos'));
-        body.append(h('div', { class: 'box' }, kv('Licencia de conducir', p.license ? 'Sí' : 'No'), kv('Seguidores', U.num(p.followers)), kv('Viajes', String(p.counters.viajes || 0)), kv('Delitos cometidos', String(p.counters.delitos || 0))));
+        body.append(h('div', { class: 'box' }, h('div', { class: 'kv', id: 'profile-licenses' }, h('span', null, 'Licencias'), h('span', null, MV.sys.license.held(UI.g).join(', ') || 'Ninguna')), kv('Seguidores', U.num(p.followers)), kv('Viajes', String(p.counters.viajes || 0)), kv('Delitos cometidos', String(p.counters.delitos || 0))));
       }
     });
   };

@@ -131,10 +131,26 @@ test('una partida v3 con mascotas e hijos se migra a v4 y sigue jugando', () => 
   MV.store.set('milvidas.partida', g);
   const back = MV.loadGame();
   assert.equal(back.version, MV.VERSION);
-  assert.equal(MV.VERSION, 4);
+  assert.ok(MV.VERSION >= 4);
   assert.ok(Array.isArray(back.p.works));
   assert.equal(back.world, null);
   assert.equal(back.challenge, null);
   for (let y = 0; y < 25 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
   assert.ok(back.p.age > 50);
+});
+
+test('una partida v4 con licencia de conducir y club se migra a v5', () => {
+  const { load } = require('./load');
+  const { resolveQueue } = require('./agent');
+  const MV = load({ seed: 55 });
+  const g = MV.newGame({ seed: 55 }); g.p.age = 17; g.p.license = true; g.p.club = 'futbol';
+  g.version = 4; delete g.p.licenses; delete g.p.clubs;
+  MV.store.set('milvidas.partida', g);
+  const back = MV.loadGame();
+  assert.equal(back.version, 5);
+  assert.equal(MV.VERSION, 5);
+  assert.deepEqual(back.p.licenses, { auto: true });
+  assert.deepEqual(back.p.clubs, ['sport:futbol']);
+  for (let y = 0; y < 20 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
+  assert.ok(back.p.age > 17);
 });

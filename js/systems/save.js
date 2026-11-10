@@ -75,6 +75,13 @@
       g.challenge = g.challenge || null;
       g.version = 4;
     }
+    if (g.version === 4) {
+      // v5: licencias de vehículos y hasta 3 clubes o talleres.
+      const p = g.p;
+      p.licenses = Object.assign({ auto: !!p.license }, p.licenses);
+      if (!Array.isArray(p.clubs)) p.clubs = p.club ? ['sport:' + p.club] : [];
+      g.version = 5;
+    }
     return g;
   };
 

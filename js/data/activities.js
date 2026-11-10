@@ -56,7 +56,8 @@
     run: (g) => { fx.stat(g, 'health', U.int(1, 4)); fx.stat(g, 'looks', U.int(1, 3)); fx.stat(g, 'happy', -U.int(1, 4)); return U.pick(['Comiste ensalada todo el mes. Sueñas con milanesas.', 'Dejaste el azúcar. Ahora odias a todo el mundo, pero te ves bien.']); } });
   A({ id: 'club_deporte', cat: 'mente', icon: '🏟️', label: 'Entrenar en un club deportivo', sub: 'Elige un deporte (cuota anual)', minAge: 18, limit: 1,
     when: (g) => !MV.sys.sports.isPro(g.p),
-    opts: (g) => Object.keys(MV.SPORTS).map((k) => ({ id: k, icon: MV.SPORTS[k].icon, label: MV.SPORTS[k].club, sub: g.p.club === k ? 'Ya entrenas aquí' : `Tu nivel: ${MV.sys.sports.rating(g, k)}/100, cuota ${U.money(MV.SPORTS[k].clubCost || 300)}/año` })),
+    opts: (g) => Object.keys(MV.SPORTS).map((k) => ({ id: k, icon: MV.SPORTS[k].icon, label: MV.SPORTS[k].club, sub: MV.sys.sports.clubSports(g.p).includes(k) ? 'Ya entrenas aquí' : `Tu nivel: ${MV.sys.sports.rating(g, k)}/100, cuota ${U.money(MV.SPORTS[k].clubCost || 300)}/año` })),
+    check: (g, k) => (k == null ? null : MV.sys.edu.joinRefusal(g, 'sport:' + k)),
     run: (g, k) => MV.sys.sports.joinClub(g, k) });
   A({ id: 'practicar', cat: 'mente', icon: '🎯', label: 'Practicar una habilidad', sub: 'Elige qué entrenar', minAge: 6, limit: 3,
     opts: () => Object.keys(MV.SKILLS).filter((k) => k !== 'crimen').map((k) => ({ id: k, icon: MV.SKILLS[k].icon, label: MV.SKILLS[k].name })),
@@ -243,8 +244,14 @@
     run: (g) => MV.sys.career.audition(g, 'mafia') });
 
   // ——— Trámites y vida ———
-  A({ id: 'licencia', cat: 'tramites', icon: '🚗', label: 'Sacar la licencia de conducir', sub: '$150 · examen', minAge: 17, limit: 2, when: (g) => !g.p.license,
-    run: (g) => { fx.money(g, -150); if (U.chance(0.5 + g.p.stats.smarts / 250)) { g.p.license = true; fx.stat(g, 'happy', 6); return '¡Aprobaste el examen de manejo! El examinador respiró aliviado.'; } return U.pick(['Reprobaste: estacionaste sobre la vereda.', 'Reprobaste: confundiste el freno con el acelerador. El examinador rezó.', 'Reprobaste: atropellaste un cono. Y otro. Y el cartel de PARE.']); } });
+  // Licencias: examen de preguntas (hoja propia en la interfaz; sin respuestas, se simula).
+  Object.keys(MV.LICENSES).forEach((kind) => {
+    const L = MV.LICENSES[kind];
+    A({ id: 'lic_' + kind, cat: 'tramites', icon: L.icon, label: L.label, sub: `${U.money(L.cost)} · examen de ${L.n} preguntas`, minAge: L.minAge, limit: 2, ui: 'quiz', license: kind,
+      when: (g) => !g.p.prison && !MV.sys.license.has(g, kind) && (!L.requires || MV.sys.license.has(g, L.requires)),
+      check: (g) => { const c = MV.sys.license.canTake(g, kind); return c.ok ? null : `No puedes rendir: ${c.why.join(', ').toLowerCase()}.`; },
+      run: (g, o) => MV.sys.license.take(g, kind, o) });
+  });
   A({ id: 'emigrar', cat: 'tramites', icon: '🧳', label: 'Emigrar a otro país', sub: '$3.000 · empezar de cero', minAge: 18, limit: 1, when: (g) => g.p.money >= 3000 && !g.p.wanted,
     opts: (g) => Object.keys(MV.COUNTRIES).filter((k) => k !== g.p.country).sort((a, b) => MV.COUNTRIES[a].name.localeCompare(MV.COUNTRIES[b].name, 'es'))
       .map((k) => ({ id: k, icon: MV.COUNTRIES[k].flag, label: MV.COUNTRIES[k].name, sub: MV.COUNTRIES[k].region })),

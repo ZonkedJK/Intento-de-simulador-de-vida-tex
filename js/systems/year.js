@@ -19,6 +19,7 @@
     MV.sys.sports.yearly(g);
     MV.sys.money.yearly(g);
     MV.sys.works.yearly(g);
+    MV.sys.island.yearly(g);
     MV.sys.crime.yearly(g);
     MV.sys.rels.yearly(g);
     MV.sys.legacy.yearly(g);

@@ -60,6 +60,11 @@
     { id: 'fondo', name: 'Toqué fondo', icon: '🍾', desc: 'Llega a 90 en una adicción.', check: (g) => Math.max.apply(null, Object.values(g.p.addic)) >= 90 },
     { id: 'rehab', name: 'Rehabilitado', icon: '🌱', desc: 'Supera una adicción.' },
     { id: 'desafio', name: 'Desafío cumplido', icon: '🎯', desc: 'Cumple un desafío elegido al nacer.' },
+    { id: 'licencia_auto', name: 'Al volante', icon: '🚗', desc: 'Aprueba el examen de conducir.' },
+    { id: 'licencia_yate', name: 'Capitán', icon: '⛵', desc: 'Aprueba el examen de yate.' },
+    { id: 'licencia_avion', name: 'Alas', icon: '✈️', desc: 'Aprueba el examen de piloto de avión.' },
+    { id: 'licencia_helicoptero', name: 'Hélices', icon: '🚁', desc: 'Aprueba el examen de piloto de helicóptero.' },
+    { id: 'magnate_isla', name: 'Magnate de la isla', icon: '🏝️', desc: 'Lleva un proyecto de isla al nivel 5.' },
     { id: 'aspiracion', name: 'Sueño cumplido', icon: '🌈', desc: 'Cumple tu aspiración de vida.' },
     { id: 'emigrante', name: 'Nueva tierra', icon: '🧳', desc: 'Emigra a otro país.' },
     { id: 'reencarnacion', name: 'Reencarnación', icon: '♻️', desc: 'Vive 10 vidas.' }
