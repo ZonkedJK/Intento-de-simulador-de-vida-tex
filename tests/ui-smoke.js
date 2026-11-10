@@ -231,6 +231,19 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   const bought = await page.evaluate(() => { const a = MV.UI.g.p.assets.filter((x) => x.type === 'auto').pop(); return a ? { model: a.model, color: a.color } : null; });
   if (!bought || bought.color !== 'verde' || !/okami_trekker|aurora_xl|tundra_montaraz|kaiserwerk_gelande|vellano_toro/.test(bought.model)) errors.push('La compra en la concesionaria no guardó modelo y color: ' + JSON.stringify(bought));
+  // Ficha del auto: dibujo, tuneo, carreras y seguro
+  await page.evaluate(() => { const g = MV.UI.g; g.p.licenses = Object.assign({}, g.p.licenses, { auto: true }); g.p.license = true; MV.UI.closeSheets(); MV.UI.showAssets(); });
+  const carName = await page.evaluate(() => MV.UI.g.p.assets.filter((x) => x.type === 'auto').pop().name);
+  await page.click(`#layer .layer-item:last-child button.row:has-text("${carName}")`);
+  if (!(await page.$('#layer .layer-item:last-child .car-art svg'))) errors.push('La ficha del auto no tiene dibujo');
+  await page.click('#layer .layer-item:last-child button.row:has-text("Motor preparado")');
+  await resolve();
+  await page.click('#layer .layer-item:last-child button.row:has-text("Asegurar")');
+  await resolve();
+  await page.click('#layer .layer-item:last-child button.row:has-text("Correr en circuito")');
+  await resolve();
+  const carState = await page.evaluate(() => { const a = MV.UI.g.p.assets.filter((x) => x.type === 'auto').pop(); return { motor: !!(a.tune || {}).motor, insured: a.insured }; });
+  if (!carState.motor || !carState.insured) errors.push('Tunear o asegurar desde la ficha no funcionó: ' + JSON.stringify(carState));
   await page.evaluate(() => MV.UI.closeSheets());
 
   // Animaciones: números flotantes, avatar que reacciona y dinero que cuenta (y nada si se apagan)

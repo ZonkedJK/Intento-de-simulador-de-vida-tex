@@ -151,7 +151,9 @@
     const seed = hash(key);
     const hex = color ? color.hex : (x.kind === 'Chatarra con ruedas' ? '#8a6a4a' : MV.CAR_COLORS[seed % MV.CAR_COLORS.length].hex);
     const cat = model ? model.cat : OLD_KIND[x.kind] || 'sedan';
-    const art = model ? model.art : {};
+    const art = Object.assign({}, model ? model.art : {});
+    if (x.tune && x.tune.aleron && !art.wing) art.wing = 'small';
+    if (x.tune && x.tune.pintura) art.stripe = true;
     const label = model ? `${model.brand} ${model.model}` : 'Auto';
     return toSVG(grid(cat, art, seed), hex, RIMS[seed % RIMS.length], TINTS[(seed >>> 3) % TINTS.length], label);
   };

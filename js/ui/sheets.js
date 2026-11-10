@@ -324,6 +324,35 @@
           body.append(h('h3', { class: 'section-title' }, 'Tocar'));
           body.append(ma.length ? UI.actionList(ma) : note('Desde la cárcel solo puedes tocar la armónica imaginaria.'));
         }
+        if (a.type === 'auto') {
+          const C = MV.sys.cars;
+          body.append(title(`Tuneo · rendimiento ${C.perf(a)}`));
+          const tl = h('div', { class: 'list' });
+          Object.keys(MV.CAR_TUNES).forEach((k) => {
+            const T = MV.CAR_TUNES[k], has = !!(a.tune || {})[k];
+            tl.append(UI.row(T.icon, T.name, has ? 'Instalado' : `${U.money(T.cost)} · +${T.perf} de rendimiento`, has ? '✓' : null, has ? null : () => UI.runSystem(T.icon, () => C.tune(g, a.id, k)), !has && p.money < T.cost));
+          });
+          body.append(tl);
+          body.append(title('Carreras'));
+          const rl = h('div', { class: 'list' });
+          const noLic = MV.sys.license.has(g, 'auto') ? '' : ' · necesitas licencia';
+          rl.append(UI.row('🏁', 'Correr en circuito', `Inscripción $500. Premios hasta $8.000, sin riesgo legal${noLic}`, null, () => UI.runSystem('🏁', () => C.race(g, a.id, 'circuito')), p.money < 500));
+          rl.append(UI.row('🌃', 'Picada callejera', `18+. Apuestas plata; puede venir la policía o terminar en choque${noLic}`, '›', () => UI.sheet({
+            title: 'Picada callejera', icon: '🌃',
+            render: (b2) => {
+              b2.append(note(`Tu ${a.name} tiene rendimiento ${C.perf(a)}. ¿Cuánto apuestas?`));
+              const bl = h('div', { class: 'list' });
+              [0, 500, 2000, 10000, 50000].forEach((bet) => bl.append(UI.row('💵', bet ? `Apostar ${U.money(bet)}` : 'Correr por el honor', bet ? 'Si ganas, lo duplicas' : 'Sin apuesta', null, () => { UI.popSheet(); UI.runSystem('🌃', () => C.race(g, a.id, 'calle', bet)); }, p.money < bet)));
+              b2.append(bl);
+            }
+          })));
+          body.append(rl);
+          body.append(title('Seguro'));
+          const sl = h('div', { class: 'list' });
+          sl.append(a.insured ? UI.row('🛡️', 'Asegurado', `Cubre choques y robos. ${U.money(C.premium(a))} al año`, 'Cancelar', () => UI.runSystem('🛡️', () => C.insure(g, a.id, false)))
+            : UI.row('🛡️', 'Asegurar', `${U.money(C.premium(a))} al año (3 % del valor). Cubre choques y robos`, null, () => UI.runSystem('🛡️', () => C.insure(g, a.id, true)), p.money < C.premium(a)));
+          body.append(sl);
+        }
         if (MV.sys.vehicles.kindOf(a)) {
           const va = MV.sys.vehicles.actions(g, a);
           body.append(h('h3', { class: 'section-title' }, 'Usar'));

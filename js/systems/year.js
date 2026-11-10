@@ -18,6 +18,7 @@
     MV.sys.career.yearly(g);
     MV.sys.sports.yearly(g);
     MV.sys.money.yearly(g);
+    MV.sys.cars.yearly(g);
     MV.sys.works.yearly(g);
     MV.sys.island.yearly(g);
     MV.sys.mythic.yearly(g);

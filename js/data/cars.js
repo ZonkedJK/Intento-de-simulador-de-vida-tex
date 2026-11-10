@@ -74,6 +74,15 @@
     M('monterrey_presidencial', 'Monterrey', 'Limusina Presidencial', 'lujo', 900000, 200, 8.0, 25, 96, 'Blindada, larguísima y con minibar. El tráfico se abre a tu paso.', { stretch: 6 })
   ];
 
+  /** Piezas de tuneo: costo, puntos de rendimiento y fracción del costo que suma al valor del auto. */
+  MV.CAR_TUNES = {
+    motor: { name: 'Motor preparado', icon: '🔧', cost: 8000, perf: 12, back: 0.5 },
+    llantas: { name: 'Llantas y neumáticos de competición', icon: '🛞', cost: 2500, perf: 5, back: 0.4 },
+    pintura: { name: 'Pintura de carreras', icon: '🎨', cost: 1500, perf: 2, back: 0.6 },
+    aleron: { name: 'Alerón', icon: '🪽', cost: 3000, perf: 6, back: 0.3 },
+    nitro: { name: 'Nitro', icon: '🧯', cost: 5000, perf: 10, back: 0.2 }
+  };
+
   MV.CAR_COLORS = [
     { id: 'rojo', name: 'Rojo', hex: '#d62828' },
     { id: 'azul', name: 'Azul', hex: '#1f5fbf' },
