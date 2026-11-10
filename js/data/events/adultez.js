@@ -28,7 +28,8 @@
     choices: [
       { t: 'Ayudar al príncipe', eff: (g) => { if (g.p.stats.smarts > 80 && U.chance(0.5)) return 'Empezaste a responder y te diste cuenta a tiempo. Uf.'; const lost = Math.round(Math.max(200, g.p.money * U.float(0.05, 0.3))); fx.money(g, -lost); fx.stat(g, 'happy', -8); return `El príncipe desapareció con ${U.money(lost)}. Su reino era un cibercafé.`; } },
       { t: 'Ignorar', eff: { msg: 'Lo mandaste a spam. El príncipe insiste cada semana.' } },
-      { t: 'Estafar al estafador', eff: { p: (g) => 0.2 + g.p.skills.crimen / 120 + g.p.stats.smarts / 400, ok: { money: [500, 5000], skills: { crimen: 2 }, msg: 'Le hiciste creer que eras millonario y te mandó {amount} "para gastos". Justicia poética.' }, ko: { msg: 'El estafador era mejor que tú. Te bloqueó y te dejó un emoji de payaso.' } } }
+      { t: 'Estafar al estafador', eff: { p: (g) => 0.2 + g.p.skills.crimen / 120 + g.p.stats.smarts / 400, ok: { money: [500, 5000], skills: { crimen: 2 }, msg: 'Le hiciste creer que eras millonario y te mandó {amount} "para gastos". Justicia poética.' }, ko: { msg: 'El estafador era mejor que tú. Te bloqueó y te dejó un emoji de payaso.' } } },
+      { t: 'Pedir ayuda a un sobrino que sabe de computadoras', eff: { smarts: 1, stress: -1, msg: 'Tu sobrino bloqueó al príncipe, te instaló un antivirus y te cobró en empanadas.' } }
     ] });
   ev({ id: 'vecino_ruidoso', age: [18, 90], icon: '🔊', title: 'El vecino de arriba',
     text: 'Tu vecino pone música a todo volumen a las 3 de la mañana. Otra vez.',
@@ -36,7 +37,8 @@
       { t: 'Golpear el techo con una escoba', eff: { stress: 3, msg: 'Golpeaste el techo. Subió el volumen. Era un mensaje claro.' } },
       { t: 'Llamar a la policía', eff: { p: 0.6, ok: { stress: -4, msg: 'La policía vino. Silencio total. Ahora el vecino te mira raro en el ascensor.' }, ko: { stress: 4, msg: 'La policía vino y se quedó a la fiesta.' } } },
       { t: 'Unirte a la fiesta', eff: (g) => { fx.stat(g, 'happy', 6); fx.addic(g, 'alcohol', 3); const n = MV.newNPC(g, { age: U.clamp(g.p.age + U.int(-8, 8), 18, 90), country: g.p.country }); MV.addRel(g, n, 'amigo', U.int(45, 70)); return `Subiste en pijama y terminaste siendo amigo de ${n.first}, el vecino. La música era buenísima.`; } },
-      { t: 'Vengarte con música peor', eff: { happy: 3, karma: -2, msg: 'Pusiste polka a todo volumen a las 7 a.m. Victoria total.' } }
+      { t: 'Vengarte con música peor', eff: { happy: 3, karma: -2, msg: 'Pusiste polka a todo volumen a las 7 a.m. Victoria total.' } },
+      { t: 'Negociar: fiesta solo hasta las 12', eff: { p: (g) => 0.4 + g.p.skills.carisma / 200, ok: { stress: -5, karma: 1, msg: 'Negociaste como diplomático: fiestas hasta las 12 y te invita a todas. Paz en el edificio.' }, ko: { stress: 2, msg: 'Te dijo que sí. Esa misma noche puso reguetón a las 4.' } } }
     ] });
   ev({ id: 'robo_casa', age: [18, 95], w: 0.6, when: (g) => g.p.housing !== 'padres' && g.p.housing !== 'calle', icon: '🦹', title: '¡Ladrones!',
     text: 'Escuchas ruidos en tu casa a medianoche. Alguien está robando.',
@@ -87,7 +89,8 @@
     choices: [
       { t: 'Discurso emotivo', eff: { p: (g) => 0.4 + g.p.skills.carisma / 100, ok: { rel: 12, happy: 6, skills: { carisma: 3 }, msg: 'Hiciste llorar a 200 personas. {t} te abrazó 10 minutos.' }, ko: { rel: 2, happy: -3, msg: 'Te trabaste, dijiste el nombre de su ex y te sentaste rápido.' } } },
       { t: 'Contar anécdotas vergonzosas', eff: { p: 0.5, ok: { rel: 6, happy: 6, msg: 'Todos se rieron con tus anécdotas. Incluso {t}.' }, ko: { rel: -15, msg: 'Contaste LA anécdota. La familia del novio/novia no la conocía. Silencio sepulcral.' } } },
-      { t: 'Tomar coraje (líquido) antes', eff: { addic: { alcohol: 5 }, rel: -5, happy: 4, msg: 'Diste el discurso borracho y terminaste cantando una ranchera. Viral en la familia.' } }
+      { t: 'Tomar coraje (líquido) antes', eff: { addic: { alcohol: 5 }, rel: -5, happy: 4, msg: 'Diste el discurso borracho y terminaste cantando una ranchera. Viral en la familia.' } },
+      { t: 'Leer un discurso escrito por una inteligencia artificial', eff: { p: 0.5, ok: { rel: 4, msg: 'Nadie notó que lo escribió una máquina. Bueno, solo cuando dijo "estimados seres humanos".' }, ko: { rel: -6, happy: -2, msg: 'El discurso felicitaba a "Novio y Novia Genéricos". {t} todavía no te habla.' } } }
     ] });
   ev({ id: 'robo_merito', age: [20, 64], when: H.job, icon: '🦊', scene: 'trabajo', title: 'Te robaron el mérito',
     text: 'Un compañero presentó tu proyecto como si fuera suyo. El jefe lo felicitó.',
@@ -164,21 +167,24 @@
     text: 'Un vecino jura que el fin del mundo llega el martes y te ofrece un lugar en su búnker por $2.000.',
     choices: [
       { t: 'Comprar el lugar', when: (g) => g.p.money >= 2000, eff: { money: -2000, happy: -2, msg: 'Pasaste el martes en un búnker comiendo atún. El mundo siguió. El vecino dice que "se postergó".' } },
-      { t: 'Reírte en su cara', eff: { happy: 2, msg: 'Te reíste. El martes no pasó nada. El vecino no te saluda más.' } }
+      { t: 'Reírte en su cara', eff: { happy: 2, msg: 'Te reíste. El martes no pasó nada. El vecino no te saluda más.' } },
+      { t: 'Regatear: $500 y llevas el postre', when: (g) => g.p.money >= 500, eff: { money: -500, happy: 1, msg: 'Conseguiste el lugar por $500 y un flan. El martes no pasó nada, pero el flan estaba buenísimo.' } }
     ] });
   ev({ id: 'donar_sangre', age: [18, 60], icon: '🩸', title: 'Campaña de donación',
     text: 'Hay una campaña de donación de sangre en tu barrio.',
     choices: [
       { t: 'Donar', eff: { karma: 5, health: -1, happy: 3, msg: 'Donaste sangre. Te dieron un jugo y una galletita. Eres un héroe con curita.' } },
       { t: 'Desmayarte de solo ver la aguja', eff: { happy: -2, msg: 'Te desmayaste antes de que te tocaran. Te dieron el jugo igual.' } },
-      { t: 'No ir', eff: { msg: 'No fuiste. Seguramente alguien más donó.' } }
+      { t: 'No ir', eff: { msg: 'No fuiste. Seguramente alguien más donó.' } },
+      { t: 'Ir solo por el jugo y las galletitas', eff: { happy: 2, karma: -1, msg: 'Hiciste la fila, comiste tres galletitas y te fuiste antes de la aguja. Estrategia impecable.' } }
     ] });
   ev({ id: 'perro_puerta', age: [18, 90], when: (g) => g.p.housing !== 'padres', icon: '🐶', title: 'Un visitante',
     text: 'Un perro callejero se instaló en tu puerta. Te mira con ojos de "adóptame".',
     choices: [
       { t: 'Adoptarlo', eff: (g) => { const pet = MV.newPet(g, 'perro', { age: U.int(1, 8) }); MV.addRel(g, pet, 'mascota', U.int(70, 95)); fx.stat(g, 'happy', 8); fx.stat(g, 'karma', 4); MV.ach.check(g); return `Adoptaste al perro y lo llamaste ${pet.first}. Ya duerme en tu cama.`; } },
       { t: 'Darle comida y agua', eff: { karma: 3, msg: 'Le diste comida. Vuelve todos los días. Técnicamente ya es tuyo.' } },
-      { t: 'Ahuyentarlo', eff: { karma: -3, msg: 'Lo ahuyentaste. Se fue mirándote por encima del hombro. Fuiste el villano.' } }
+      { t: 'Ahuyentarlo', eff: { karma: -3, msg: 'Lo ahuyentaste. Se fue mirándote por encima del hombro. Fuiste el villano.' } },
+      { t: 'Llevarlo a un refugio', eff: { karma: 3, happy: 1, msg: 'Lo llevaste a un refugio. En una semana lo adoptó una familia con jardín. Te mandaron una foto.' } }
     ] });
   ev({ id: 'reality_show', age: [18, 45], when: (g) => g.p.stats.looks >= 60 || g.p.fame >= 20, icon: '📺', scene: 'escenario', title: 'Reality show',
     text: 'Una productora te invita a participar en "Encerrados en la Mansión".',
@@ -198,13 +204,15 @@
     choices: [
       { t: 'Pagar todo en regla', eff: (g) => { const amt = Math.round(Math.max(500, g.p.money * 0.05)); fx.money(g, -amt); fx.stat(g, 'karma', 2); return `Pagaste ${U.money(amt)} de diferencias. Dormirás tranquilo.`; } },
       { t: 'Contratar un contador "creativo" ($3.000)', when: (g) => g.p.money >= 3000, eff: { money: -3000, karma: -3, p: 0.7, ok: { msg: 'El contador hizo magia contable. Todo en orden (en los papeles).' }, ko: { then: (g) => { MV.sys.crime.arrest(g, 'Evasión fiscal', 3); return 'El contador era tan creativo que lo buscaba la policía. Te arrastró con él.'; } } } },
-      { t: 'Esconder el dinero en el colchón', eff: { p: 0.5, ok: { skills: { crimen: 2 }, msg: 'Los inspectores no encontraron nada. Tu colchón es el más caro del país.' }, ko: { then: (g) => { const amt = Math.round(Math.max(1000, g.p.money * 0.2)); fx.money(g, -amt); return `Encontraron el colchón. Multa de ${U.money(amt)}.`; } } } }
+      { t: 'Esconder el dinero en el colchón', eff: { p: 0.5, ok: { skills: { crimen: 2 }, msg: 'Los inspectores no encontraron nada. Tu colchón es el más caro del país.' }, ko: { then: (g) => { const amt = Math.round(Math.max(1000, g.p.money * 0.2)); fx.money(g, -amt); return `Encontraron el colchón. Multa de ${U.money(amt)}.`; } } } },
+      { t: 'Negociar un plan de pagos', eff: (g) => { const amt = Math.round(Math.max(500, g.p.money * 0.06)); MV.sys.money.addLoan(g, 'Plan de pagos de impuestos', amt, 3, g.p.age + 1); fx.stat(g, 'stress', -2); fx.stat(g, 'karma', 1); return `Negociaste pagar ${U.money(amt)} en tres años. El inspector te deseó buena suerte con cara de "nos vemos".`; } }
     ] });
   ev({ id: 'amigo_prestamo', age: [18, 80], when: (g) => g.p.money >= 1000 && MV.rels(g, 'amigo').length > 0, target: H.rel('amigo'), icon: '🤲', title: 'Un favor',
     text: '{t} te pide prestados $1.000. Jura que te los devuelve el mes que viene.',
     choices: [
       { t: 'Prestarle', eff: (g, ctx) => { fx.money(g, -1000); MV.EVH.bump(g, ctx, 8); MV.EV.later(g, 'amigo_devuelve', U.int(1, 3), { target: ctx.target }); return 'Le prestaste $1.000 a {t}. Te abrazó. Ya veremos.'; } },
-      { t: 'Negarte', eff: { rel: -10, msg: 'Le dijiste que no a {t}. Ahora te dice "tacaño/a" en el grupo.' } }
+      { t: 'Negarte', eff: { rel: -10, msg: 'Le dijiste que no a {t}. Ahora te dice "tacaño/a" en el grupo.' } },
+      { t: 'Negociar: le prestas la mitad', eff: (g, ctx) => { fx.money(g, -500); MV.EVH.bump(g, ctx, 3); return 'Le prestaste $500 y le dijiste que el resto lo consiga vendiendo su colección de figuritas. Aceptó con dignidad.'; } }
     ] });
   ev({ id: 'boda_ex', age: [22, 70], when: H.has('ex'), target: H.rel('ex'), icon: '💒', scene: 'boda', title: 'Invitación',
     text: '{t}, tu ex, te invita a su boda. Con alguien que se parece sospechosamente a ti.',

@@ -15,7 +15,8 @@
     choices: [
       { t: 'Darle la bienvenida con una torta', eff: (g) => { const n = MV.newNPC(g, { age: U.clamp(g.p.age + U.int(-10, 10), 8, 99), country: g.p.country }); MV.addRel(g, n, 'amigo', U.int(45, 70)); fx.stat(g, 'karma', 2); return `Le llevaste una torta a ${n.first}. Te invitó a pasar. Ahora son amig${U.gw(n.gender, 'os', 'as')}.`; } },
       { t: 'Espiar por la ventana', eff: { karma: -1, happy: 1, msg: 'Lo espiaste tres días. Tiene una colección de enanos de jardín. Inquietante.' } },
-      { t: 'Ignorarlo', eff: { msg: 'Lo ignoraste. Él también a ti. Paz vecinal.' } }
+      { t: 'Ignorarlo', eff: { msg: 'Lo ignoraste. Él también a ti. Paz vecinal.' } },
+      { t: 'Pedirle azúcar (y la clave del wifi)', eff: { p: 0.5, ok: { happy: 4, skills: { carisma: 1 }, msg: 'Te dio el azúcar y la clave del wifi. Es tu nueva persona favorita.' }, ko: { happy: -1, msg: 'Te dio el azúcar. La clave del wifi, no. Hay límites.' } } }
     ] });
   ev({ id: 'karma_bueno', age: [10, 110], when: (g) => g.p.karma >= 45, icon: '🍀', text: (g) => U.pick(['Un desconocido te pagó el café. El universo devuelve favores.', 'Encontraste el último asiento libre en el transporte. El karma existe.', 'Te devolvieron la billetera perdida con todo adentro y una nota amable.']), auto: { happy: 4 } });
   ev({ id: 'karma_malo', age: [10, 110], when: (g) => g.p.karma <= -40, icon: '🐦', text: (g) => U.pick(['Una paloma te eligió. Otra vez. Justo en la cabeza.', 'Pisaste un chicle, después un charco y después algo peor.', 'Se te cayó el celular en el inodoro. El universo lleva la cuenta.']), auto: { happy: -4 } });
@@ -87,7 +88,8 @@
     choices: [
       { t: 'Aceptar', eff: (g) => { fx.money(g, 10000); MV.EV.later(g, 'prestamista_cobra', U.int(1, 2)); return 'Aceptaste los $10.000. Él sonrió mostrando un diente de oro.'; } },
       { t: 'Rechazar', eff: { stress: 4, msg: 'Rechazaste. Sigues con deudas, pero con todas tus rodillas.' } },
-      { t: 'Vender algo para salir del pozo', when: (g) => g.p.assets.length > 0, eff: (g) => { const a = g.p.assets.slice().sort((x, y) => x.value - y.value)[0]; return MV.sys.money.sell(g, a.id); } }
+      { t: 'Vender algo para salir del pozo', when: (g) => g.p.assets.length > 0, eff: (g) => { const a = g.p.assets.slice().sort((x, y) => x.value - y.value)[0]; return MV.sys.money.sell(g, a.id); } },
+      { t: 'Pedir ayuda a la familia', eff: (g) => { const fam = MV.rels(g, ['padre', 'hermano', 'abuelo']).filter(({ n, r }) => n.species === 'humano' && r.rel >= 40 && n.money > 2000); if (fam.length) { const x = fam[0], amt = Math.min(6000, Math.round(x.n.money * 0.3)); x.n.money -= amt; fx.money(g, amt); x.r.rel = U.clamp(x.r.rel - 5, 0, 100); return `${x.n.first} te prestó ${U.money(amt)} sin cadena de oro ni intereses. Solo un sermón.`; } fx.stat(g, 'stress', 2); return 'Tu familia te mandó un audio de 7 minutos con consejos. Sin dinero.'; } }
     ] });
   ev({ id: 'vida_calle', age: [16, 110], cd: 1, w: 6, when: (g) => g.p.housing === 'calle', icon: '📦', scene: 'ciudad', title: 'Vivir en la calle',
     text: 'Duermes en un banco de la plaza. Las palomas ya te consideran parte del grupo. ¿Qué haces?',
@@ -95,7 +97,8 @@
       { t: 'Pedir ayuda a la familia', when: (g) => MV.rels(g, 'padre').concat(MV.rels(g, 'hermano')).some((x) => x.r.rel >= 25), eff: (g) => { g.p.housing = 'padres'; g.p.rent = null; fx.stat(g, 'happy', 6); return 'Tu familia te recibió con un abrazo, un plato de sopa y un sermón de dos horas.'; } },
       { t: 'Ir a un refugio', eff: { health: 6, happy: 3, karma: 1, msg: 'Pasaste el invierno en un refugio. Comida caliente y una cama de verdad.' } },
       { t: 'Hacer changas por la calle', eff: { money: [300, 1500], health: -1, msg: 'Hiciste changas: cargaste cajas, limpiaste vidrios. Ganaste {amount}.' } },
-      { t: 'Alquilar una pieza barata', when: (g) => g.p.money >= 3500, eff: (g) => MV.sys.money.rent(g, 'pieza') + ' Volviste a tener techo.' }
+      { t: 'Alquilar una pieza barata', when: (g) => g.p.money >= 3500, eff: (g) => MV.sys.money.rent(g, 'pieza') + ' Volviste a tener techo.' },
+      { t: 'Pedir ayuda a una ONG', eff: { health: 4, happy: 3, money: [100, 600], msg: 'Una ONG te dio ropa, comida caliente y {amount} para empezar. También te anotaron en una bolsa de trabajo.' } }
     ] });
   ev({ id: 'alerta_salud', age: [25, 110], when: (g) => g.p.stats.health < 30 && !g.p.prison, icon: '⚠️', text: 'Te sientes muy mal últimamente: cansancio, mareos, crujidos. Quizás deberías ir al médico (pestaña Actividades).', auto: { stress: 4 } });
   ev({ id: 'devolucion_impuestos', age: [20, 90], when: H.anyJob, icon: '💌', text: 'Te devolvieron {amount} de impuestos. Un error a tu favor. Disfrútalo antes de que se den cuenta.', auto: { money: [100, 1500], happy: 3 } });
@@ -117,14 +120,16 @@
     choices: [
       { t: 'Quedarme a su lado', eff: (g, ctx) => { H.bump(g, ctx, 15); fx.stat(g, 'stress', 8); const n = H.t(g, ctx); n.health = U.clamp(n.health + 10, 0, 100); return 'Pasaste noches enteras en el hospital con {t}. Se recuperó. Te agradeció con lágrimas.'; } },
       { t: 'Pagar el mejor tratamiento ($8.000)', when: (g) => g.p.money >= 8000, eff: (g, ctx) => { fx.money(g, -8000); H.bump(g, ctx, 10); const n = H.t(g, ctx); n.health = U.clamp(n.health + 25, 0, 100); return 'Pagaste el mejor tratamiento. {t} se recuperó como nuevo.'; } },
-      { t: 'Estoy muy ocupad{o}', eff: (g, ctx) => { H.bump(g, ctx, -20); fx.stat(g, 'karma', -4); const n = H.t(g, ctx); n.health = U.clamp(n.health - 10, 0, 100); return 'No fuiste a verl{to}. {t} lo recordará. El resto de la familia también.'; } }
+      { t: 'Estoy muy ocupad{o}', eff: (g, ctx) => { H.bump(g, ctx, -20); fx.stat(g, 'karma', -4); const n = H.t(g, ctx); n.health = U.clamp(n.health - 10, 0, 100); return 'No fuiste a verl{to}. {t} lo recordará. El resto de la familia también.'; } },
+      { t: 'Pedir ayuda a la familia para turnarse', eff: (g, ctx) => { H.bump(g, ctx, 8); fx.stat(g, 'stress', 3); const n = H.t(g, ctx); n.health = U.clamp(n.health + 8, 0, 100); return MV.rels(g, 'hermano').length ? 'Armaste turnos con tus hermanos. Nadie durmió mucho, pero {t} nunca estuvo sol{to}.' : 'Armaste turnos con tíos y vecinos. {t} tuvo visitas todo el día y mejoró.'; } }
     ] });
   ev({ id: 'reunion_familiar', age: [6, 110], when: (g) => MV.rels(g, MV.FAMILY).length >= 3, icon: '🍗', scene: 'hogar', title: 'Almuerzo familiar',
     text: 'Almuerzo familiar del domingo. Tu tío empieza a hablar de política.',
     choices: [
       { t: 'Debatir con argumentos', eff: { p: 0.3, ok: { skills: { carisma: 3 }, smarts: 1, msg: 'Ganaste el debate. Tu tío admitió que tenías razón (es la primera vez en la historia).' }, ko: { stress: 6, msg: 'El debate terminó con tu tío gritando y tu abuela llorando. Postre cancelado.' } } },
       { t: 'Cambiar de tema hábilmente', eff: { skills: { carisma: 2 }, msg: '"¿Y cómo están los perros?" Funcionó. Hablaron de perros dos horas.' } },
-      { t: 'Comer en silencio', eff: { health: -1, happy: 2, msg: 'Comiste tres platos en silencio total. Ganador moral del almuerzo.' } }
+      { t: 'Comer en silencio', eff: { health: -1, happy: 2, msg: 'Comiste tres platos en silencio total. Ganador moral del almuerzo.' } },
+      { t: 'Salir con humor: brindar por la paz mundial', eff: { p: 0.6, ok: { happy: 4, skills: { carisma: 1 }, msg: 'Levantaste la copa "por la paz, empezando por esta mesa". Todos se rieron y cambiaron de tema.' }, ko: { stress: 3, msg: 'Tu tío dijo que la paz mundial es un invento de los otros. Siguió el debate.' } } }
     ] });
 
   // — Cárcel —
@@ -161,13 +166,15 @@
     choices: [
       { t: 'Pagar ($2.000)', when: (g) => g.p.money >= 2000, eff: { money: -2000, happy: 8, msg: 'Ahora comes milanesas y ves series. La vida en prisión mejoró mucho.' } },
       { t: 'Denunciarlo al director', eff: (g) => { if (g.p.prison) g.p.prison.behavior = U.clamp(g.p.prison.behavior + 15, 0, 100); fx.stat(g, 'karma', 3); return 'Denunciaste al guardia. El director te anotó buena conducta. Los guardias te odian.'; } },
-      { t: 'Ignorarlo', eff: { msg: 'Lo ignoraste. Sigues comiendo la sopa gris.' } }
+      { t: 'Ignorarlo', eff: { msg: 'Lo ignoraste. Sigues comiendo la sopa gris.' } },
+      { t: 'Negociar: arreglarle el auto a cambio', eff: { p: 0.5, ok: { happy: 5, msg: 'Le arreglaste el auto al guardia. Ahora tienes celular los domingos y un amigo de uniforme.' }, ko: { then: (g) => { if (g.p.prison) g.p.prison.behavior = U.clamp(g.p.prison.behavior - 10, 0, 100); }, msg: 'El auto quedó peor. El guardia te anotó una falta y te mira mal.' } } }
     ] });
   ev({ id: 'carcel_estudio', prison: true, age: [16, 110], icon: '🎓', scene: 'carcel', title: 'Programa educativo',
     text: 'La cárcel ofrece un programa para terminar los estudios.',
     choices: [
       { t: 'Inscribirme', eff: (g) => { fx.stat(g, 'smarts', U.int(3, 6)); if (g.p.prison) g.p.prison.behavior = U.clamp(g.p.prison.behavior + 10, 0, 100); if (!g.p.edu.done.includes('secundaria') && g.p.age >= 17 && U.chance(0.5)) { g.p.edu.done.push('secundaria'); if (!g.p.edu.done.includes('primaria')) g.p.edu.done.push('primaria'); return '¡Terminaste la secundaria en prisión! El director te dio un diploma y un apretón de manos.'; } return 'Estudiaste mucho. Ya puedes explicar el teorema de Pitágoras a tus compañeros.'; } },
-      { t: 'Prefiero el patio', eff: { health: 2, msg: 'Preferiste el patio. Tus bíceps lo agradecen.' } }
+      { t: 'Prefiero el patio', eff: { health: 2, msg: 'Preferiste el patio. Tus bíceps lo agradecen.' } },
+      { t: 'Pedir que también haya taller de cocina', eff: (g) => { MV.fx.skill(g, 'cocina', 2); fx.stat(g, 'happy', 2); if (g.p.prison) g.p.prison.behavior = U.clamp(g.p.prison.behavior + 5, 0, 100); return 'Abrieron un taller de cocina. Tu guiso ya es leyenda en el pabellón.'; } }
     ] });
 
   // — Consecuencias programadas (manuales, se disparan con EV.later) —

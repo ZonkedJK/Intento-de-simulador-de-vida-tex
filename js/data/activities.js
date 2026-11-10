@@ -45,6 +45,23 @@
   A({ id: 'hobby', cat: 'mente', icon: '🎨', label: 'Practicar un hobby', sub: 'Cada año seguido suma racha y baja más el estrés', minAge: 8, limit: 2,
     opts: (g) => Object.keys(MV.HOBBIES).map((k) => { const s = ((g.p.hobbies || {})[k] || {}).streak || 0; return { id: k, icon: MV.HOBBIES[k].icon, label: MV.HOBBIES[k].name, sub: s ? `Racha de ${s} año${s === 1 ? '' : 's'}` : 'Sin racha todavía' }; }),
     run: (g, k) => MV.sys.wellbeing.hobby(g, k) });
+  A({ id: 'clases', cat: 'mente', icon: '🧑‍🏫', label: 'Tomar una clase', sub: '$200 · baile, idiomas, manejo o cocina', minAge: 10, limit: 2, when: (g) => g.p.money >= 200,
+    opts: () => [{ id: 'baile', icon: '💃', label: 'Baile', sub: '+carisma, +deporte' }, { id: 'idiomas', icon: '🗣️', label: 'Idiomas', sub: '+idiomas' },
+      { id: 'manejo', icon: '🚗', label: 'Manejo', sub: 'Para no chocar el primer día' }, { id: 'cocina', icon: '👨‍🍳', label: 'Cocina', sub: '+cocina, +salud' }],
+    run: (g, k) => { fx.money(g, -200);
+      if (k === 'baile') { fx.skill(g, 'carisma', 2); fx.skill(g, 'deporte', 1); fx.stat(g, 'happy', 3); return U.pick(['Aprendiste salsa. Pisaste a tu pareja de baile 11 veces, pero con ritmo.', 'Fuiste a clase de tango. El profesor dijo que "tienes actitud". No dijo nada del talento.']); }
+      if (k === 'idiomas') { fx.skill(g, 'idiomas', 4); return U.pick(['Clase de italiano: ya sabes pedir una pizza y quejarte de ella.', 'Clase de japonés: aprendiste a decir "gracias" y "perdón". Lo básico para sobrevivir.']); }
+      if (k === 'manejo') { fx.stat(g, 'smarts', 1); fx.stat(g, 'stress', -1); return g.p.age < 16 ? 'Te dejaron manejar en un estacionamiento vacío. Le diste a un cono. El cono se lo merecía.' : U.pick(['Practicaste estacionar en paralelo. A la sexta, salió.', 'Tu instructor frenó con su pedal 14 veces. Dice que vas mejorando.']); }
+      fx.skill(g, 'cocina', 4); fx.stat(g, 'health', 1); return U.pick(['Aprendiste a hacer pasta casera. Tu cocina parece una nevada de harina.', 'Hiciste tu primer flan sin que se desarme. Casi lloras.']); } });
+  A({ id: 'museo', cat: 'mente', icon: '🏛️', label: 'Ir a un museo', sub: '$20 · +inteligencia, +arte', minAge: 6, limit: 1, when: (g) => g.p.money >= 20,
+    run: (g) => { fx.money(g, -20); fx.stat(g, 'smarts', U.int(1, 3)); fx.skill(g, 'arte', 1);
+      return U.pick(['Miraste un cuadro 20 minutos para parecer culto. Te terminó gustando.', 'Viste un esqueleto de dinosaurio. Te sentiste joven.', 'Una obra de arte moderno era un balde. O eso, o el balde del de limpieza.']); } });
+  A({ id: 'maraton', cat: 'mente', icon: '🏃', label: 'Correr un maratón', sub: '42 km · necesita Deporte 40+', minAge: 16, limit: 1,
+    check: (g) => (g.p.skills.deporte < 40 ? 'Necesitas Deporte 40+ para correr 42 km. Tus rodillas ya lo saben.' : null),
+    run: (g) => { fx.skill(g, 'deporte', 3); fx.stat(g, 'health', U.int(2, 4));
+      if (U.chance(0.04)) { MV.sys.health.add(g, 'fractura'); return 'En el kilómetro 30 tu pie dijo basta. Terminaste en ambulancia, pero con la medalla.'; }
+      fx.stat(g, 'happy', U.int(6, 10)); if (U.chance(0.1)) fx.stat(g, 'fame', 1);
+      return U.pick(['Terminaste el maratón en 4 horas y 12 minutos. Lloraste en la meta.', 'Corriste los 42 km. Ahora caminas como un pingüino, pero orgulloso.', 'Te pasó un señor de 70 años disfrazado de banana. Igual llegaste.']); } });
   A({ id: 'gimnasio', cat: 'mente', icon: '🏋️', label: 'Ir al gimnasio', sub: '+salud, +apariencia', minAge: 13, limit: 3,
     run: (g) => { fx.stat(g, 'health', U.int(1, 4)); fx.stat(g, 'looks', U.int(0, 2)); fx.stat(g, 'stress', -3); fx.skill(g, 'deporte', 2);
       if (U.chance(0.04)) { MV.sys.health.add(g, 'fractura'); return 'Intentaste levantar más peso del que podías. Crack.'; }
@@ -208,6 +225,29 @@
     run: (g) => { fx.stat(g, 'karma', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5));
       if (U.chance(0.03)) { const pet = MV.sys.mythic.grant(g, 'guardian'); if (pet) return `Limpiando un bosque, una criaturita de musgo te siguió hasta casa. Se llama ${pet.first}, dice que es guardián del bosque y que te va a vigilar.`; }
       return U.pick(['Serviste comida en un comedor. Una señora te dio un abrazo que no olvidarás.', 'Limpiaste una playa. Encontraste 3 zapatos izquierdos.', 'Paseaste perros de un refugio. Quieres adoptar a todos.', 'Le leíste a ancianos en un geriátrico. Te contaron chismes de 1960.']); } });
+  A({ id: 'karaoke', cat: 'ocio', icon: '🎤', label: 'Ir al karaoke', sub: '$30 · desafinar en público', minAge: 14, limit: 1, when: (g) => g.p.money >= 30,
+    run: (g) => { fx.money(g, -30); const p = g.p;
+      if (U.chance(0.3 + p.skills.musica / 150)) { fx.stat(g, 'happy', U.int(5, 9)); fx.skill(g, 'musica', 1); fx.skill(g, 'carisma', 1); return U.pick(['Cantaste una balada y el bar entero hizo silencio. Después aplaudieron de pie.', 'Hiciste un dúo con un desconocido. Ahora tienen un grupo de mensajes.']); }
+      fx.stat(g, 'happy', U.int(1, 4)); fx.stat(g, 'stress', -3);
+      return U.pick(['Desafinaste tanto que el DJ te bajó el volumen. Te divertiste igual.', 'Elegiste una canción de 9 minutos. A los 4 ya nadie te escuchaba.', 'Cantaste con los ojos cerrados. Al abrirlos, el bar estaba vacío.']); } });
+  A({ id: 'escape_room', cat: 'ocio', icon: '🔐', label: 'Hacer un escape room', sub: '$60 · 60 minutos para salir', minAge: 12, limit: 1, when: (g) => g.p.money >= 60,
+    run: (g) => { fx.money(g, -60); fx.stat(g, 'smarts', U.int(1, 2));
+      if (U.chance(0.25 + g.p.stats.smarts / 160)) { fx.stat(g, 'happy', U.int(5, 8)); return U.pick(['Saliste con 3 minutos de sobra. Te sacaron una foto con un cartel de "genios".', 'Descifraste el último candado tú solo. Tus amigos te miran distinto.']); }
+      fx.stat(g, 'happy', U.int(1, 3));
+      return U.pick(['No saliste. El encargado te abrió la puerta con cara de lástima.', 'Pasaste 40 minutos intentando abrir un cajón que era decorativo.']); } });
+  A({ id: 'refugio', cat: 'ocio', icon: '🐾', label: 'Voluntariado en un refugio de animales', sub: '+karma, muchos pelos', minAge: 12, limit: 1,
+    run: (g) => { fx.stat(g, 'karma', U.int(3, 6)); fx.stat(g, 'happy', U.int(3, 6)); fx.stat(g, 'stress', -3);
+      if (U.chance(0.08)) { const pet = MV.sys.mythic.strayCat(g, U.pick(['adulto', 'anciano'])); MV.addRel(g, pet, 'mascota', U.int(70, 95)); MV.ach.check(g); return `En el refugio, ${U.gw(pet.gender, 'un gato', 'una gata')} de ${pet.age} años se te subió a los hombros y no se bajó más. Te llevaste a ${pet.first} a casa.`; }
+      return U.pick(['Bañaste a 6 perros. Ahora tú también necesitas un baño.', 'Le diste el biberón a gatitos huérfanos. Lloraste un poco.', 'Paseaste a un perro viejo que caminaba más lento que tu abuela. Fue perfecto.']); } });
+  A({ id: 'picnic', cat: 'ocio', icon: '🧺', label: 'Hacer un picnic', sub: '$15 · pasto, sándwiches y hormigas', minAge: 6, limit: 1, when: (g) => g.p.money >= 15,
+    run: (g) => { fx.money(g, -15); fx.stat(g, 'happy', U.int(3, 6)); fx.stat(g, 'stress', -3);
+      const x = MV.rels(g, ['pareja', 'conyuge', 'padre', 'hijo', 'amigo']).filter(({ n }) => n.species === 'humano')[0];
+      if (x) { x.r.rel = U.clamp(x.r.rel + U.int(3, 7), 0, 100); return `Hiciste un picnic con ${x.n.first}. ${U.pick(['Las hormigas se llevaron medio sándwich.', 'Se quedaron dormidos al sol.', 'Jugaron a las cartas sobre el mantel.'])}`; }
+      return 'Hiciste un picnic solo en el parque. Las palomas te acompañaron con mucho interés.'; } });
+  A({ id: 'estrellas', cat: 'ocio', icon: '🔭', label: 'Observar las estrellas', sub: 'Gratis · -estrés', minAge: 6, limit: 1,
+    run: (g) => { fx.stat(g, 'stress', -4); fx.stat(g, 'smarts', 1); fx.stat(g, 'happy', 2);
+      if (U.chance(0.05)) { fx.stat(g, 'happy', 4); return 'Viste una estrella fugaz y pediste un deseo. No lo vas a contar, por las dudas.'; }
+      return U.pick(['Encontraste la Cruz del Sur (o un avión, no estás seguro).', 'Te acostaste en el pasto a mirar el cielo. Te sentiste chiquito y en paz.', 'Bajaste una app de constelaciones. Ahora todo te parece un cucharón.']); } });
   A({ id: 'retiro_descanso', cat: 'ocio', icon: '🧖', label: 'Retiro de descanso', sub: '$3.000 · spa, silencio y cero celular', minAge: 18, limit: 1, when: (g) => g.p.money >= 3000,
     run: (g) => { fx.money(g, -3000); fx.stat(g, 'stress', -U.int(25, 40)); fx.stat(g, 'health', U.int(2, 5)); fx.stat(g, 'happy', U.int(4, 8));
       return U.pick(['Pasaste una semana en un spa de montaña. Te dieron una bata y te sacaron el celular. Volviste a nacer.', 'Hiciste un retiro de silencio. El tercer día hablaste con una piedra, pero volviste en paz.', 'Fuiste a unas termas. Saliste tan relajad' + U.gw(g.p.gender, 'o', 'a') + ' que olvidaste dónde estacionaste.']); } });
