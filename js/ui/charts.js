@@ -35,8 +35,8 @@
     series.forEach((s) => {
       const pts = xs.map((x, i) => [X(x), Number.isFinite(s.values[i]) ? Y(s.values[i]) : null]).filter((p) => p[1] != null);
       if (!pts.length) return;
-      if (pts.length === 1) out += `<circle cx="${pts[0][0]}" cy="${pts[0][1]}" r="4" fill="${s.color}" class="viz-dot"/>`;
-      else out += `<polyline points="${pts.map((p) => p.join(',')).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      if (pts.length === 1) out += `<circle cx="${pts[0][0]}" cy="${pts[0][1]}" r="4" style="fill:${s.color}" class="viz-dot"/>`;
+      else out += `<polyline points="${pts.map((p) => p.join(',')).join(' ')}" fill="none" style="stroke:${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
       const last = pts[pts.length - 1];
       ends.push({ y: last[1], x: last[0], s, v: s.values[s.values.length - 1] });
     });
@@ -44,7 +44,7 @@
     ends.sort((a, b) => a.y - b.y);
     for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 11) ends[i].y = ends[i - 1].y + 11;
     ends.forEach((e) => {
-      out += `<rect x="${W - R + 6}" y="${r1(e.y - 4)}" width="8" height="8" rx="2" fill="${e.s.color}"/>`;
+      out += `<rect x="${W - R + 6}" y="${r1(e.y - 4)}" width="8" height="8" rx="2" style="fill:${e.s.color}"/>`;
       const txt = series.length === 1 ? fmt(e.v) : `${e.s.name} ${fmt(e.v)}`;
       out += `<text x="${W - R + 18}" y="${r1(e.y + 3)}" class="viz-label">${esc(txt)}</text>`;
     });

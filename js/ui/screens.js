@@ -22,6 +22,10 @@
     actions.append(h('div', { class: 'btn-row' },
       h('button', { class: 'btn', style: { flex: 1 }, onclick: () => UI.showGraveyard() }, `⚰️ Cementerio (${glob.graveyard.length})`),
       h('button', { class: 'btn', style: { flex: 1 }, onclick: () => UI.showAchievements() }, `🏆 Logros ${achCount}/${MV.ACHIEVEMENTS.length}`)));
+    const slots = MV.slotsInfo().filter(Boolean).length;
+    actions.append(h('div', { class: 'btn-row' },
+      slots ? h('button', { class: 'btn', id: 'cover-slots', style: { flex: 1 }, onclick: () => UI.showSlots() }, `🗂️ Partidas guardadas (${slots})`) : null,
+      h('button', { class: 'btn', id: 'cover-settings', style: { flex: 1 }, onclick: () => UI.showSettings() }, '⚙️ Ajustes')));
     app.append(h('main', { class: 'cover' },
       h('div', { class: 'notebook' },
         h('h1', { class: 'title-mark' }, 'Mil', h('br'), h('span', { class: 'stroke' }, 'Vidas')),
@@ -147,6 +151,7 @@
       h('button', { class: 'btn primary', style: { flex: 1 }, onclick: () => UI.showCreate() }, 'Una vida nueva'),
       h('button', { class: 'btn', style: { flex: 1 }, onclick: () => UI.showGraveyard() }, '⚰️ Cementerio'),
       h('button', { class: 'btn', style: { flex: 1 }, onclick: () => UI.showCover() }, 'Portada')));
+    if (MV.slotsInfo().some(Boolean)) root.append(h('button', { class: 'btn block', id: 'death-slots', style: { marginTop: '8px' }, onclick: () => UI.showSlots() }, '🗂️ Volver a una partida guardada'));
     root.append(title('El diario completo'));
     const diary = h('details', { class: 'box' }, h('summary', null, 'Leer toda la vida'),
       g.log.map((y) => h('div', null, h('p', { class: 'hand', style: { fontWeight: 700, margin: '10px 0 2px' } }, `${y.age} años (${y.year})`), y.items.map((it) => h('div', { class: 'entry' }, h('span', { class: 'ic' }, it.i), h('span', { class: 'tx' }, it.t))))));

@@ -33,7 +33,14 @@
       const toned = items.filter((it) => it.tone === 'good' || it.tone === 'bad');
       const rest = items.filter((it) => !toned.includes(it));
       const highlights = toned.concat(rest).slice(0, 3).map((it) => it.t);
-      return { from: before.age + 1, age: now.age, changes, highlights };
+      const from = before.age + 1;
+      const title = from === now.age ? (now.age === 1 ? 'Tu primer año' : `Tu año a los ${now.age}`) : `Tus años de ${from} a ${now.age}`;
+      return { from, age: now.age, title, changes, highlights };
+    },
+
+    /** ¿Conviene frenar el avance rápido? Sí, si la salud acaba de caer por debajo de 30 (aviso importante). */
+    shouldPause(before, g) {
+      return before.health >= 30 && g.p.stats.health < 30;
     }
   };
   MV.sys.history = history;

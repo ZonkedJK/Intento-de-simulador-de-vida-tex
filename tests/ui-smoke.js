@@ -252,6 +252,8 @@ const SHOTS = process.argv[2] || null;
   await page.waitForTimeout(120);
   const anim = await page.evaluate(() => ({ floats: document.querySelectorAll('.float-num').length, av: !!document.querySelector('.idcard .avatar.jump, .idcard .avatar.shake') }));
   if (!anim.floats || !anim.av) errors.push('Una acción con cambios no animó: ' + JSON.stringify(anim));
+  const zs = await page.evaluate(() => [Number(getComputedStyle(document.getElementById('float-layer')).zIndex), Number(getComputedStyle(document.getElementById('layer')).zIndex)]);
+  if (!(zs[0] < zs[1])) errors.push('Los números flotantes se dibujan encima de las hojas abiertas: ' + zs.join(' vs '));
   await resolve();
   const moneyAnim = await page.evaluate(() => { MV.UI.g.p.money += 1000; MV.UI.refreshGame(true); return document.querySelector('[data-money]').className; });
   if (!/count-up/.test(moneyAnim)) errors.push('El dinero no cuenta al subir: ' + moneyAnim);
@@ -282,7 +284,8 @@ const SHOTS = process.argv[2] || null;
   await page.evaluate(() => { MV.global().settings.yearSummary = false; });
   if (await yearCards()) errors.push('El resumen del año apareció con el ajuste apagado');
   await page.evaluate(() => { MV.global().settings.yearSummary = true; });
-  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 })));
+  await page.waitForTimeout(800); // si murió, la tumba aparece a los 650 ms
+  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => { const g = MV.newGame({ seed: 7 }); g.p.age = 25; MV.UI.startGame(g); });
   await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showProfile(); });
   const charts = await page.$$eval('#profile-charts svg.viz', (els) => els.length);
   if (charts !== 2) errors.push('La ficha no muestra los 2 gráficos: ' + charts);
@@ -318,16 +321,17 @@ const SHOTS = process.argv[2] || null;
     if (before5 == null) break;
     await page.click('.ageup5');
     await page.waitForTimeout(80);
-    const st5 = await page.evaluate(() => ({ age: MV.UI.g.p.age, q: MV.UI.g.queue.length, over: MV.UI.g.over, card: !!document.querySelector('#layer .card') }));
+    const st5 = await page.evaluate(() => ({ age: MV.UI.g.p.age, q: MV.UI.g.queue.length, over: MV.UI.g.over, sick: MV.UI.g.p.stats.health < 30, card: !!document.querySelector('#layer .card') }));
     const adv = st5.age - before5;
     if (adv < 1 || adv > 5) errors.push('⏩ avanzó ' + adv + ' años');
-    if (adv < 5 && !st5.q && !st5.over) errors.push('⏩ se detuvo sin una decisión ni un aviso');
+    if (adv < 5 && !st5.q && !st5.over && !st5.sick) errors.push('⏩ se detuvo sin una decisión ni un aviso');
     if (st5.q && !st5.card) errors.push('⏩ se detuvo pero no mostró la decisión');
     if (adv < 5) stopped++;
   }
   await resolve();
   if (!stopped) errors.push('⏩ nunca se detuvo en una decisión en 4 intentos');
-  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 })));
+  await page.waitForTimeout(800); // si murió, la tumba aparece a los 650 ms
+  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => { const g = MV.newGame({ seed: 7 }); g.p.age = 25; MV.UI.startGame(g); });
   // Ajustes: tamaño de letra y animaciones
   await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showMenu(); });
   await page.click('#layer .layer-item:last-child button.row:has-text("Ajustes")');
@@ -375,6 +379,11 @@ const SHOTS = process.argv[2] || null;
   const copied = await page.evaluate(() => { const ta = document.getElementById('summary-text'); return ta ? ta.value : (document.getElementById('toasts').textContent || ''); });
   if (!/Copiado|Mil Vidas/.test(copied)) errors.push('Copiar resumen no copió ni mostró el texto: ' + copied.slice(0, 80));
   await page.evaluate(() => MV.UI.closeSheets());
+  // Partidas guardadas desde la pantalla de la muerte
+  await page.evaluate(() => { MV.saveSlot(1, JSON.parse(JSON.stringify(MV.UI.g))); MV.UI.showDeath(); });
+  await page.waitForSelector('.tomb');
+  if (!(await tryClick('#death-slots'))) errors.push('La pantalla de la muerte no ofrece las partidas guardadas');
+  else { if (!(await page.$('#slot-load-1'))) errors.push('Desde la muerte no se ven las ranuras'); await page.evaluate(() => MV.UI.closeSheets()); }
   await page.click('.death button.row >> nth=0');
   await page.waitForSelector('.idcard');
   const gen = await page.evaluate(() => MV.UI.g.generation);
@@ -386,11 +395,19 @@ const SHOTS = process.argv[2] || null;
   await page.click('text=Cementerio'); await page.waitForTimeout(100); await page.evaluate(() => MV.UI.popSheet());
   await page.click('text=Árbol de la dinastía'); await page.waitForTimeout(100);
   await shot('arbol');
+  // Portada: cargar una partida guardada sin crear un personaje
+  await page.evaluate(() => { const g = MV.UI.g; g.queue = []; MV.saveSlot(0, g); MV.UI.closeAll(); MV.UI.showCover(); });
+  if (!(await tryClick('#cover-slots'))) errors.push('La portada no ofrece las partidas guardadas');
+  else {
+    await page.click('#slot-load-0');
+    await page.click('#layer .card .btn.danger');
+    try { await page.waitForSelector('.idcard', { timeout: 3000 }); } catch (e) { errors.push('Cargar una ranura desde la portada no abrió la partida'); }
+  }
   await browser.close();
   if (errors.length) { console.error('Errores en la interfaz:\n' + errors.join('\n')); process.exit(1); }
   console.log('Interfaz OK');
 })().catch(async (e) => {
-  console.error(e.message.split('\n')[0]);
+  console.error(e.message.split('\n').slice(0, 3).join(' | '));
   if (global.__page) {
     try {
       console.error('Pantalla:', (await global.__page.evaluate(() => document.getElementById('app').innerText.slice(0, 200))).replace(/\n/g, ' | '));

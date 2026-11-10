@@ -380,7 +380,7 @@ button.row:disabled:hover { background: none; }
 }
 
 /* — Animaciones de cambios de estado — */
-#float-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; }
+#float-layer { position: fixed; inset: 0; pointer-events: none; z-index: 15; }
 .float-num {
   position: fixed; font-family: var(--font-hand); font-weight: 700; font-size: 1rem; white-space: nowrap;
   padding: 0 6px; border-radius: 4px; color: var(--on-hl); animation: float-up 1s ease-out forwards;

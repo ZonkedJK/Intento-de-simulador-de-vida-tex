@@ -260,14 +260,15 @@
     run: (g, k) => {
       const p = g.p, parents = p.housing === 'padres' && MV.rels(g, 'padre').length > 0;
       if (parents && U.chance(0.4)) { fx.stat(g, 'happy', -3); return `Llegaste a casa con un gato en brazos. Tus padres dijeron que no. El gato también parecía decepcionado.`; }
-      const vet = U.int(50, 150);
-      fx.money(g, -vet);
+      const vet = U.int(50, 150), pays = p.age >= 18 && p.money >= vet;
+      if (pays) fx.money(g, -vet);
       const pet = MV.sys.mythic.strayCat(g, k);
       MV.addRel(g, pet, 'mascota', U.int(60, 90));
       fx.stat(g, 'karma', k === 'anciano' ? 6 : 3); fx.stat(g, 'happy', U.int(4, 8));
       MV.ach.check(g);
       const age = pet.age === 0 ? 'meses' : `${pet.age} año${pet.age === 1 ? '' : 's'}`;
-      return `Recogiste a ${U.gw(pet.gender, 'un gato', 'una gata')} de ${age} que ${pet.street} y le pusiste ${pet.first}. El veterinario te cobró ${U.money(vet)}.${k === 'anciano' ? ' Nadie adopta a los viejitos. Tú sí.' : ''}`;
+      const bill = pays ? `El veterinario te cobró ${U.money(vet)}.` : parents ? 'Tus padres pagaron el veterinario (y te lo van a recordar).' : 'El veterinario del barrio no te cobró: dijo que ya le pagarías con fotos del gato.';
+      return `Recogiste a ${U.gw(pet.gender, 'un gato', 'una gata')} de ${age} que ${pet.street} y le pusiste ${pet.first}. ${bill}${k === 'anciano' ? ' Nadie adopta a los viejitos. Tú sí.' : ''}`;
     } });
   A({ id: 'templo', cat: 'ocio', icon: '⛪', label: 'Ir a un templo', sub: '+karma, +paz', minAge: 6, limit: 1,
     run: (g) => { fx.stat(g, 'karma', U.int(1, 4)); fx.stat(g, 'happy', U.int(1, 4)); fx.stat(g, 'stress', -4); return U.pick(['Fuiste a misa. Te dormiste en el sermón.', 'Rezaste por dinero. Ya veremos.', 'Encendiste una vela por tu familia. Casi incendias el banco.']); } });

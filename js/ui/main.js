@@ -234,7 +234,7 @@
     UI.save();
     UI.refreshGame(true);
     window.scrollTo({ top: document.body.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-    if (g.over) { setTimeout(() => UI.showDeath(), 650); return; }
+    if (g.over) { setTimeout(() => { if (UI.g === g) UI.showDeath(); }, 650); return; }
     UI.flushQueue(() => UI.showYearSummary(before));
   };
 
@@ -246,18 +246,19 @@
     UI.closeSheets();
     const before = MV.sys.history.snapshot(g);
     for (let i = 0; i < n; i++) {
+      const prev = MV.sys.history.snapshot(g);
       let ok = false;
       try { ok = MV.ageUp(g); } catch (e) {
         console.error(e);
         UI.toast('⚠️', 'Algo falló al avanzar el año', 'La partida se guardó igual. Si se repite, exporta la partida desde el menú.');
         break;
       }
-      if (!ok || g.over || g.queue.length) break;
+      if (!ok || g.over || g.queue.length || MV.sys.history.shouldPause(prev, g)) break;
     }
     UI.save();
     UI.refreshGame(true);
     window.scrollTo({ top: document.body.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-    if (g.over) { setTimeout(() => UI.showDeath(), 650); return; }
+    if (g.over) { setTimeout(() => { if (UI.g === g) UI.showDeath(); }, 650); return; }
     UI.flushQueue(() => UI.showYearSummary(before));
   };
 
@@ -268,7 +269,7 @@
     const s = MV.sys.history.yearSummary(before, g);
     if (s.age <= before.age) return;
     const c = UI.card([h('div', { id: 'year-summary' },
-      h('h2', null, h('span', { 'aria-hidden': 'true' }, '🗓️ '), s.from === s.age ? `Tu año a los ${s.age}` : `Tus años de ${s.from} a ${s.age}`),
+      h('h2', null, h('span', { 'aria-hidden': 'true' }, '🗓️ '), s.title),
       s.changes.length ? UI.deltas(s.changes) : h('p', { class: 'note' }, 'Nada cambió. Un año de esos que no se cuentan.'),
       s.highlights.length ? h('ul', { class: 'year-highlights' }, s.highlights.map((t) => h('li', null, t))) : null,
       h('button', { class: 'btn primary block', onclick: () => c.close() }, 'Seguir'))]);

@@ -56,7 +56,9 @@
   ev({ id: 'choque_auto', age: [18, 85], w: 0.8, when: (g) => g.p.assets.some((a) => a.type === 'auto'), icon: '💥', scene: 'ciudad', title: 'Choque',
     text: (g) => `Chocaste tu auto contra ${U.pick(['un poste', 'un camión de helados', 'el auto de tu jefe', 'una estatua del prócer local', 'una vaca suelta'])}.`,
     choices: [
-      { t: 'Pagar los daños', eff: (g) => { const car = g.p.assets.find((a) => a.type === 'auto'); const cost = Math.round(car.value * U.float(0.1, 0.3)) + 300; fx.money(g, -cost); car.cond = U.clamp(car.cond - 30, 0, 100); return `Pagaste ${U.money(cost)} en daños. Tu auto quedó con una abolladura que parece una sonrisa.`; } },
+      { t: 'Pagar los daños', eff: (g) => { const cars = g.p.assets.filter((a) => a.type === 'auto'); const car = cars.find((a) => a.insured) || cars[0];
+        if (car.insured) { const fee = U.int(100, 300); fx.money(g, -fee); return `El seguro pagó el taller de tu ${car.name}. Tú pagaste ${U.money(fee)} de franquicia y una tarde de trámites.`; }
+        const cost = Math.round(car.value * U.float(0.1, 0.3)) + 300; fx.money(g, -cost); car.cond = U.clamp(car.cond - 30, 0, 100); return `Pagaste ${U.money(cost)} en daños. Tu auto quedó con una abolladura que parece una sonrisa.`; } },
       { t: 'Huir de la escena', eff: (g) => { fx.stat(g, 'karma', -6); if (U.chance(0.35)) { MV.sys.crime.arrest(g, 'Fuga tras un accidente', 2); return 'Huiste... pero una cámara tenía tu patente.'; } return 'Huiste a toda velocidad. Nadie te vio. Tu conciencia sí.'; } },
       { t: 'Culpar al otro a los gritos', eff: { p: 0.4, ok: { skills: { carisma: 2 }, msg: 'Gritaste tanto que el otro conductor terminó pidiendo perdón.' }, ko: { money: -800, happy: -3, msg: 'El otro tenía cámara en el auto. Pagaste $800 y quedaste como loco.' } } }
     ] });
