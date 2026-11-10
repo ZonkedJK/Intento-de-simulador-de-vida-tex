@@ -145,6 +145,15 @@
     return pet;
   };
 
+  /** Marca o desmarca una actividad como favorita. Devuelve true si quedó marcada. */
+  MV.toggleFav = function (g, id) {
+    g.favs = Array.isArray(g.favs) ? g.favs : [];
+    const i = g.favs.indexOf(id);
+    if (i >= 0) { g.favs.splice(i, 1); return false; }
+    g.favs.push(id);
+    return true;
+  };
+
   MV.person = (g, id) => g.people[id] || (g.p && g.p.id === id ? g.p : null);
 
   /** Relaciones del jugador; filtra por tipo(s). Por defecto solo vivos. */
@@ -217,7 +226,7 @@
     const year = opts.year || new Date().getFullYear();
     const g = {
       version: MV.VERSION, year, startYear: year, people: {}, log: [], queue: [], evDone: {},
-      generation: opts.generation || 1, dynasty: opts.dynasty || null, over: false, rng: 0
+      generation: opts.generation || 1, dynasty: opts.dynasty || null, over: false, rng: 0, favs: []
     };
     const clsKey = U.pickW(Object.keys(MV.CLASSES), (k) => MV.CLASSES[k].w);
     const cls = MV.CLASSES[clsKey];

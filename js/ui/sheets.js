@@ -499,7 +499,10 @@
   };
 
   // ——————————————————— ACTIVIDADES ———————————————————
+  let actQuery = '';
+  const fold = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   UI.showActivities = function () {
+    actQuery = '';
     UI.sheet({
       title: 'Actividades', icon: '🎲',
       render: (body) => {
@@ -507,15 +510,32 @@
         if (g.p.prison) { body.append(note('Estás tras las rejas. Las opciones son... limitadas.'), UI.actionList(MV.sys.crime.prisonActions(g))); return; }
         const cats = MV.catsFor(g);
         if (!cats.length) { body.append(h('p', { class: 'empty' }, 'Eres un bebé. Tu única actividad es existir adorablemente. Toca "+1 año".')); return; }
+        const all = cats.flatMap((c) => MV.actsFor(g, c.id));
+        const results = h('div', { id: 'act-results' });
+        const main = h('div');
+        const showResults = () => {
+          UI.clear(results);
+          const q = fold(actQuery.trim());
+          main.hidden = !!q;
+          if (!q) return;
+          const hits = all.filter((a) => fold(a.label + ' ' + (a.sub || '')).includes(q));
+          results.append(hits.length ? UI.actionList(hits, undefined, undefined, { fav: true }) : note(`Nada con "${actQuery.trim()}". Prueba otra palabra.`));
+        };
+        body.append(h('input', { type: 'search', id: 'act-search', class: 'act-search', placeholder: 'Buscar actividad…', 'aria-label': 'Buscar actividad', value: actQuery,
+          oninput: (e) => { actQuery = e.target.value; showResults(); } }), results, main);
+        const favs = (g.favs || []).map((id) => all.find((a) => a.id === id)).filter(Boolean);
+        if (favs.length) main.append(h('h3', { class: 'section-title' }, '⭐ Favoritas'), h('div', { id: 'act-favs' }, UI.actionList(favs, undefined, undefined, { fav: true })));
+        body = main;
         const grid = h('div', { class: 'grid-cats' });
         cats.forEach((c) => grid.append(h('button', { class: 'cat', onclick: () => showCat(c) }, h('span', { class: 'e', 'aria-hidden': 'true' }, c.icon), c.name)));
         body.append(grid);
         if (g.p.wanted) body.append(note('Eres prófug' + U.gw(g.p.gender, 'o', 'a') + '. Cada año existe la posibilidad de que te atrapen.'));
+        showResults();
       }
     });
   };
 
   function showCat(c) {
-    UI.sheet({ title: c.name, icon: c.icon, render: (body) => body.append(UI.actionList(MV.actsFor(UI.g, c.id))) });
+    UI.sheet({ title: c.name, icon: c.icon, render: (body) => body.append(note('Toca ☆ para fijar una actividad arriba.'), UI.actionList(MV.actsFor(UI.g, c.id), undefined, undefined, { fav: true })) });
   }
 })(window.MV = window.MV || {});

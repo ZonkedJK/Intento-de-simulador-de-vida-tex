@@ -95,6 +95,36 @@
   };
   MV.deleteGame = function () { store.del(KEY_GAME); };
 
+  // — Ranuras de guardado (3) —
+  MV.SLOTS = 3;
+  const slotKey = (i) => {
+    if (!(Number.isInteger(i) && i >= 0 && i < MV.SLOTS)) throw new Error('Ranura inválida: ' + i);
+    return 'milvidas.ranura.' + i;
+  };
+  MV.saveSlot = function (i, g) {
+    const k = slotKey(i);
+    g.rng = MV.rng.getState();
+    store.set(k, g);
+  };
+  /** Partida de una ranura (migrada a la versión actual) o null si está vacía o rota. */
+  MV.loadSlot = function (i) {
+    let k;
+    try { k = slotKey(i); } catch (e) { return null; }
+    const g = MV.migrate(store.get(k));
+    if (!MV.validGame(g)) return null;
+    MV.rng.setState(g.rng || 1);
+    return g;
+  };
+  MV.deleteSlot = function (i) { store.del(slotKey(i)); };
+  MV.slotsInfo = function () {
+    const out = [];
+    for (let i = 0; i < MV.SLOTS; i++) {
+      const g = store.get(slotKey(i));
+      out.push(g && g.p && g.p.first ? { i, name: MV.fullName(g.p), age: g.p.age, year: g.year, over: !!g.over } : null);
+    }
+    return out;
+  };
+
   MV.exportData = function (g) {
     return JSON.stringify({ type: 'milvidas', v: MV.VERSION, date: new Date().toISOString(), game: g || null, global: MV.global() }, null, 1);
   };

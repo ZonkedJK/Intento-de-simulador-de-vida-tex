@@ -79,7 +79,7 @@ body {
   background-size: 22px 22px;
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
@@ -423,3 +423,23 @@ button.row:disabled:hover { background: none; }
 .color-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 12px; }
 .color-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--ink); cursor: pointer; }
 .color-swatch.on { outline: 3px solid var(--hl-yellow); outline-offset: 2px; }
+
+/* — Comodidad: letra, buscador, favoritos, ⏩ y ranuras — */
+html[data-font="grande"] { font-size: 112.5%; }
+html[data-font="muy_grande"] { font-size: 125%; }
+.act-search { width: 100%; padding: 9px 12px; border: 2px solid var(--ink); border-radius: var(--r-md); background: var(--card); margin: 2px 0 10px; }
+.row-fav { display: grid; grid-template-columns: 1fr auto; align-items: stretch; border-bottom: 1.5px dashed var(--grid); }
+.row-fav:last-child { border-bottom: 0; }
+.row-fav .row { border-bottom: 0; }
+.fav-btn { background: none; border: 0; border-left: 1.5px dashed var(--grid); width: 46px; font-size: 1.3rem; color: var(--pencil); }
+.fav-btn.on { color: #d9a400; }
+.fav-btn:hover { background: color-mix(in srgb, var(--hl-yellow) 45%, transparent); }
+.ageup5 {
+  position: absolute; left: calc(50% + 40px); top: -13px; z-index: 1;
+  border: 2px solid var(--ink); border-radius: 999px; padding: 2px 9px; background: var(--card); color: var(--ink);
+  font-family: var(--font-hand); font-weight: 700; font-size: 0.85rem; box-shadow: 2px 2px 0 var(--ink);
+}
+.ageup5:disabled { opacity: 0.35; cursor: not-allowed; }
+.slot { margin: 0 0 10px; }
+.slot .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.font-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 12px; }

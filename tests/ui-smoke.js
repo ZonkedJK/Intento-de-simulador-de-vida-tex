@@ -264,6 +264,61 @@ const SHOTS = process.argv[2] || null;
   await resolve();
   await page.evaluate(() => { delete MV.global().settings.anim; MV.UI.closeSheets(); });
 
+  // Comodidad: buscador y favoritos en Actividades
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.favs = []; MV.UI.showActivities(); });
+  await page.fill('#act-search', 'gim');
+  const found = await page.$$eval('#act-results button.row .rl', (els) => els.map((e) => e.textContent));
+  if (!found.includes('Ir al gimnasio')) errors.push('Buscar "gim" no muestra Ir al gimnasio: ' + found.join(', '));
+  await page.click('#act-results .row-fav:has-text("Ir al gimnasio") .fav-btn');
+  if (!(await page.evaluate(() => MV.UI.g.favs.includes('gimnasio')))) errors.push('La estrella no marcó el favorito');
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showActivities(); });
+  const favTop = await page.$eval('#act-favs', (e) => e.textContent).catch(() => '');
+  if (!/Ir al gimnasio/.test(favTop)) errors.push('El favorito no aparece arriba en Actividades');
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
+  let stopped = 0;
+  for (let t = 0; t < 4; t++) {
+    await resolve();
+    const before5 = await page.evaluate(() => { const g = MV.UI.g; if (g.over) return null; g.queue = []; return g.p.age; });
+    if (before5 == null) break;
+    await page.click('.ageup5');
+    await page.waitForTimeout(80);
+    const st5 = await page.evaluate(() => ({ age: MV.UI.g.p.age, q: MV.UI.g.queue.length, over: MV.UI.g.over, card: !!document.querySelector('#layer .card') }));
+    const adv = st5.age - before5;
+    if (adv < 1 || adv > 5) errors.push('⏩ avanzó ' + adv + ' años');
+    if (adv < 5 && !st5.q && !st5.over) errors.push('⏩ se detuvo sin una decisión ni un aviso');
+    if (st5.q && !st5.card) errors.push('⏩ se detuvo pero no mostró la decisión');
+    if (adv < 5) stopped++;
+  }
+  await resolve();
+  if (!stopped) errors.push('⏩ nunca se detuvo en una decisión en 4 intentos');
+  if (await page.evaluate(() => MV.UI.g.over)) await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 })));
+  // Ajustes: tamaño de letra y animaciones
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showMenu(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Ajustes")');
+  await page.click('#set-font-muy_grande');
+  const fontState = await page.evaluate(() => ({ attr: document.documentElement.getAttribute('data-font'), px: parseFloat(getComputedStyle(document.documentElement).fontSize), saved: MV.global().settings.font }));
+  if (fontState.attr !== 'muy_grande' || fontState.px < 18 || fontState.saved !== 'muy_grande') errors.push('El tamaño de letra no cambió: ' + JSON.stringify(fontState));
+  await page.click('#set-anim');
+  if (await page.evaluate(() => MV.global().settings.anim) !== false) errors.push('El ajuste no apagó las animaciones');
+  await page.click('#set-anim');
+  await page.click('#set-font-normal');
+  await page.evaluate(() => MV.UI.closeSheets());
+  // Partidas guardadas: guardar en una ranura y volver a cargarla
+  await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showMenu(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Partidas guardadas")');
+  await page.click('#slot-save-0');
+  const savedAge = await page.evaluate(() => MV.UI.g.p.age);
+  if (!(await page.evaluate(() => MV.slotsInfo()[0]))) errors.push('Guardar en la ranura 1 no guardó');
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; MV.ageUp(g); g.queue = []; MV.UI.save(); MV.UI.renderGame(); MV.UI.showMenu(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Partidas guardadas")');
+  await page.click('#slot-load-0');
+  await page.click('#layer .card .btn.danger');
+  await page.waitForTimeout(100);
+  const loadedAge = await page.evaluate(() => MV.UI.g.p.age);
+  if (loadedAge !== savedAge) errors.push(`Cargar la ranura no volvió a la edad guardada (${savedAge} → ${loadedAge})`);
+  await page.evaluate(() => { MV.deleteSlot(0); MV.UI.closeSheets(); });
+
   // Recargar: la partida debe continuar
   const state = await page.evaluate(() => ({ age: MV.UI.g.p.age, over: MV.UI.g.over }));
   if (state.over) { console.log('El personaje murió joven durante la prueba; se empieza otra vida.'); await page.evaluate(() => MV.UI.startGame(MV.newGame({ seed: 7 }))); }

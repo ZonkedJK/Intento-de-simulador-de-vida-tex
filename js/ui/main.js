@@ -212,7 +212,8 @@
       h('button', { class: 'ageup' + (pending ? ' pending' : ''), onclick: () => UI.ageUp(), 'aria-label': pending ? 'Ver evento pendiente' : 'Avanzar un año' },
         h('span', { class: 'big' }, pending ? '¡!' : '+1'), h('span', { class: 'small' }, pending ? 'evento' : 'año')),
       btn('👥', 'Relaciones', () => UI.showRelations()),
-      btn('🎲', 'Actividades', () => UI.showActivities()));
+      btn('🎲', 'Actividades', () => UI.showActivities()),
+      h('button', { class: 'ageup5', onclick: () => UI.ageUpMany(5), disabled: pending || g.over, 'aria-label': 'Avanzar hasta 5 años', title: 'Avanzar hasta 5 años: se detiene en cada decisión o aviso' }, '⏩ 5'));
   }
 
   // ——— Flujo de juego ———
@@ -226,6 +227,28 @@
     } catch (e) {
       console.error(e);
       UI.toast('⚠️', 'Algo falló al avanzar el año', 'La partida se guardó igual. Si se repite, exporta la partida desde el menú.');
+    }
+    UI.save();
+    UI.refreshGame(true);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    if (g.over) { setTimeout(() => UI.showDeath(), 650); return; }
+    UI.flushQueue();
+  };
+
+  /** Avanza hasta `n` años seguidos; se detiene ante una decisión, un aviso o la muerte. */
+  UI.ageUpMany = function (n) {
+    const g = UI.g;
+    if (!g || g.over) return;
+    if (g.queue.length) { UI.flushQueue(); return; }
+    UI.closeSheets();
+    for (let i = 0; i < n; i++) {
+      let ok = false;
+      try { ok = MV.ageUp(g); } catch (e) {
+        console.error(e);
+        UI.toast('⚠️', 'Algo falló al avanzar el año', 'La partida se guardó igual. Si se repite, exporta la partida desde el menú.');
+        break;
+      }
+      if (!ok || g.over || g.queue.length) break;
     }
     UI.save();
     UI.refreshGame(true);
@@ -354,12 +377,17 @@
   };
 
   /** Lista de acciones (con usos restantes). */
-  UI.actionList = function (actions, scope, relRef) {
+  UI.actionList = function (actions, scope, relRef, opts) {
     const list = h('div', { class: 'list' });
     actions.forEach((a) => {
       const left = MV.usesLeft(UI.g, a, scope);
       const right = a.limit ? (left > 0 ? `${left}/${a.limit}` : 'Hecho') : '';
-      list.append(UI.row(a.icon, a.label, a.sub, right, () => UI.runAction(a, scope, relRef), left <= 0));
+      const row = UI.row(a.icon, a.label, a.sub, right, () => UI.runAction(a, scope, relRef), left <= 0);
+      if (!(opts && opts.fav)) { list.append(row); return; }
+      const on = (UI.g.favs || []).includes(a.id);
+      list.append(h('div', { class: 'row-fav' }, row, h('button', { type: 'button', class: 'fav-btn' + (on ? ' on' : ''), 'aria-pressed': String(on),
+        'aria-label': on ? `Quitar ${a.label} de favoritas` : `Marcar ${a.label} como favorita`, title: on ? 'Quitar de favoritas' : 'Marcar como favorita',
+        onclick: () => { MV.toggleFav(UI.g, a.id); UI.save(); UI.refreshSheets(); } }, on ? '★' : '☆')));
     });
     return list;
   };

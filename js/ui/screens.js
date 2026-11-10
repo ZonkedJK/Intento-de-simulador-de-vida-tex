@@ -251,10 +251,8 @@
         l.append(UI.row('🏆', 'Logros', `${Object.keys(glob.ach).length} de ${MV.ACHIEVEMENTS.length}`, '›', () => UI.showAchievements()));
         l.append(UI.row('⚰️', 'Cementerio', glob.graveyard.length === 1 ? '1 vida vivida' : `${glob.graveyard.length} vidas vividas`, '›', () => UI.showGraveyard()));
         l.append(UI.row('🌳', 'Árbol de la dinastía', UI.g ? `Familia ${UI.g.dynasty.name}` : '', '›', () => UI.showTree(), !UI.g));
-        l.append(UI.row('🌓', 'Tema', { auto: 'Automático', light: 'Cuaderno (claro)', dark: 'Pizarrón (oscuro)' }[theme], 'Cambiar', () => {
-          glob.settings.theme = { auto: 'light', light: 'dark', dark: 'auto' }[theme];
-          MV.saveGlobal(); UI.applyTheme(); UI.refreshSheets();
-        }));
+        l.append(UI.row('⚙️', 'Ajustes', `Tema ${{ auto: 'automático', light: 'claro', dark: 'oscuro' }[theme]}, letra, animaciones y resumen del año`, '›', () => UI.showSettings()));
+        l.append(UI.row('🗂️', 'Partidas guardadas', `${MV.slotsInfo().filter(Boolean).length} de ${MV.SLOTS} ranuras ocupadas`, '›', () => UI.showSlots()));
         l.append(UI.row('💾', 'Exportar partida', 'Descarga un archivo para guardar o pasar a otro dispositivo', null, () => UI.exportFile()));
         l.append(UI.row('📂', 'Importar partida', 'Carga un archivo exportado', null, () => UI.importFile()));
         l.append(UI.row('👶', 'Empezar una vida nueva', 'Abandonas la vida actual', null, () => UI.confirm('Tu vida actual se perderá (no irá al cementerio).', () => { MV.deleteGame(); UI.showCreate(); }, 'Empezar de nuevo')));
@@ -359,7 +357,65 @@
     document.body.appendChild(input); input.click(); setTimeout(() => input.remove(), 60000);
   };
 
+  // ——— Ajustes ———
+  const FONTS = { normal: 'Normal', grande: 'Grande', muy_grande: 'Muy grande' };
+  UI.showSettings = function () {
+    UI.sheet({
+      title: 'Ajustes', icon: '⚙️', allowOver: true,
+      render: (body) => {
+        const glob = MV.global(), st = glob.settings;
+        const save = () => { MV.saveGlobal(); UI.applyTheme(); UI.refreshSheets(); };
+        const theme = st.theme || 'auto';
+        const l = h('div', { class: 'list' });
+        l.append(UI.row('🌓', 'Tema', { auto: 'Automático', light: 'Cuaderno (claro)', dark: 'Pizarrón (oscuro)' }[theme], 'Cambiar', () => { st.theme = { auto: 'light', light: 'dark', dark: 'auto' }[theme]; save(); }));
+        const anim = UI.row('✨', 'Animaciones', st.anim === false ? 'Apagadas' : 'Números que flotan, avatar que reacciona y dinero que cuenta', st.anim === false ? 'Encender' : 'Apagar', () => { st.anim = st.anim === false; save(); });
+        anim.id = 'set-anim'; anim.setAttribute('aria-pressed', String(st.anim !== false));
+        l.append(anim);
+        const sum = UI.row('🗓️', 'Resumen del año', st.yearSummary === false ? 'No se muestra' : 'Una tarjeta con lo más importante después de cada año', st.yearSummary === false ? 'Encender' : 'Apagar', () => { st.yearSummary = st.yearSummary === false; save(); });
+        sum.id = 'set-summary'; sum.setAttribute('aria-pressed', String(st.yearSummary !== false));
+        l.append(sum);
+        body.append(l);
+        body.append(h('h3', { class: 'section-title' }, 'Tamaño de letra'));
+        const fr = h('div', { class: 'font-row', role: 'radiogroup', 'aria-label': 'Tamaño de letra' });
+        Object.keys(FONTS).forEach((k) => fr.append(h('button', { type: 'button', id: 'set-font-' + k, class: 'chip-btn' + ((st.font || 'normal') === k ? ' on' : ''), role: 'radio', 'aria-checked': String((st.font || 'normal') === k),
+          onclick: () => { st.font = k; save(); } }, FONTS[k])));
+        body.append(fr);
+      }
+    });
+  };
+
+  // ——— Partidas guardadas ———
+  UI.showSlots = function () {
+    UI.sheet({
+      title: 'Partidas guardadas', icon: '🗂️', allowOver: true,
+      render: (body) => {
+        const g = UI.g;
+        body.append(h('p', { class: 'note' }, 'Guarda tu vida en una ranura para volver a ella cuando quieras. La partida en curso se sigue guardando sola.'));
+        MV.slotsInfo().forEach((info, i) => {
+          const box = h('div', { class: 'box slot' }, h('b', null, `Ranura ${i + 1}`), h('div', { class: 'note', style: { margin: '2px 0 0' } },
+            info ? `${info.name}, ${info.age} año${info.age === 1 ? '' : 's'} · ${info.year}${info.over ? ' · vida terminada' : ''}` : 'Vacía'));
+          const doSave = () => { MV.saveSlot(i, g); UI.toast('💾', 'Guardada', `Tu vida quedó en la ranura ${i + 1}.`); UI.refreshSheets(); };
+          const btns = h('div', { class: 'btn-row' },
+            h('button', { type: 'button', id: 'slot-save-' + i, class: 'btn', disabled: !g || g.over, onclick: () => (info ? UI.confirm(`La ranura ${i + 1} ya tiene a ${info.name}. ¿La reemplazas por tu vida actual?`, doSave, 'Reemplazar') : doSave()) }, '💾 Guardar aquí'),
+            h('button', { type: 'button', id: 'slot-load-' + i, class: 'btn', disabled: !info, onclick: () => UI.confirm('Vas a cargar esta partida. La vida actual se reemplaza (guárdala antes en otra ranura si la quieres).', () => {
+              const ng = MV.loadSlot(i);
+              if (!ng) { UI.toast('⚠️', 'No se pudo cargar', 'La ranura está vacía o dañada.'); UI.refreshSheets(); return; }
+              UI.closeAll(); UI.g = ng; UI.diaryYears = 25; UI.save();
+              if (ng.over) UI.showDeath(); else { UI.renderGame(); UI.flushQueue(); }
+            }, 'Cargar') }, '📂 Cargar'),
+            h('button', { type: 'button', id: 'slot-del-' + i, class: 'btn', disabled: !info, onclick: () => UI.confirm(`Se borra la ranura ${i + 1}. Tu vida actual no se toca.`, () => { MV.deleteSlot(i); UI.refreshSheets(); }, 'Borrar') }, '🗑️ Borrar'));
+          box.append(btns);
+          body.append(box);
+        });
+      }
+    });
+  };
+
+  /** Aplica el tema y el tamaño de letra de los ajustes. */
   UI.applyTheme = function () {
+    const f = MV.global().settings.font;
+    if (f === 'grande' || f === 'muy_grande') document.documentElement.setAttribute('data-font', f);
+    else document.documentElement.removeAttribute('data-font');
     const t = MV.global().settings.theme;
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
     else document.documentElement.removeAttribute('data-theme');

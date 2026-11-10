@@ -154,3 +154,58 @@ test('una partida v4 con licencia de conducir y club se migra a v5', () => {
   for (let y = 0; y < 20 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
   assert.ok(back.p.age > 17);
 });
+
+test('guardar, cargar y borrar las 3 ranuras sin tocar la partida en curso', () => {
+  const MV = load({ seed: 60 });
+  const games = [61, 62, 63].map((s) => { const g = MV.newGame({ seed: s }); years(MV, g, s - 55); return g; });
+  MV.saveGame(games[0]);
+  games.forEach((g, i) => MV.saveSlot(i, g));
+  const info = MV.slotsInfo();
+  assert.equal(info.length, 3);
+  info.forEach((x, i) => {
+    assert.equal(x.i, i);
+    assert.equal(x.name, MV.fullName(games[i].p));
+    assert.equal(x.age, games[i].p.age);
+    assert.equal(x.year, games[i].year);
+  });
+  const back = MV.loadSlot(1);
+  assert.equal(JSON.stringify(back.log), JSON.stringify(games[1].log));
+  MV.deleteSlot(1);
+  assert.equal(MV.slotsInfo()[1], null);
+  assert.equal(MV.loadSlot(1), null);
+  assert.ok(MV.loadGame(), 'borrar una ranura no borra la partida en curso');
+  assert.ok(MV.slotsInfo()[0] && MV.slotsInfo()[2]);
+});
+
+test('una ranura vacía, rota o fuera de rango devuelve null', () => {
+  const MV = load();
+  assert.equal(MV.loadSlot(0), null);
+  assert.equal(MV.loadSlot(7), null);
+  MV.store.set('milvidas.ranura.2', { basura: true });
+  assert.equal(MV.loadSlot(2), null);
+  assert.equal(MV.slotsInfo()[2], null);
+  assert.throws(() => MV.saveSlot(3, MV.newGame({ seed: 1 })));
+});
+
+test('una ranura con una partida vieja se migra al cargar', () => {
+  const MV = load({ seed: 64 });
+  const g = MV.newGame({ seed: 64 }); g.p.age = 17; g.p.license = true; g.p.club = 'futbol';
+  g.version = 4; delete g.p.licenses; delete g.p.clubs;
+  MV.store.set('milvidas.ranura.0', g);
+  const back = MV.loadSlot(0);
+  assert.equal(back.version, MV.VERSION);
+  assert.deepEqual(back.p.licenses, { auto: true });
+});
+
+test('marcar favorito y desmarcar', () => {
+  const MV = load({ seed: 65 });
+  const g = MV.newGame({ seed: 65 });
+  assert.deepEqual(g.favs, []);
+  assert.equal(MV.toggleFav(g, 'gimnasio'), true);
+  assert.equal(MV.toggleFav(g, 'meditar'), true);
+  assert.deepEqual(g.favs, ['gimnasio', 'meditar']);
+  assert.equal(MV.toggleFav(g, 'gimnasio'), false);
+  assert.deepEqual(g.favs, ['meditar']);
+  delete g.favs;
+  assert.equal(MV.toggleFav(g, 'karaoke'), true, 'funciona aunque la partida no tenga lista');
+});
