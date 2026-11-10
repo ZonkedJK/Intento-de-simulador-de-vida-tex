@@ -28,7 +28,7 @@
         if (!n.alive) return;
         n.age++;
         if (n.species !== 'humano') {
-          if (n.age >= (n.lifespan || 12) || U.chance(0.01)) people.die(g, n, n.age >= (n.lifespan || 12) ? 'vejez' : 'un accidente misterioso');
+          if (n.age >= (n.lifespan || 12) || (!(MV.SPECIES[n.species] || {}).mythic && U.chance(0.01))) people.die(g, n, n.age >= (n.lifespan || 12) ? 'vejez' : 'un accidente misterioso');
           return;
         }
         if (n.age > 50) n.health = U.clamp(n.health - U.int(0, 3), 0, 100);

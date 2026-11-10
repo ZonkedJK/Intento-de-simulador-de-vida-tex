@@ -170,12 +170,63 @@
   };
 
   /** Elemento avatar listo para insertar. n: persona (jugador o NPC). */
+  /** Dibujos propios de las mascotas míticas ('' si la especie no es mítica). */
+  const MYTHIC_ART = {
+    // Guardián del bosque: criatura de musgo con brote de hojas, cejas tupidas y pies de corteza (diseño original).
+    guardian: `<circle cx="32" cy="32" r="31" fill="#dcefd2"/>
+      <path d="M32 6 C30 12 31 15 32 17 C33 15 34 12 32 6 Z" fill="#3c7d2a"/><path d="M32 15 C24 8 18 11 20 15 C24 17 29 16 32 15 Z" fill="#5aa83a"/><path d="M32 15 C40 8 46 11 44 15 C40 17 35 16 32 15 Z" fill="#4a9632"/>
+      <ellipse cx="32" cy="38" rx="18" ry="19" fill="#6b9a3c" stroke="#2f4a1c" stroke-width="2"/>
+      <path d="M17 34 Q20 30 23 34 M41 34 Q44 30 47 34 M22 48 Q26 45 29 49 M36 49 Q39 45 43 48" stroke="#4f7a2a" stroke-width="2" fill="none"/>
+      <ellipse cx="32" cy="44" rx="10" ry="9" fill="#a9c97a"/>
+      <path d="M20 27 L29 30 M44 27 L35 30" stroke="#24391a" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="26" cy="34" r="3.4" fill="#fff"/><circle cx="38" cy="34" r="3.4" fill="#fff"/><circle cx="26.6" cy="34.6" r="1.8" fill="#1b1b1b"/><circle cx="37.4" cy="34.6" r="1.8" fill="#1b1b1b"/>
+      <path d="M27 43 Q32 40 37 43" stroke="#24391a" stroke-width="2" fill="none" stroke-linecap="round"/>
+      <path d="M21 55 h8 v4 h-8 Z M35 55 h8 v4 h-8 Z" fill="#7a5230" stroke="#3d2814" stroke-width="1.5"/>`,
+    // Dragoncito de bolsillo: verde azulado, alitas, cuernitos y una nube de humo.
+    dragon: `<circle cx="32" cy="32" r="31" fill="#f6e3d4"/>
+      <path d="M12 30 L4 18 L16 24 Z M52 30 L60 18 L48 24 Z" fill="#7b4fb0" stroke="#3b2358" stroke-width="1.5"/>
+      <ellipse cx="32" cy="38" rx="17" ry="18" fill="#2f9e8f" stroke="#164b44" stroke-width="2"/>
+      <ellipse cx="32" cy="45" rx="9" ry="10" fill="#f3d9a4"/>
+      <path d="M25 22 L22 12 L29 20 Z M39 22 L42 12 L35 20 Z" fill="#f3d9a4" stroke="#164b44" stroke-width="1.5"/>
+      <circle cx="26" cy="32" r="4" fill="#fff"/><circle cx="38" cy="32" r="4" fill="#fff"/><ellipse cx="26.5" cy="32.5" rx="1.6" ry="2.6" fill="#1b1b1b"/><ellipse cx="37.5" cy="32.5" rx="1.6" ry="2.6" fill="#1b1b1b"/>
+      <circle cx="29" cy="40" r="1.2" fill="#164b44"/><circle cx="35" cy="40" r="1.2" fill="#164b44"/>
+      <path d="M28 44 Q32 47 36 44" stroke="#164b44" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <circle cx="48" cy="12" r="4" fill="#cfcfcf" opacity="0.9"/><circle cx="53" cy="8" r="3" fill="#dedede" opacity="0.8"/><circle cx="44" cy="16" r="2.5" fill="#bdbdbd" opacity="0.9"/>`,
+    // Unicornio gruñón: cabeza blanca de perfil, crin de colores, cuerno dorado y ojo de fastidio.
+    unicornio: `<circle cx="32" cy="32" r="31" fill="#ece4f7"/>
+      <path d="M20 22 L16 10 L26 18 Z M44 22 L48 10 L38 18 Z" fill="#ffffff" stroke="#6b5a86" stroke-width="1.8" stroke-linejoin="round"/>
+      <ellipse cx="32" cy="36" rx="16" ry="19" fill="#ffffff" stroke="#6b5a86" stroke-width="2"/>
+      <path d="M29 18 L32 2 L35 18 Z" fill="#f2c94c" stroke="#9a7a12" stroke-width="1.5" stroke-linejoin="round"/><path d="M30 13 L34 11 M30.5 9 L33.5 7.5" stroke="#9a7a12" stroke-width="1"/>
+      <path d="M21 20 Q26 14 31 20 Q27 24 22 28 Z" fill="#e85d75"/><path d="M26 18 Q31 15 36 19 Q31 23 25 26 Z" fill="#f2a541"/><path d="M33 19 Q39 16 43 22 Q37 24 31 25 Z" fill="#5bb0e8"/>
+      <path d="M22 33 Q26 30 30 33 M34 33 Q38 30 42 33" stroke="#3a2e4d" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+      <path d="M22 35 Q26 37 30 35 M34 35 Q38 37 42 35" stroke="#3a2e4d" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <ellipse cx="32" cy="46" rx="10" ry="7" fill="#f7d6e4" stroke="#6b5a86" stroke-width="1.5"/>
+      <ellipse cx="28.5" cy="45" rx="1.3" ry="1.8" fill="#6b5a86"/><ellipse cx="35.5" cy="45" rx="1.3" ry="1.8" fill="#6b5a86"/>
+      <path d="M28 50 Q32 48 36 50" stroke="#6b5a86" stroke-width="1.5" fill="none" stroke-linecap="round"/>`,
+    // Fantasma doméstico: sábana con volados, mejillas rosadas y una sonrisita tímida.
+    fantasma: `<circle cx="32" cy="32" r="31" fill="#dfe8f2"/>
+      <path d="M14 56 L14 30 Q14 10 32 10 Q50 10 50 30 L50 56 Q46 52 43 56 Q40 60 37 56 Q34 52 31 56 Q28 60 25 56 Q22 52 19 56 Q16 60 14 56 Z" fill="#ffffff" stroke="#7d93ad" stroke-width="2"/>
+      <ellipse cx="25" cy="30" rx="3" ry="4.2" fill="#2a3442"/><ellipse cx="39" cy="30" rx="3" ry="4.2" fill="#2a3442"/>
+      <circle cx="21" cy="37" r="3" fill="#f6b8c6" opacity="0.8"/><circle cx="43" cy="37" r="3" fill="#f6b8c6" opacity="0.8"/>
+      <path d="M29 38 Q32 41 35 38" stroke="#2a3442" stroke-width="2" fill="none" stroke-linecap="round"/>`
+  };
+  UI.mythicSVG = function (sp) {
+    const S = MV.SPECIES[sp];
+    if (!S || !S.mythic || !MYTHIC_ART[sp]) return '';
+    return `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${S.name}">${MYTHIC_ART[sp]}</svg>`;
+  };
+
   UI.avatar = function (n, size, extra) {
     size = size || 48;
     extra = extra || {};
     const h = UI.h;
     if (n && n.species && n.species !== 'humano') {
       const S = MV.SPECIES[n.species] || { icon: '🐾' };
+      if (S.mythic) {
+        const m = h('span', { class: 'avatar pet mythic' + (n.alive === false ? ' dead' : ''), style: { width: size + 'px', height: size + 'px' }, 'aria-hidden': 'true' });
+        m.innerHTML = UI.mythicSVG(n.species);
+        return m;
+      }
       return h('span', { class: 'avatar pet' + (n.alive === false ? ' dead' : ''), style: { width: size + 'px', height: size + 'px', fontSize: Math.round(size * 0.55) + 'px' }, 'aria-hidden': 'true' }, S.icon);
     }
     const dead = extra.dead != null ? extra.dead : n && n.alive === false;

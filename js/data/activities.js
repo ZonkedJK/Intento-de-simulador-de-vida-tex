@@ -140,7 +140,7 @@
   A({ id: 'amigos_buscar', cat: 'amor', icon: '🤝', label: 'Buscar nuevos amigos', sub: 'Club, gimnasio, vecinos...', minAge: 13, limit: 2,
     run: (g) => { const p = g.p; if (!U.chance(0.45 + p.skills.carisma / 200)) { fx.stat(g, 'happy', -2); return U.pick(['Fuiste a un club de lectura. Eras el único que leyó el libro.', 'Saludaste a un vecino. Cerró la puerta.']); } const n = MV.newNPC(g, { age: U.clamp(p.age + U.int(-6, 6), 13, 99), country: p.country }); MV.addRel(g, n, 'amigo', U.int(45, 70)); fx.skill(g, 'carisma', 2); return `Conociste a ${MV.fullName(n)} ${U.pick(['en una clase de cerámica', 'en la fila del banco', 'en un grupo de senderismo', 'peleando por el último pan'])}. Ahora son amig${U.gw(n.gender, 'os', 'as')}.`; } });
   A({ id: 'adoptar_mascota', cat: 'amor', icon: '🐾', label: 'Adoptar una mascota', sub: 'Un amigo para siempre', minAge: 18, limit: 2,
-    opts: (g) => Object.keys(MV.SPECIES).filter((k) => g.p.money >= MV.SPECIES[k].price).map((k) => ({ id: k, icon: MV.SPECIES[k].icon, label: MV.SPECIES[k].name, sub: U.money(MV.SPECIES[k].price) })),
+    opts: (g) => Object.keys(MV.SPECIES).filter((k) => !MV.SPECIES[k].mythic && g.p.money >= MV.SPECIES[k].price).map((k) => ({ id: k, icon: MV.SPECIES[k].icon, label: MV.SPECIES[k].name, sub: U.money(MV.SPECIES[k].price) })),
     run: (g, k) => { const S = MV.SPECIES[k]; fx.money(g, -S.price); const pet = MV.newPet(g, k); MV.addRel(g, pet, 'mascota', U.int(60, 90)); fx.stat(g, 'happy', 8); MV.ach.check(g); return `Adoptaste ${U.gw(pet.gender, 'un', 'una')} ${S.name.toLowerCase()} y le pusiste ${pet.first}. ${U.pick(['Ya rompió algo.', 'Te ama incondicionalmente (o al menos a tu comida).', 'Es lo mejor que te pasó este año.'])}`; } });
   A({ id: 'adoptar_hijo', cat: 'amor', icon: '👶', label: 'Adoptar un hijo', sub: '$8.000 · trámite largo', minAge: 25, limit: 1, when: (g) => g.p.money >= 8000,
     run: (g) => { if (U.chance(g.p.record.length ? 0.15 : 0.6)) { fx.money(g, -8000); const pt = MV.partner(g); return MV.sys.rels.birth(g, pt ? pt.n : null, true); } return 'La agencia de adopción rechazó tu solicitud. Dijeron que tu departamento "huele a soltería".'; } });
@@ -166,6 +166,7 @@
       const comp = mr && p.money >= D.cost * 2 ? mate : null;
       fx.money(g, -D.cost * (comp ? 2 : 1)); fx.stat(g, 'happy', U.int(6, 14)); fx.stat(g, 'stress', -U.int(10, 25)); fx.skill(g, 'idiomas', 2);
       p.counters.viajes = (p.counters.viajes || 0) + 1;
+      if (id !== 'espacio' && !MV.sys.mythic.has(g, 'dragon') && U.chance(0.05)) MV.EV.push(g, 'mercader', {});
       if (comp) {
         mr.rel = U.clamp(mr.rel + U.int(8, 18), 0, 100);
         comp.health = U.clamp(comp.health + 2, 0, 100);
@@ -201,7 +202,27 @@
   A({ id: 'cancion', cat: 'ocio', icon: '🎵', label: 'Componer una canción', sub: 'Con título propio. Puede ser un hit', minAge: 12, limit: 1, ui: 'work', work: 'cancion', run: work('cancion') });
   A({ id: 'cuadro', cat: 'ocio', icon: '🎨', label: 'Pintar un cuadro', sub: 'Con título propio. Quizás termine en un museo', minAge: 8, limit: 1, ui: 'work', work: 'cuadro', run: work('cuadro') });
   A({ id: 'voluntariado', cat: 'ocio', icon: '🤲', label: 'Hacer voluntariado', sub: '+karma, +felicidad', minAge: 12, limit: 2,
-    run: (g) => { fx.stat(g, 'karma', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5)); return U.pick(['Serviste comida en un comedor. Una señora te dio un abrazo que no olvidarás.', 'Limpiaste una playa. Encontraste 3 zapatos izquierdos.', 'Paseaste perros de un refugio. Quieres adoptar a todos.', 'Le leíste a ancianos en un geriátrico. Te contaron chismes de 1960.']); } });
+    run: (g) => { fx.stat(g, 'karma', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5));
+      if (U.chance(0.03)) { const pet = MV.sys.mythic.grant(g, 'guardian'); if (pet) return `Limpiando un bosque, una criaturita de musgo te siguió hasta casa. Se llama ${pet.first}, dice que es guardián del bosque y que te va a vigilar.`; }
+      return U.pick(['Serviste comida en un comedor. Una señora te dio un abrazo que no olvidarás.', 'Limpiaste una playa. Encontraste 3 zapatos izquierdos.', 'Paseaste perros de un refugio. Quieres adoptar a todos.', 'Le leíste a ancianos en un geriátrico. Te contaron chismes de 1960.']); } });
+  A({ id: 'plantar_arboles', cat: 'ocio', icon: '🌱', label: 'Plantar árboles', sub: '$200 · +karma', minAge: 12, limit: 2, when: (g) => g.p.money >= 200,
+    run: (g) => { fx.money(g, -200); fx.stat(g, 'karma', U.int(2, 5)); fx.stat(g, 'happy', U.int(1, 3)); fx.stat(g, 'stress', -2);
+      if (U.chance(0.08)) { const pet = MV.sys.mythic.grant(g, 'guardian'); if (pet) return `Mientras plantabas, salió de entre las raíces una criaturita de musgo con cejas enormes. Se llama ${pet.first}, habla por los árboles y decidió mudarse contigo para vigilarte.`; }
+      return U.pick(['Plantaste diez árboles. Uno ya tiene un pájaro. Te sientes madre o padre de un bosque.', 'Plantaste un árbol y le pusiste nombre. Lo vas a visitar más que a tu familia.', 'Plantaste árboles con una ONG. Te dieron una gorra y una ampolla.']); } });
+  A({ id: 'gato_callejero', cat: 'ocio', icon: '🐈', label: 'Recoger un gato callejero', sub: 'Gratis · elige la edad', minAge: 12, limit: 2,
+    opts: () => Object.keys(MV.STRAY_AGES).map((k) => ({ id: k, icon: MV.STRAY_AGES[k].icon, label: MV.STRAY_AGES[k].label, sub: MV.STRAY_AGES[k].sub })),
+    run: (g, k) => {
+      const p = g.p, parents = p.housing === 'padres' && MV.rels(g, 'padre').length > 0;
+      if (parents && U.chance(0.4)) { fx.stat(g, 'happy', -3); return `Llegaste a casa con un gato en brazos. Tus padres dijeron que no. El gato también parecía decepcionado.`; }
+      const vet = U.int(50, 150);
+      fx.money(g, -vet);
+      const pet = MV.sys.mythic.strayCat(g, k);
+      MV.addRel(g, pet, 'mascota', U.int(60, 90));
+      fx.stat(g, 'karma', k === 'anciano' ? 6 : 3); fx.stat(g, 'happy', U.int(4, 8));
+      MV.ach.check(g);
+      const age = pet.age === 0 ? 'meses' : `${pet.age} año${pet.age === 1 ? '' : 's'}`;
+      return `Recogiste a ${U.gw(pet.gender, 'un gato', 'una gata')} de ${age} que ${pet.street} y le pusiste ${pet.first}. El veterinario te cobró ${U.money(vet)}.${k === 'anciano' ? ' Nadie adopta a los viejitos. Tú sí.' : ''}`;
+    } });
   A({ id: 'templo', cat: 'ocio', icon: '⛪', label: 'Ir a un templo', sub: '+karma, +paz', minAge: 6, limit: 1,
     run: (g) => { fx.stat(g, 'karma', U.int(1, 4)); fx.stat(g, 'happy', U.int(1, 4)); fx.stat(g, 'stress', -4); return U.pick(['Fuiste a misa. Te dormiste en el sermón.', 'Rezaste por dinero. Ya veremos.', 'Encendiste una vela por tu familia. Casi incendias el banco.']); } });
   A({ id: 'videojuegos', cat: 'ocio', icon: '🎮', label: 'Jugar videojuegos', sub: '+felicidad, -estrés', minAge: 6, limit: 3,

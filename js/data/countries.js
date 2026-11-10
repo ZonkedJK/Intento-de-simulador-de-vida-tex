@@ -206,7 +206,12 @@
     caballo: { name: 'Caballo', icon: '🐎', life: [25, 32], price: 8000 },
     cerdo: { name: 'Cerdito', icon: '🐖', life: [12, 18], price: 500 },
     iguana: { name: 'Iguana', icon: '🦎', art: 'una', life: [10, 20], price: 250 },
-    huron: { name: 'Hurón', icon: '🦦', life: [6, 10], price: 350 }
+    huron: { name: 'Hurón', icon: '🦦', life: [6, 10], price: 350 },
+    // Míticas: no se venden; cada una llega de una forma propia (ver js/systems/mythic.js).
+    guardian: { name: 'Guardián del bosque', icon: '🌳', life: [150, 300], price: 0, mythic: true },
+    dragon: { name: 'Dragoncito de bolsillo', icon: '🐉', life: [80, 150], price: 50000, mythic: true },
+    unicornio: { name: 'Unicornio gruñón', icon: '🦄', life: [100, 200], price: 0, mythic: true },
+    fantasma: { name: 'Fantasma doméstico', icon: '👻', life: [500, 900], price: 0, mythic: true }
   };
   /** Trucos que puede aprender cada especie (los últimos son los más difíciles). */
   MV.PET_TRICKS = {
@@ -221,6 +226,10 @@
     caballo: ['hacer una reverencia', 'saltar vallas', 'contar con la pata', 'caminar de costado', 'sonreír'],
     cerdo: ['sentarse', 'hacerse el muerto', 'encontrar trufas', 'jugar al fútbol', 'abrir puertas', 'pintar con el hocico'],
     iguana: ['venir por su nombre', 'subirse a tu hombro', 'tomar sol a pedido', 'mover la cabeza en señal de respeto'],
-    huron: ['bailar la danza de guerra', 'traer objetos robados', 'pasar por un tubo', 'esconder tus llaves a pedido']
+    huron: ['bailar la danza de guerra', 'traer objetos robados', 'pasar por un tubo', 'esconder tus llaves a pedido'],
+    guardian: ['regañar a quien tira basura', 'hacer crecer un brote en una maceta', 'abrazar un árbol a pedido', 'dar un discurso sobre la tala', 'encontrar hongos comestibles'],
+    dragon: ['encender la parrilla', 'tostar malvaviscos', 'hacer anillos de humo', 'calentar el agua del mate', 'volar hasta la lámpara'],
+    unicornio: ['bufar con desprecio', 'iluminar el pasillo con el cuerno', 'dejar un rastro de purpurina', 'posar de perfil', 'quejarse en rima'],
+    fantasma: ['atravesar la pared a pedido', 'apagar las velas con un soplido', 'hacer sonar las cadenas a tiempo', 'asustar a los vendedores', 'doblar la ropa flotando']
   };
 })(window.MV = window.MV || {});
