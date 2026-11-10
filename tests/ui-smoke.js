@@ -215,6 +215,24 @@ const SHOTS = process.argv[2] || null;
   if (!/Recesión mundial/.test(newsText)) errors.push('Bienes y dinero no muestra el clima económico: ' + newsText);
   await page.evaluate(() => MV.UI.closeSheets());
 
+  // Concesionaria: filtrar por categoría, elegir color y comprar
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 20); g.p.money = Math.max(g.p.money, 5e6); MV.UI.showAssets(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Concesionaria")');
+  await page.click('.dealer-cats [data-cat="suv"]');
+  const suvNames = await page.$$eval('#layer .layer-item:last-child .list button.row .rl', (els) => els.map((e) => e.textContent));
+  const suvModels = await page.evaluate(() => MV.CAR_CATALOG.filter((m) => m.cat === 'suv').map((m) => `${m.brand} ${m.model}`));
+  if (!suvNames.length || suvNames.some((n) => !suvModels.includes(n))) errors.push('El filtro de SUV muestra otros autos: ' + suvNames.join(', '));
+  if (!(await page.$('#layer .layer-item:last-child .car-thumb svg'))) errors.push('La concesionaria no dibuja los autos');
+  await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
+  await page.click('.color-swatch[data-color="verde"]');
+  const buyLabel = await page.$eval('#dealer-buy', (e) => e.textContent);
+  if (!/verde/.test(buyLabel)) errors.push('El botón de compra no muestra el color elegido: ' + buyLabel);
+  await page.click('#dealer-buy');
+  await resolve();
+  const bought = await page.evaluate(() => { const a = MV.UI.g.p.assets.filter((x) => x.type === 'auto').pop(); return a ? { model: a.model, color: a.color } : null; });
+  if (!bought || bought.color !== 'verde' || !/okami_trekker|aurora_xl|tundra_montaraz|kaiserwerk_gelande|vellano_toro/.test(bought.model)) errors.push('La compra en la concesionaria no guardó modelo y color: ' + JSON.stringify(bought));
+  await page.evaluate(() => MV.UI.closeSheets());
+
   // Animaciones: números flotantes, avatar que reacciona y dinero que cuenta (y nada si se apagan)
   const animRun = () => page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.yearActs = {}; g.p.age = Math.max(g.p.age, 20); g.p.stats.health = 50; MV.UI.execAction(MV.ACTS.find((x) => x.id === 'gimnasio')); });
   await animRun();

@@ -409,3 +409,17 @@ button.row:disabled:hover { background: none; }
 .quiz-mistakes { margin-top: 10px; display: grid; gap: 8px; text-align: left; }
 .quiz-mistake { display: flex; gap: 10px; align-items: center; }
 .quiz-mini { flex: 0 0 40px; width: 40px; height: 40px; }
+
+/* — Concesionaria y autos pixelados — */
+.dealer-cats { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+.chip-btn { font: inherit; font-size: 0.85rem; border: 1.5px solid var(--ink); border-radius: 999px; padding: 3px 10px; background: transparent; color: inherit; cursor: pointer; }
+.chip-btn.on { background: var(--hl-yellow); color: var(--on-hl); font-weight: 700; }
+.car-thumb { width: 64px; height: 32px; }
+.car-thumb svg, .car-art svg { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+.row:has(.car-thumb) { grid-template-columns: 64px 1fr auto; }
+.car-art { height: 90px; margin: 4px auto 8px; display: flex; justify-content: center; }
+.car-art.big { height: 120px; }
+.car-art svg { width: auto; max-width: 100%; }
+.color-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 12px; }
+.color-swatch { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--ink); cursor: pointer; }
+.color-swatch.on { outline: 3px solid var(--hl-yellow); outline-offset: 2px; }

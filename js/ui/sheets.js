@@ -246,7 +246,8 @@
     // Comprar
     body.append(title('Comprar'));
     const buy = h('div', { class: 'list' });
-    [['casa', '🏡', 'Casas y departamentos'], ['auto', '🚗', 'Autos y motos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
+    [['casa', '🏡', 'Casas y departamentos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
+    buy.append(UI.row('🚗', 'Concesionaria', `${MV.CAR_CATALOG.length} modelos 0 km en 9 categorías, en el color que quieras`, '›', () => UI.showDealer()));
     buy.append(UI.row('🎸', 'Tienda de música', 'Instrumentos para practicar, tocar y hacer carrera', '›', () => UI.showMusicShop()));
     body.append(buy);
     // Inversiones
@@ -291,6 +292,7 @@
         if (!a) { body.append(note('Ya no tienes esto.')); return; }
         const M = MV.sys.money;
         const loan = p.loans.find((l) => l.assetId === a.id);
+        if (a.type === 'auto') { const pic = h('div', { class: 'car-art big' }); pic.innerHTML = UI.carSVG(a); body.append(pic); }
         body.append(h('div', { class: 'box' }, h('p', null, h('b', null, `${a.icon} ${a.name}`)), kv('Valor', U.money(a.value)), kv('Estado', UI.condBar(a.cond)),
           kv('Mantenimiento', U.money(M.upkeep(g, a)) + ' al año'),
           loan ? kv('Hipoteca pendiente', U.money(loan.left)) : null,
