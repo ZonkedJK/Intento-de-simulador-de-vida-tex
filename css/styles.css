@@ -466,3 +466,7 @@ html[data-font="muy_grande"] { font-size: 125%; }
 .viz-table th:first-child, .viz-table td:first-child { text-align: left; }
 .year-highlights { margin: 8px 0 12px; padding-left: 18px; }
 .year-highlights li { margin: 3px 0; }
+
+/* — Bolsa de valores — */
+.trade-row { flex-wrap: wrap; gap: 6px; }
+.trade-row .btn { flex: 1 1 auto; min-width: 72px; }

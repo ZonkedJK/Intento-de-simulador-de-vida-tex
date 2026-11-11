@@ -41,6 +41,40 @@
     musico: { name: 'Músico|Música', icon: '🎤', pay: [20000, 80000, 300000, 1200000, 6000000] }
   };
 
+  /** Bolsa de valores: 12 empresas inventadas { id (sigla), name, sector, price, vol (volatilidad), div (dividendo anual) }. */
+  MV.STOCKS = [
+    { id: 'VOLT', name: 'Volta Motors', sector: 'autos', icon: '🚗', price: 120, vol: 0.25, div: 0 },
+    { id: 'OKAM', name: 'Okami Electrónica', sector: 'tech', icon: '💻', price: 85, vol: 0.3, div: 0.01 },
+    { id: 'BSUR', name: 'Banco del Sur', sector: 'banca', icon: '🏦', price: 40, vol: 0.2, div: 0.04 },
+    { id: 'PETR', name: 'Petrolera Austral', sector: 'energia', icon: '🛢️', price: 55, vol: 0.25, div: 0.05 },
+    { id: 'VITA', name: 'Farmacéutica Vitalis', sector: 'salud', icon: '💊', price: 70, vol: 0.2, div: 0.02 },
+    { id: 'SMAX', name: 'Supermercados Supermax', sector: 'consumo', icon: '🛒', price: 30, vol: 0.15, div: 0.03 },
+    { id: 'COND', name: 'Aerolínea Cóndor', sector: 'viajes', icon: '✈️', price: 22, vol: 0.35, div: 0 },
+    { id: 'MINA', name: 'Minera Andina', sector: 'mineria', icon: '⛏️', price: 48, vol: 0.3, div: 0.03 },
+    { id: 'BNNA', name: 'Bananín Coin', sector: 'cripto', icon: '🍌', price: 3, vol: 0.8, div: 0 },
+    { id: 'TORR', name: 'Inmobiliaria Torres', sector: 'inmobiliario', icon: '🏢', price: 35, vol: 0.2, div: 0.04 },
+    { id: 'NUBE', name: 'Streaming Nube', sector: 'entretenimiento', icon: '📺', price: 60, vol: 0.35, div: 0 },
+    { id: 'POLL', name: 'Pollo Feliz', sector: 'comida', icon: '🍗', price: 18, vol: 0.15, div: 0.02 }
+  ];
+  /** Efecto de cada noticia del mundo en la bolsa: corrimientos que se suman (all = a todas). */
+  MV.MARKET_NEWS = {
+    recesion: { all: -0.15, banca: -0.1, viajes: -0.1 },
+    auge: { all: 0.12 },
+    burbuja_cripto: { cripto: 0.9, tech: 0.05 },
+    desplome_cripto: { cripto: -0.6 },
+    auge_inmobiliario: { inmobiliario: 0.25, banca: 0.05 },
+    crisis_inmobiliaria: { inmobiliario: -0.3, banca: -0.15 },
+    pandemia: { all: -0.05, salud: 0.3, viajes: -0.4, entretenimiento: 0.15, comida: 0.05 },
+    inflacion: { all: -0.05, energia: 0.15, consumo: -0.05 },
+    auge_tech: { tech: 0.35, entretenimiento: 0.1, autos: 0.05 },
+    guerra: { all: -0.08, energia: 0.3, mineria: 0.2, viajes: -0.2 },
+    ola_calor: { energia: 0.1, comida: -0.03 },
+    elecciones: { banca: -0.05 },
+    furor_deporte: { entretenimiento: 0.1, comida: 0.03 },
+    escandalo: { banca: -0.1 },
+    vacuna: { all: 0.03, salud: 0.2, viajes: 0.2 }
+  };
+
   /** Marketing anual: costo e impulso a ventas y crecimiento. */
   MV.MARKETING = {
     ninguno: { name: 'Ninguno', cost: 0, boost: 0 },

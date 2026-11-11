@@ -259,6 +259,20 @@ const SHOTS = process.argv[2] || null;
   }
   await page.evaluate(() => MV.UI.closeSheets());
 
+  // Bolsa de valores: comprar y vender 10 acciones de VOLT; la ficha tiene gráfico
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.money = Math.max(g.p.money, 1e6); MV.sys.market.ensure(g); MV.sys.market.yearly(g, { quiet: true }); MV.UI.showAssets(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Bolsa de valores")');
+  await page.click('#layer .layer-item:last-child button.row:has-text("VOLT")');
+  if (!(await page.$('#layer .layer-item:last-child svg.viz'))) errors.push('La ficha de la acción no tiene gráfico');
+  await page.click('#buy-10');
+  await resolve();
+  const held = await page.evaluate(() => (MV.UI.g.p.portfolio.VOLT || { shares: 0 }).shares);
+  if (held !== 10) errors.push('Comprar 10 acciones dejó ' + held);
+  await page.click('#sell-all');
+  await resolve();
+  if (await page.evaluate(() => (MV.UI.g.p.portfolio.VOLT || { shares: 0 }).shares) !== 0) errors.push('Vender todas no vendió');
+  await page.evaluate(() => MV.UI.closeSheets());
+
   // Concesionaria: filtrar por categoría, elegir color y comprar
   await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 20); g.p.money = Math.max(g.p.money, 5e6); MV.UI.showAssets(); });
   await page.click('#layer .layer-item:last-child button.row:has-text("Concesionaria")');

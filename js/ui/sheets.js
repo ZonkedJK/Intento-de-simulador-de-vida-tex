@@ -249,6 +249,7 @@
     const buy = h('div', { class: 'list' });
     [['casa', '🏡', 'Casas y departamentos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
     buy.append(UI.row('🚗', 'Concesionaria', `${MV.CAR_CATALOG.length} modelos 0 km en 9 categorías, en el color que quieras`, '›', () => UI.showDealer()));
+    buy.append(UI.row('📈', 'Bolsa de valores', '12 empresas que suben y bajan con las noticias del mundo', '›', () => UI.showStocks()));
     buy.append(UI.row('🎸', 'Tienda de música', 'Instrumentos para practicar, tocar y hacer carrera', '›', () => UI.showMusicShop()));
     body.append(buy);
     // Inversiones
