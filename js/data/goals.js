@@ -36,6 +36,8 @@
     { id: 'escritor', name: 'Best seller', icon: '📚', desc: 'Escribe un libro superventas.' },
     { id: 'hit', name: 'Número 1', icon: '🎵', desc: 'Una canción tuya llega al número 1.' },
     { id: 'museo', name: 'De museo', icon: '🖼️', desc: 'Un museo compra uno de tus cuadros.' },
+    { id: 'gamedev', name: 'Desarrollador estrella', icon: '🎮', desc: 'Un juego tuyo es un éxito mundial.' },
+    { id: 'appdev', name: 'App del año', icon: '📱', desc: 'Una app tuya llega al número 1.' },
     { id: 'santo', name: 'Santo en vida', icon: '😇', desc: 'Llega a 80 de karma.', check: (g) => g.p.karma >= 80 },
     { id: 'villano', name: 'Villano de manual', icon: '😈', desc: 'Llega a -80 de karma.', check: (g) => g.p.karma <= -80 },
     { id: 'recluso', name: 'Tras las rejas', icon: '⛓️', desc: 'Termina en la cárcel.' },

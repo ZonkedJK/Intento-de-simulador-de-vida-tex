@@ -28,6 +28,24 @@
       b: ['un gato triste', 'azul y rabia', 'una silla', 'mi abuela', 'bananas', 'el vacío', 'un lunes', 'la ciudad dormida', 'un pez']
     }
   };
+  // — Parte B: juegos y apps (Programación) —
+  MV.WORK_KINDS.juego = {
+    name: 'Juego', icon: '🎮', skill: 'programacion', minAge: 12, stress: 6, verb: 'Lanzaste', noun: 'el juego', pron: 'Lo', action: '🚀 Lanzar',
+    hit: [60000, 1200000], fame: [8, 18], royalty: 0.3, ach: 'gamedev', hitText: '¡Es un éxito! Millones de jugadores y todos los streamers gritando en vivo.',
+    genres: [G('plataformas', 'Plataformas'), G('terror', 'Terror', (p) => (50 - p.stats.happy) / 6), G('estrategia', 'Estrategia', (p) => (p.stats.smarts - 50) / 5),
+      G('mundo_abierto', 'Mundo abierto'), G('simulador_vida', 'Simulador de vida', (p) => p.age / 12), G('battle_royale', 'Battle royale', (p) => (30 - p.age) / 4)],
+    a: ['Pixel', 'Leyendas de', 'Súper', 'La venganza de', 'Simulador de', 'Noche en', 'Cazadores de', 'Operación', 'Reino de'],
+    b: ['Pantano', 'los mapaches', 'Cabra', 'la oficina', 'tu ex', 'la abuela', 'el barrio', 'Tostadora', 'medianoche', 'Choripán']
+  };
+  MV.WORK_KINDS.app = {
+    name: 'App', icon: '📱', skill: 'programacion', minAge: 14, stress: 4, verb: 'Publicaste', noun: 'la app', pron: 'La', action: '📲 Publicar',
+    hit: [40000, 800000], fame: [4, 10], royalty: 0.35, ach: 'appdev', hitText: '¡Explotó! Es la app número 1 de la tienda y tus servidores lloran.',
+    genres: [G('productividad', 'Productividad', (p) => (p.stats.smarts - 50) / 6), G('citas', 'Citas', (p) => (p.skills.carisma - 40) / 5), G('fitness', 'Fitness', (p) => (p.skills.deporte - 40) / 6),
+      G('finanzas', 'Finanzas', (p) => (p.stats.smarts - 50) / 5), G('red_nicho', 'Red social de nicho', (p) => p.fame / 8), G('inutil', 'App que no hace nada')],
+    a: ['Mi', 'Súper', 'Contador de', 'Encuentra', 'Organiza tu', 'Diario de', 'Alarma para'],
+    b: ['Siesta', 'gastos', 'tus calcetines', 'Mate', 'excusas', 'suegra', 'pasos', 'plantas', 'ex']
+  };
+
   /** Citas de la crítica por estrellas (1 a 5). */
   MV.WORK_REVIEWS = {
     1: ['"Una obra que nos recuerda que no todo el mundo debería expresarse."', '"Lo terminé por obligación profesional. Pido aumento."', '"El autor tiene un gran futuro en otra cosa."', '"Hubo silencio en la sala. Del incómodo."'],
