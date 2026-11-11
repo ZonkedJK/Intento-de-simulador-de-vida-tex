@@ -18,31 +18,40 @@
       if (!c.market || c.market.age !== p.age) {
         c.market = { age: p.age, list: [0, 1, 2].map(() => {
           const gender = U.pick(['m', 'f']), skill = U.int(30, Math.min(95, 70 + Math.round((c.rep || 0) / 4)));
-          return { id: U.uid('gp'), first: MV.randomFirst(gender, p.country), last: MV.randomLast(p.country), gender, alias: U.pick(MV.GAMER_ALIASES), skill, salary: skill * 1500, age: U.int(16, 28) };
+          return { id: U.uid('gp'), first: MV.randomFirst(gender, p.country), last: MV.randomLast(p.country), gender, alias: U.pick(MV.GAMER_ALIASES), skill, salary: agency.wage(skill), age: U.int(16, 28) };
         }) };
       }
       return c.market.list;
     },
-    size(c) { return (c.roster || []).length + (c.selfPlay ? 1 : 0); },
+    /** Sueldo anual de un jugador según su habilidad, y precio de su pase (fichar y vender cuestan lo mismo). */
+    wage(skill) { return skill * 800; },
+    fee(skill) { return skill * 3000; },
+    /** Lugares ocupados del plantel (tú cuentas solo si sigues siendo gamer profesional). */
+    size(c, p) { return (c.roster || []).length + (c.selfPlay && (!p || selfPro(p)) ? 1 : 0); },
 
     sign(g, cid, i) {
       const c = mine(g, cid, 'esports');
       if (!c) return 'Esa agencia ya no es tuya.';
       c.roster = c.roster || [];
-      if (agency.size(c) >= MAX_ROSTER) return `El plantel ya tiene ${MAX_ROSTER} jugadores. Vende a alguien primero.`;
+      if (agency.size(c, g.p) >= MAX_ROSTER) return `El plantel ya tiene ${MAX_ROSTER} jugadores. Vende a alguien primero.`;
       const list = agency.players(g, cid), x = list[i];
       if (!x) return 'Ese jugador ya firmó con otro equipo.';
+      const fee = agency.fee(x.skill);
+      if (c.cash < fee) return `La caja no alcanza: el pase de "${x.alias}" cuesta ${U.money(fee)}.`;
       list.splice(i, 1);
+      c.cash -= fee;
+      C().revalue(c);
       c.roster.push(x);
-      return `Fichaste a "${x.alias}" (${x.first} ${x.last}, habilidad ${x.skill}) por ${U.money(x.salary)} al año. Ya pidió una silla gamer nueva.`;
+      return `Fichaste a "${x.alias}" (${x.first} ${x.last}, habilidad ${x.skill}): pase de ${U.money(fee)} y ${U.money(x.salary)} de sueldo al año. Ya pidió una silla gamer nueva.`;
     },
 
     sellPlayer(g, cid, id) {
       const c = mine(g, cid, 'esports'), x = c && (c.roster || []).find((r) => r.id === id);
       if (!x) return 'Ese jugador ya no está en tu equipo.';
-      const fee = x.skill * 3000;
+      const fee = agency.fee(x.skill);
       c.cash += fee;
       c.roster = c.roster.filter((r) => r !== x);
+      C().revalue(c);
       return `Vendiste a "${x.alias}" a otro equipo por ${U.money(fee)}. Hizo un video de despedida llorando.`;
     },
 
@@ -51,7 +60,7 @@
       if (!c) return 'Esa agencia ya no es tuya.';
       if (!selfPro(p)) return 'Para jugar en tu equipo tienes que ser gamer profesional de e-sports.';
       if (c.selfPlay) return 'Ya juegas en tu propio equipo.';
-      if (agency.size(c) >= MAX_ROSTER) return `El plantel ya tiene ${MAX_ROSTER} jugadores. Vende a alguien primero.`;
+      if (agency.size(c, p) >= MAX_ROSTER) return `El plantel ya tiene ${MAX_ROSTER} jugadores. Vende a alguien primero.`;
       c.selfPlay = true;
       p.job.club = c.name;
       return `Ahora juegas en ${c.name}, tu propio equipo. Eres jugador, dueño y el que paga las pizzas.`;
@@ -76,7 +85,8 @@
       const s = agency.season(g, c);
       c.lastSeason = s;
       (c.roster || []).forEach((x) => { x.skill = U.clamp(x.skill + U.int(-2, 3) + (C().power(c, ['analista']) >= 24 ? 1 : 0), 20, 99); x.age++; });
-      const sponsors = Math.round((c.rep || 0) * 2000);
+      if (c.selfPlay && !selfPro(g.p)) c.selfPlay = false;
+      const sponsors = Math.round((c.rep || 0) * 6000);
       if (s.league) MV.log(g, `🕹️ ${c.name} terminó ${s.place}.º en la ${MV.ESPORTS_LEAGUES[s.league].name.toLowerCase()}${s.prize ? ` y ganó ${U.money(s.prize)}` : ''}. Patrocinios: ${U.money(sponsors)}.`, '🏆', s.place <= 3 ? 'good' : '');
       if (s.place === 1 && s.league === 'mundial') MV.ach.unlock(g, 'campeon_esports');
       return s.prize + sponsors;
@@ -118,7 +128,7 @@
         if (x.slump) { x.salary = x.base; x.slump = 0; }
         total += Math.round(x.salary * x.commission);
         const before = x.salary;
-        x.salary = Math.round(x.salary * U.float(0.9, 1.3));
+        x.salary = Math.round(x.salary * agency.clientGrowth());
         x.down = x.salary < before ? (x.down || 0) + 1 : 0;
         if (x.down >= 2 || U.chance(0.05)) {
           c.clients = c.clients.filter((y) => y !== x);
@@ -133,6 +143,9 @@
       c.rep = U.clamp((c.rep || 0) + (c.clients || []).length, 0, 100);
       return total;
     },
+
+    /** Cambio anual del sueldo de un representado (promedio apenas por encima de 1). */
+    clientGrowth() { return U.float(0.85, 1.2); },
 
     /** Negociación: 'mas' (pedir más), 'aceptar' o 'amenazar' (con irse). Devuelve si salió bien y el factor del sueldo. */
     negotiate(g, how, who) {
@@ -162,11 +175,14 @@
   };
   /** Mejora de una oferta o sueldo por tener mánager (1 si no tienes). */
   agency.managerBoost = (p) => (p.manager ? U.float(1.1, 1.25) : 1);
+  /** ¿El sueldo de esta carrera se recalcula cada año (fama y deportes con premios)? */
+  agency.recomputed = (job) => { if (!job) return false; if (job.type === 'fame') return true; const J = job.type === 'sport' && MV.jobById(job.id); return !!(J && MV.SPORTS[J.sport] && MV.SPORTS[J.sport].prize); };
   /** Comisión anual del mánager (10 % de tu sueldo); si ya no tienes carrera, se va. Repone un sueldo castigado por una amenaza fallida. */
   agency.managerFee = function (g) {
     const p = g.p;
     if (p.flags.slump && p.job) { p.job.salary = Math.max(p.job.salary, p.flags.slump); }
-    delete p.flags.slump;
+    if (p.flags.slumpDeal && p.job) p.job.deal = p.flags.slumpDeal;
+    delete p.flags.slump; delete p.flags.slumpDeal;
     if (!p.manager) return 0;
     if (!careerOk(p)) { MV.log(g, `${p.manager.first}, tu mánager, renunció: sin carrera no hay comisión.`, '💼'); p.manager = null; return 0; }
     return Math.round(p.job.salary * p.manager.fee);
@@ -206,7 +222,12 @@
     const p = g.p, job = p.job;
     if (!job || !careerOk(p)) return 'Ya no tienes contrato que negociar.';
     const before = job.salary, r = agency.negotiate(g, how, { level: (job.level || 0) + 1, carisma: p.skills.carisma, lawyer: 0 });
-    if (how === 'amenazar' && !r.ok) p.flags.slump = before;
+    if (agency.recomputed(job)) {
+      // Fama y deportes con premios: el sueldo se recalcula cada año, así que se guarda el trato.
+      const prev = job.deal || 1;
+      if (how === 'amenazar' && !r.ok) p.flags.slumpDeal = prev;
+      job.deal = Math.round(U.clamp(prev * r.factor, 0.3, 2) * 100) / 100;
+    } else if (how === 'amenazar' && !r.ok) p.flags.slump = before;
     job.salary = Math.round(before * r.factor);
     MV.fx.skill(g, 'carisma', 1);
     if (r.ok && r.factor > 1.1) return `¡Lo lograste! Tu sueldo pasa de ${U.money(before)} a ${U.money(job.salary)}.`;

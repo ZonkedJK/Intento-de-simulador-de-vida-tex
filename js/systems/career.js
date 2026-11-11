@@ -153,7 +153,7 @@
       const p = g.p, job = p.job;
       const key = J.key(p);
       // Ingresos variables
-      job.salary = Math.round(J.pay[job.level] * U.float(0.6, 1.4) * (0.7 + key / 200) * MV.sys.agency.managerBoost(p));
+      job.salary = Math.round(J.pay[job.level] * U.float(0.6, 1.4) * (0.7 + key / 200) * MV.sys.agency.managerBoost(p) * (job.deal || 1));
       if (J.type === 'fame') MV.fx.stat(g, 'fame', job.level * 3 + U.int(0, 4));
       if (J.retireAge && p.age >= J.retireAge) {
         const t = career.title(p);

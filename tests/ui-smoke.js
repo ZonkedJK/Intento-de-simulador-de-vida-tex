@@ -245,7 +245,7 @@ const SHOTS = process.argv[2] || null;
     if (!proj || proj.name !== 'Noche en la Oficina' || proj.genre !== 'terror' || proj.size !== 'chico') errors.push('El juego no quedó en desarrollo: ' + JSON.stringify(proj));
     if (!/En desarrollo/.test(await page.$eval('#layer .layer-item:last-child', (e) => e.textContent))) errors.push('La hoja del estudio no muestra el juego en desarrollo');
     // Agencias: fichar un jugador de eSports y firmar un cliente
-    const ag = await page.evaluate(() => { const g = MV.UI.g, C = MV.sys.company; C.found(g, 'esports', 'Los Mapaches'); C.found(g, 'representacion', 'Estrellas SA'); const r = g.p.companies[2]; r.rep = 100; MV.UI.closeSheets(); MV.UI.showCompany(g.p.companies[1].id); return [g.p.companies[1].id, r.id]; });
+    const ag = await page.evaluate(() => { const g = MV.UI.g, C = MV.sys.company; C.found(g, 'esports', 'Los Mapaches'); C.found(g, 'representacion', 'Estrellas SA'); C.inject(g, g.p.companies[1].id, 1000000); const r = g.p.companies[2]; r.rep = 100; MV.UI.closeSheets(); MV.UI.showCompany(g.p.companies[1].id); return [g.p.companies[1].id, r.id]; });
     await page.click('#layer .layer-item:last-child button.row:has-text("Fichar un jugador")');
     await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
     await resolve();
@@ -271,7 +271,7 @@ const SHOTS = process.argv[2] || null;
   await page.evaluate(() => MV.UI.closeSheets());
 
   // Bolsa de valores: comprar y vender 10 acciones de VOLT; la ficha tiene gráfico
-  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.money = Math.max(g.p.money, 1e6); MV.sys.market.ensure(g); MV.sys.market.yearly(g, { quiet: true }); MV.UI.showAssets(); });
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.money = Math.max(g.p.money, 1e6); MV.sys.market.ensure(g); MV.sys.market.yearly(g, { quiet: true }); g.p.portfolio = {}; MV.UI.showAssets(); });
   await page.click('#layer .layer-item:last-child button.row:has-text("Bolsa de valores")');
   await page.click('#layer .layer-item:last-child button.row:has-text("VOLT")');
   if (!(await page.$('#layer .layer-item:last-child svg.viz'))) errors.push('La ficha de la acción no tiene gráfico');

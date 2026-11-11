@@ -11,15 +11,15 @@
 
   UI.companyExtras.esports = function (body, g, c) {
     const s = c.lastSeason;
-    body.append(title(`Equipo (${A().size(c)}/5) · reputación ${c.rep || 0}`));
+    body.append(title(`Equipo (${A().size(c, g.p)}/5) · reputación ${c.rep || 0}`));
     if (s && s.league) body.append(note(`Última temporada: ${s.place}.º en la ${MV.ESPORTS_LEAGUES[s.league].name.toLowerCase()}${s.prize ? `, premio ${U.money(s.prize)}` : ''}.`));
     else body.append(note('Con 3 jugadores o más, el equipo compite cada temporada. La liga depende de la reputación.'));
     const l = h('div', { class: 'list' });
     if (c.selfPlay) l.append(UI.row('😎', 'Tú', 'Juegas en tu propio equipo', null, null));
-    (c.roster || []).forEach((x) => l.append(UI.row('🎧', `"${x.alias}"`, `${x.first} ${x.last} · habilidad ${x.skill} · ${U.money(x.salary)} al año`, 'Vender', () => UI.confirm(`¿Vender a "${x.alias}" por ${U.money(x.skill * 3000)}?`, () => UI.runSystem('💸', () => A().sellPlayer(g, c.id, x.id)), 'Vender'))));
-    if (A().size(c) < 5) l.append(UI.row('➕', 'Fichar un jugador', '3 jugadores libres este año', '›', () => showPlayers(c.id)));
+    (c.roster || []).forEach((x) => l.append(UI.row('🎧', `"${x.alias}"`, `${x.first} ${x.last} · habilidad ${x.skill} · ${U.money(x.salary)} al año`, 'Vender', () => UI.confirm(`¿Vender a "${x.alias}" por ${U.money(A().fee(x.skill))}?`, () => UI.runSystem('💸', () => A().sellPlayer(g, c.id, x.id)), 'Vender'))));
+    if (A().size(c, g.p) < 5) l.append(UI.row('➕', 'Fichar un jugador', '3 jugadores libres este año', '›', () => showPlayers(c.id)));
     const p = g.p;
-    if (!c.selfPlay && p.job && p.job.id === 'sport_esports' && A().size(c) < 5) l.append(UI.row('😎', 'Jugar en tu propio equipo', 'Eres gamer profesional: súmate al plantel', null, () => UI.runSystem('😎', () => A().joinOwnTeam(g, c.id))));
+    if (!c.selfPlay && p.job && p.job.id === 'sport_esports' && A().size(c, g.p) < 5) l.append(UI.row('😎', 'Jugar en tu propio equipo', 'Eres gamer profesional: súmate al plantel', null, () => UI.runSystem('😎', () => A().joinOwnTeam(g, c.id))));
     body.append(l);
   };
 
@@ -30,7 +30,9 @@
         const g = UI.g, list = A().players(g, cid);
         if (!list.length) { body.append(note('No quedan jugadores libres este año.')); return; }
         const l = h('div', { class: 'list' });
-        list.forEach((x, i) => l.append(UI.row('🎧', `"${x.alias}"`, `${x.first} ${x.last}, ${x.age} años · habilidad ${x.skill} · ${U.money(x.salary)} al año`, null, () => { UI.popSheet(); UI.runSystem('🕹️', () => A().sign(g, cid, i)); })));
+        const c = MV.sys.company.get(g, cid);
+        body.append(note(`Caja: ${U.money(c ? c.cash : 0)}. El pase se paga al fichar y lo recuperas si lo vendes.`));
+        list.forEach((x, i) => l.append(UI.row('🎧', `"${x.alias}"`, `${x.first} ${x.last}, ${x.age} años · habilidad ${x.skill} · pase ${U.money(A().fee(x.skill))} · ${U.money(x.salary)} al año`, null, () => { UI.popSheet(); UI.runSystem('🕹️', () => A().sign(g, cid, i)); }, !c || c.cash < A().fee(x.skill))));
         body.append(l);
       }
     });

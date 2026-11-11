@@ -138,6 +138,7 @@ test('salir a bolsa paga tu parte y la empresa cotiza con su propia sigla; el pa
 test('dos años de pérdidas llaman a la junta y si te echan te quedan las acciones', () => {
   const MV = load({ seed: 23 });
   const { g, c } = bigCo(MV, 23);
+  MV.sys.company.hire(g, c.id, 'programador', 0);
   M(MV).ipo(g, c.id, 0.4);
   const t = c.public.ticker;
   MV.sys.company.register('estudio', { revenue: () => 0 });

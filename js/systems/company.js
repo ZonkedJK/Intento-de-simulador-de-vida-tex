@@ -5,6 +5,7 @@
   MV.sys = MV.sys || {};
 
   const LEVELS = [1, 1, 2, 2, 2, 3, 3, 4, 5];
+  const kindName = (K) => K.name.charAt(0).toLowerCase() + K.name.slice(1);
   const T = (c) => MV.COMPANY_TYPES[c.type];
   const list = (p) => (p.companies = Array.isArray(p.companies) ? p.companies : []);
 
@@ -26,7 +27,7 @@
       if (p.age < 18) return 'Tienes que tener 18 años para fundar una empresa.';
       if (p.prison) return 'Desde la cárcel no se fundan empresas (las legales, al menos).';
       if (company.count(p) >= company.MAX) return `Ya tienes ${company.MAX} empresas (contando tu negocio). Vende o cierra una primero.`;
-      if (p.money < K.cost) return `Necesitas ${U.money(K.cost)} para fundar ${K.name.toLowerCase()}.`;
+      if (p.money < K.cost) return `Necesitas ${U.money(K.cost)} para fundar ${K.art} ${kindName(K)}.`;
       MV.fx.money(g, -K.cost);
       const nm = MV.sys.works.clean(name) || `${K.name} ${p.last}`;
       const c = { id: U.uid('co'), type, name: nm, cash: K.cost, since: p.age, staff: [], marketing: 'ninguno', redYears: 0,
@@ -34,7 +35,7 @@
       if (company.hooks[type] && company.hooks[type].init) company.hooks[type].init(c);
       list(p).push(c);
       MV.fx.stat(g, 'stress', 8);
-      return `Fundaste ${nm} (${K.name.toLowerCase()}) y pusiste ${U.money(K.cost)} en su caja. ${U.pick(['Ya tienes tarjetas con tu nombre y "CEO" abajo.', 'Tu madre ya le contó a todo el barrio.', 'La oficina es tu cocina, por ahora.'])}`;
+      return `Fundaste ${nm} (${kindName(K)}) y pusiste ${U.money(K.cost)} en su caja. ${U.pick(['Ya tienes tarjetas con tu nombre y "CEO" abajo.', 'Tu madre ya le contó a todo el barrio.', 'La oficina es tu cocina, por ahora.'])}`;
     },
 
     /** Tres candidatos por puesto, fijos durante el año. */
@@ -70,6 +71,7 @@
       const sev = Math.round(e.salary / 4);
       c.cash -= sev;
       c.staff = c.staff.filter((x) => x !== e);
+      company.revalue(c);
       return `Despediste a ${e.first} ${e.last}. La indemnización (${U.money(sev)}) salió de la caja. ${U.pick(['Se llevó la abrochadora.', 'Te dejó una reseña de una estrella en internet.', 'Lloró en el ascensor.'])}`;
     },
 
@@ -97,6 +99,7 @@
       if (amount > p.money) return `No tienes ${U.money(amount)}.`;
       MV.fx.money(g, -amount);
       c.cash += amount;
+      company.revalue(c);
       return `Pusiste ${U.money(amount)} en la caja de ${c.name}.`;
     },
 
@@ -107,9 +110,14 @@
       if (!(amount > 0)) return 'Elige un monto mayor a cero.';
       if (amount > c.cash) return `La caja de ${c.name} no tiene ${U.money(amount)}.`;
       c.cash -= amount;
-      MV.fx.money(g, amount);
-      return `Sacaste ${U.money(amount)} de dividendos de ${c.name}.`;
+      company.revalue(c);
+      const mine = Math.round(amount * company.stake(c));
+      MV.fx.money(g, mine);
+      return c.public ? `Repartiste ${U.money(amount)} de dividendos de ${c.name}: a ti te tocan ${U.money(mine)} (tu ${Math.round(company.stake(c) * 100)} %); el resto va a los accionistas.` : `Sacaste ${U.money(amount)} de dividendos de ${c.name}.`;
     },
+
+    /** Valuación: ingresos del último año × múltiplo del tipo + caja. Se recalcula cada vez que se mueve la caja. */
+    revalue(c) { const K = T(c); c.value = Math.max(0, Math.round(((c.last && c.last.revenue) || 0) * (K ? K.mult : 1) + c.cash)); return c.value; },
 
     /** Fuerza del equipo en ciertos puestos: suma de niveles × 8, tope 100. */
     power(c, roles) { return U.clamp((c.staff || []).filter((e) => roles.includes(e.role)).reduce((s, e) => s + e.level * 8, 0), 0, 100); },
@@ -140,7 +148,7 @@
       const c = company.get(g, cid);
       if (!c) return 'Esa empresa ya no es tuya.';
       c.staff.slice().forEach((e) => { c.cash -= Math.round(e.salary / 4); });
-      const back = Math.max(0, c.cash);
+      const back = Math.round(Math.max(0, c.cash) * company.stake(c));
       if (back) MV.fx.money(g, back);
       company.remove(g, cid);
       MV.fx.stat(g, 'happy', -5);
@@ -159,7 +167,7 @@
         const result = revenue - costs;
         c.cash += result;
         c.last = { revenue, costs, result };
-        c.value = Math.max(0, Math.round(revenue * K.mult + c.cash));
+        company.revalue(c);
         c.hist = (c.hist || []).concat([{ age: p.age, value: c.value }]).slice(-60);
         MV.fx.stat(g, 'stress', c.staff.some((e) => e.role === 'gerente') ? 1 : 3);
         c.redYears = c.cash < 0 ? (c.redYears || 0) + 1 : 0;
@@ -170,7 +178,10 @@
           return;
         }
         MV.log(g, `${K.icon} ${c.name}: ${result >= 0 ? 'ganó' : 'perdió'} ${U.money(Math.abs(result))} este año. Caja: ${U.money(c.cash)}.`, '🏢', result >= 0 ? 'good' : 'bad');
-        if (!p.prison && c.staff.length && U.chance(0.1)) MV.EV.push(g, 'empleado_aumento', { company: c.id, emp: U.pick(c.staff).id });
+        c.staff.slice().forEach((e) => {
+          if (U.chance(e.morale < 30 ? 0.3 : 0.02)) { c.staff = c.staff.filter((x) => x !== e); MV.log(g, `${e.first} ${e.last} renunció a ${c.name}. ${U.pick(['Dejó una nota pasivo-agresiva en la heladera.', 'Se fue a vivir de sus ahorros y de la nada.', 'Dijo que necesitaba "encontrarse". Se perdió.'])}`, '🚪', 'bad'); }
+        });
+        if (!p.prison && c.staff.length && U.chance(0.15)) MV.EV.push(g, U.pick(['empleado_aumento', 'empleado_tentado', 'empleado_viral']), { company: c.id, emp: U.pick(c.staff).id });
       });
     }
   };
@@ -184,6 +195,19 @@
     choices: [
       { t: 'Darle el aumento', eff: (g, ctx) => { const { e } = ctxOf(g, ctx); if (!e) return gone; e.salary = Math.round(e.salary * 1.2); e.morale = U.clamp(e.morale + 25, 0, 100); return `Le diste el aumento a ${e.first}. Ahora gana ${U.money(e.salary)} y te trajo medialunas.`; } },
       { t: 'Negarlo', eff: (g, ctx) => { const { c, e } = ctxOf(g, ctx); if (!e) return gone; if (U.chance(0.4)) { c.staff = c.staff.filter((x) => x !== e); return `${e.first} renunció y se fue a la competencia. Se llevó dos clientes y tu taza favorita.`; } e.morale = U.clamp(e.morale - 20, 0, 100); return `${e.first} se quedó, pero ahora suspira fuerte en cada reunión.`; } },
-      { t: 'Despedirlo', eff: (g, ctx) => { const { c, e } = ctxOf(g, ctx); if (!e) return gone; return company.fire(g, c.id, e.id); } }
+      { t: (g, ctx) => (ctxOf(g, ctx).e && ctxOf(g, ctx).e.gender === 'f' ? 'Despedirla' : 'Despedirlo'), eff: (g, ctx) => { const { c, e } = ctxOf(g, ctx); if (!e) return gone; return company.fire(g, c.id, e.id); } }
+    ] });
+  MV.ev({ id: 'empleado_tentado', manual: true, prison: 'any', icon: '🎣', scene: 'trabajo', title: 'Te quieren robar a alguien',
+    text: (g, ctx) => { const { c, e } = ctxOf(g, ctx); return e ? `La competencia le ofreció a ${e.first} ${e.last} (${company.roleName(e.role, e.gender).toLowerCase()} de ${c.name}) un 30 % más. Te avisa "por respeto" mientras mira ofertas de departamentos.` : gone; },
+    choices: [
+      { t: 'Igualar la oferta (+30 %)', eff: (g, ctx) => { const { e } = ctxOf(g, ctx); if (!e) return gone; e.salary = Math.round(e.salary * 1.3); e.morale = U.clamp(e.morale + 15, 0, 100); return `Igualaste la oferta: ${e.first} gana ahora ${U.money(e.salary)} y te jura lealtad eterna (hasta la próxima oferta).`; } },
+      { t: (g, ctx) => (ctxOf(g, ctx).e && ctxOf(g, ctx).e.gender === 'f' ? 'Dejarla ir' : 'Dejarlo ir'), eff: (g, ctx) => { const { c, e } = ctxOf(g, ctx); if (!e) return gone; c.staff = c.staff.filter((x) => x !== e); return `${e.first} se fue a la competencia. En su despedida comieron tu torta.`; } },
+      { t: 'Apelar a su lealtad', eff: (g, ctx) => { const { c, e } = ctxOf(g, ctx); if (!e) return gone; if (U.chance(0.5 + g.p.skills.carisma / 300)) { e.morale = U.clamp(e.morale + 10, 0, 100); return `Le hablaste de "la familia que somos". ${e.first} se emocionó y se quedó.`; } c.staff = c.staff.filter((x) => x !== e); return `Le hablaste de lealtad. ${e.first} te habló de su alquiler. Se fue.`; } }
+    ] });
+  MV.ev({ id: 'empleado_viral', manual: true, prison: 'any', icon: '📱', scene: 'trabajo', title: 'Un empleado se hizo viral',
+    text: (g, ctx) => { const { c, e } = ctxOf(g, ctx); return e ? `${e.first} ${e.last} subió un video bailando en la oficina de ${c.name} con el logo de fondo. Tiene diez millones de reproducciones.` : gone; },
+    choices: [
+      { t: 'Aprovecharlo para hacer publicidad', eff: (g, ctx) => { const { c, e } = ctxOf(g, ctx); if (!e) return gone; const gain = U.int(5000, 50000); c.cash += gain; company.revalue(c); e.morale = U.clamp(e.morale + 10, 0, 100); return `Convertiste el baile en campaña. Entraron ${U.money(gain)} de ventas extra y ${e.first} ya pide representante.`; } },
+      { t: 'Pedirle que lo borre', eff: (g, ctx) => { const { e } = ctxOf(g, ctx); if (!e) return gone; e.morale = U.clamp(e.morale - 15, 0, 100); MV.fx.stat(g, 'karma', 1); return `${e.first} borró el video, pero ya lo tenía medio internet guardado.`; } }
     ] });
 })(window.MV = window.MV || {});

@@ -4,11 +4,11 @@
 
   /** Tipos de empresa: costo inicial (va a la caja), múltiplo de valuación, costo fijo anual y puestos. */
   MV.COMPANY_TYPES = {
-    estudio: { name: 'Estudio de videojuegos', icon: '🎮', cost: 50000, mult: 4, fixed: 20000, roles: ['programador', 'artista', 'disenador', 'marketing'], desc: 'Haz juegos chicos, medianos o AAA' },
-    apps: { name: 'Empresa de apps', icon: '📱', cost: 30000, mult: 5, fixed: 10000, roles: ['programador', 'disenador', 'marketing'], desc: 'Apps con suscriptores que pagan cada año' },
-    social: { name: 'Red social', icon: '🌐', cost: 80000, mult: 8, fixed: 30000, roles: ['programador', 'moderador', 'marketing', 'abogado'], desc: 'Usuarios, publicidad y escándalos' },
-    esports: { name: 'Agencia de eSports', icon: '🕹️', cost: 100000, mult: 3, fixed: 25000, roles: ['entrenador', 'analista', 'community'], desc: 'Un equipo que compite por premios y patrocinios' },
-    representacion: { name: 'Agencia de representación', icon: '🤝', cost: 40000, mult: 3, fixed: 8000, roles: ['scout', 'abogado', 'rrpp'], desc: 'Deportistas, actores y músicos que te pagan comisión' }
+    estudio: { name: 'Estudio de videojuegos', art: 'un', icon: '🎮', cost: 50000, mult: 4, fixed: 20000, roles: ['programador', 'artista', 'disenador', 'marketing'], desc: 'Haz juegos chicos, medianos o AAA' },
+    apps: { name: 'Empresa de apps', art: 'una', icon: '📱', cost: 30000, mult: 5, fixed: 10000, roles: ['programador', 'disenador', 'marketing'], desc: 'Apps con suscriptores que pagan cada año' },
+    social: { name: 'Red social', art: 'una', icon: '🌐', cost: 80000, mult: 8, fixed: 30000, roles: ['programador', 'moderador', 'marketing', 'abogado'], desc: 'Usuarios, publicidad y escándalos' },
+    esports: { name: 'Agencia de eSports', art: 'una', icon: '🕹️', cost: 100000, mult: 3, fixed: 25000, roles: ['entrenador', 'analista', 'community'], desc: 'Un equipo que compite por premios y patrocinios' },
+    representacion: { name: 'Agencia de representación', art: 'una', icon: '🤝', cost: 40000, mult: 3, fixed: 8000, roles: ['scout', 'abogado', 'rrpp'], desc: 'Deportistas, actores y músicos que te pagan comisión' }
   };
 
   /** Puestos: 'masculino|femenino' en el nombre. El gerente general existe en todos los tipos. */
@@ -56,6 +56,9 @@
     { id: 'NUBE', name: 'Streaming Nube', sector: 'entretenimiento', icon: '📺', price: 60, vol: 0.35, div: 0 },
     { id: 'POLL', name: 'Pollo Feliz', sector: 'comida', icon: '🍗', price: 18, vol: 0.15, div: 0.02 }
   ];
+  /** Nombres de los sectores para los textos. */
+  MV.SECTOR_NAMES = { autos: 'autos', tech: 'tecnología', banca: 'bancos', energia: 'energía', salud: 'salud', consumo: 'consumo masivo', viajes: 'viajes',
+    mineria: 'minería', cripto: 'criptomonedas', inmobiliario: 'inmobiliarias', entretenimiento: 'entretenimiento', comida: 'comida rápida' };
   /** Efecto de cada noticia del mundo en la bolsa: corrimientos que se suman (all = a todas). */
   MV.MARKET_NEWS = {
     recesion: { all: -0.15, banca: -0.1, viajes: -0.1 },

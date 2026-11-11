@@ -52,7 +52,7 @@
       let bubbleShift = 0, bubbleSector = null;
       if (m.bubble) {
         bubbleSector = m.bubble.sector;
-        if (m.bubble.years > 0) { bubbleShift = 0.3; m.bubble.years--; } else { bubbleShift = -0.5; m.bubble = null; MV.log(g, `📉 Reventó la burbuja de ${bubbleSector}. Los que entraron último salen en pijama.`, '🫧', 'bad'); }
+        if (m.bubble.years > 0) { bubbleShift = 0.3; m.bubble.years--; } else { bubbleShift = -0.5; m.bubble = null; MV.log(g, `📉 Reventó la burbuja de ${MV.SECTOR_NAMES[bubbleSector] || bubbleSector}. Los que entraron último salen en pijama.`, '🫧', 'bad'); }
       }
       const tip = m.insider;
       m.insider = null;
@@ -62,7 +62,7 @@
         m.last[id] = m.prices[id];
         if (I.own) { const c = MV.sys.company.get(g, I.own); if (c) m.prices[id] = Math.max(MIN_PRICE, c.value / SHARES); return; }
         const r = DRIFT + market.newsShift(g, I.sector) + (I.sector === bubbleSector ? bubbleShift : 0) + (tip && tip.id === id ? tip.boost : 0) + U.gauss(0, I.vol != null ? I.vol : 0.3);
-        m.prices[id] = Math.max(MIN_PRICE, round2(m.prices[id] * (1 + r)));
+        m.prices[id] = Math.max(I.minPrice != null ? I.minPrice : MIN_PRICE, round2(m.prices[id] * (1 + r)));
       });
       // Junta de accionistas de tus empresas cotizantes
       (p.companies || []).forEach((c) => {
@@ -79,7 +79,7 @@
       }
       if (!opts.quiet) {
         if (U.chance(0.03)) MV.log(g, market.crash(g), '💥', 'bad');
-        if (!m.bubble && U.chance(0.04)) { m.bubble = { sector: U.pick(MV.STOCKS).sector, years: U.int(2, 3) }; MV.log(g, `🫧 Todos hablan de las acciones de ${m.bubble.sector}. Hasta tu peluquero compró.`, '🫧'); }
+        if (!m.bubble && U.chance(0.04)) { m.bubble = { sector: U.pick(MV.STOCKS).sector, years: U.int(2, 3) }; MV.log(g, `🫧 Todos hablan de las acciones de ${MV.SECTOR_NAMES[m.bubble.sector] || m.bubble.sector}. Hasta tu peluquero compró.`, '🫧'); }
       }
       Object.keys(m.prices).forEach((id) => { m.hist[id] = (m.hist[id] || []).concat([m.prices[id]]).slice(-MAX_HIST); });
       // Dividendos
@@ -180,18 +180,20 @@
     },
 
     /** Te echan como director: la empresa deja de ser tuya y te quedan tus acciones (y una indemnización). */
-    oust(g, cid, severance) {
+    oust(g, cid, severance, resigned) {
       const c = MV.sys.company.get(g, cid), m = market.ensure(g);
       if (!c || !c.public) return 'Esa empresa ya no es tuya.';
       const t = c.public.ticker, shares = Math.round(c.public.stake * SHARES);
       m.prices[t] = c.value / SHARES;
-      m.custom[t] = Object.assign({}, m.custom[t], { own: null });
+      m.custom[t] = Object.assign({}, m.custom[t], { own: null, minPrice: 0.01 });
       g.p.portfolio[t] = { shares, cost: 0 };
       c.public = null;
       MV.sys.company.remove(g, cid);
       if (severance) MV.fx.money(g, severance);
       MV.fx.stat(g, 'happy', -12);
-      MV.EV.info(g, { title: 'Te echaron de tu empresa', icon: '🪑', scene: 'trabajo', text: `La junta de accionistas votó y ya no diriges ${c.name}. Te quedan ${U.num(shares)} acciones de ${t}${severance ? ` y ${U.money(severance)} de indemnización` : ''}.` });
+      const rest = `Te quedan ${U.num(shares)} acciones de ${t}${severance ? ` y ${U.money(severance)} de indemnización` : ''}.`;
+      MV.EV.info(g, resigned ? { title: 'Dejaste tu empresa', icon: '🚪', scene: 'trabajo', text: `Renunciaste como director de ${c.name} antes de que votaran. ${rest}` }
+        : { title: 'Te echaron de tu empresa', icon: '🪑', scene: 'trabajo', text: `La junta de accionistas votó y ya no diriges ${c.name}. ${rest}` });
       return '';
     },
 
@@ -210,8 +212,8 @@
     text: (g, ctx) => { const c = MV.sys.company.get(g, ctx.company); return c ? `Los accionistas de ${c.name} están furiosos: dos años seguidos de pérdidas. Quieren tu cabeza (en sentido figurado, casi seguro).` : goneCo; },
     choices: [
       { t: 'Prometer resultados', eff: (g, ctx) => { const c = MV.sys.company.get(g, ctx.company); if (!c) return goneCo; if (U.chance(0.5)) return 'Prometiste el doble de ganancias y nadie preguntó cómo. Sigues al mando, por ahora.'; market.oust(g, c.id, 0); return 'No te creyeron. Votaron y perdiste.'; } },
-      { t: 'Recortar la mitad del personal', eff: (g, ctx) => { const c = MV.sys.company.get(g, ctx.company); if (!c) return goneCo; const out = c.staff.slice(0, Math.ceil(c.staff.length / 2)); out.forEach((e) => MV.sys.company.fire(g, c.id, e.id)); MV.fx.stat(g, 'karma', -4); return `Despediste a ${out.length} personas. Los accionistas aplaudieron; el equipo, no.`; } },
-      { t: 'Renunciar con indemnización', eff: (g, ctx) => { const c = MV.sys.company.get(g, ctx.company); if (!c) return goneCo; const sev = Math.round(c.value * 0.05); market.oust(g, c.id, sev); return `Renunciaste con la frente en alto y ${U.money(sev)} de indemnización.`; } }
+      { t: 'Recortar la mitad del personal', when: (g, ctx) => { const c = MV.sys.company.get(g, ctx.company); return !!(c && c.staff.length); }, eff: (g, ctx) => { const c = MV.sys.company.get(g, ctx.company); if (!c) return goneCo; const out = c.staff.slice(0, Math.ceil(c.staff.length / 2)); out.forEach((e) => MV.sys.company.fire(g, c.id, e.id)); MV.fx.stat(g, 'karma', -4); return `Despediste a ${out.length} personas. Los accionistas aplaudieron; el equipo, no.`; } },
+      { t: 'Renunciar con indemnización', eff: (g, ctx) => { const c = MV.sys.company.get(g, ctx.company); if (!c) return goneCo; const sev = Math.round(c.value * 0.05); market.oust(g, c.id, sev, true); return `Renunciaste con la frente en alto y ${U.money(sev)} de indemnización.`; } }
     ] });
 
   MV.ev({ id: 'dato_privilegiado', manual: true, icon: '🤫', scene: 'ciudad', title: 'Un dato al oído',

@@ -197,7 +197,7 @@
       p.sportsExp[J.sport] = (p.sportsExp[J.sport] || 0) + 1;
       const r = sports.rating(g, J.sport);
       job.perf = U.clamp(Math.round(job.perf * 0.5 + r * 0.5 + U.int(-8, 8) + (p.yearActs.entrenar || 0) * 3), 0, 100);
-      if (S.prize) job.salary = Math.round(J.pay[job.level] * U.float(0.5, 1.4) * (0.6 + r / 250));
+      if (S.prize) job.salary = Math.round(J.pay[job.level] * U.float(0.5, 1.4) * (0.6 + r / 250) * MV.sys.agency.managerBoost(p) * (job.deal || 1));
       else job.salary = Math.round(job.salary * U.float(1, 1.06));
       MV.fx.stat(g, 'fame', job.level * 3 + U.int(0, 3));
       MV.fx.skill(g, 'carisma', S.team ? U.int(1, 3) : U.int(0, 2));

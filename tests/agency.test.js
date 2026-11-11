@@ -22,7 +22,7 @@ test('fichar y vender jugadores cobra y paga lo justo y no pasa de 5', () => {
   const list = A(MV).players(g, c.id);
   assert.equal(list.length, 3);
   assert.deepEqual(A(MV).players(g, c.id), list, 'los mismos jugadores durante el año');
-  list.forEach((x) => { assert.ok(x.skill >= 30 && x.skill <= 95); assert.equal(x.salary, x.skill * 1500); assert.ok(x.alias); });
+  list.forEach((x) => { assert.ok(x.skill >= 30 && x.skill <= 95); assert.equal(x.salary, A(MV).wage(x.skill)); assert.ok(x.alias); });
   const first = list[0];
   assert.ok(!BAD_TEXT.test(A(MV).sign(g, c.id, 0)));
   assert.equal(c.roster[0].alias, first.alias);

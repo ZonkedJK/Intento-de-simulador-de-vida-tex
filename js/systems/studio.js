@@ -27,6 +27,7 @@
       if (c.project) return `${c.name} ya está haciendo "${c.project.name}". Uno por vez.`;
       if (c.cash < Z.cost) return `La caja no alcanza: un juego ${Z.name.toLowerCase()} cuesta ${U.money(Z.cost)}.`;
       c.cash -= Z.cost;
+      C().revalue(c);
       const Gn = genreOf('juego', genre);
       c.project = { name: MV.sys.works.clean(name) || MV.sys.works.randomTitle('juego'), genre: Gn.id, size, left: Z.years, adj: 0 };
       return `${c.name} empezó a desarrollar "${c.project.name}" (${Gn.name.toLowerCase()}, ${Z.name}). Sale en ${Z.years} año${Z.years === 1 ? '' : 's'}.`;
@@ -40,6 +41,7 @@
       if (c.apps.some((a) => a.age < 0)) return `${c.name} ya está haciendo una app. Una por vez.`;
       if (c.cash < APP_COST) return `La caja no alcanza: una app cuesta ${U.money(APP_COST)}.`;
       c.cash -= APP_COST;
+      C().revalue(c);
       const Gn = genreOf('app', genre);
       const a = { name: MV.sys.works.clean(name) || MV.sys.works.randomTitle('app'), genre: Gn.id, stars: 0, subs: 0, subsAtLaunch: 0, age: -1 };
       c.apps.push(a);
@@ -91,7 +93,8 @@
     revenueSocial(g, c) {
       if (c.users == null) c.users = 1000;
       const total = c.users * AD_PER_USER;
-      const f = 1 + C().power(c, ['programador', 'marketing']) / 100 * 1.5 + C().boost(c) * 2 + U.float(-0.2, 0.3);
+      const room = Math.pow(1 - c.users / MAX_USERS, 2);
+      const f = 1 + (C().power(c, ['programador', 'marketing']) / 100 * 1.5 + C().boost(c) * 2 + U.float(-0.2, 0.3)) * room;
       c.users = U.clamp(Math.round(c.users * f), 0, MAX_USERS);
       if (c.users >= 1e8) MV.ach.unlock(g, 'red_social');
       if (!g.p.prison && U.chance(0.15)) MV.EV.push(g, 'social_escandalo', { company: c.id, kind: U.pick(['filtracion', 'moderacion', 'politico']) });
@@ -109,7 +112,7 @@
     text: (g, ctx) => { const c = mine(g, ctx.company, 'estudio'); return c && c.project ? `El juego "${c.project.name}" de ${c.name} viene atrasado. El equipo duerme debajo de los escritorios y huele a pizza fría.` : gone; },
     choices: [
       { t: 'Crunch: todos a trabajar 80 horas', eff: (g, ctx) => { const c = mine(g, ctx.company, 'estudio'); if (!c || !c.project) return gone; c.project.adj += 10; c.staff.forEach((e) => { e.morale = U.clamp(e.morale - 20, 0, 100); }); MV.fx.stat(g, 'karma', -2); return 'Hubo crunch. El juego va a estar más pulido; el equipo, más roto.'; } },
-      { t: 'Retrasar el lanzamiento un año', eff: (g, ctx) => { const c = mine(g, ctx.company, 'estudio'); if (!c || !c.project) return gone; const extra = Math.round(MV.STUDIO_SIZES[c.project.size].cost * 0.2); c.project.left += 1; c.project.adj += 5; c.cash -= extra; return `Anunciaste un retraso "para cumplir con la visión". Costó ${U.money(extra)} más. Internet se enojó tres días.`; } },
+      { t: 'Retrasar el lanzamiento un año', eff: (g, ctx) => { const c = mine(g, ctx.company, 'estudio'); if (!c || !c.project) return gone; const extra = Math.round(MV.STUDIO_SIZES[c.project.size].cost * 0.2); c.project.left += 1; c.project.adj += 5; c.cash -= extra; C().revalue(c); return `Anunciaste un retraso "para cumplir con la visión". Costó ${U.money(extra)} más. Internet se enojó tres días.`; } },
       { t: 'Lanzar igual', eff: (g, ctx) => { const c = mine(g, ctx.company, 'estudio'); if (!c || !c.project) return gone; c.project.adj -= 10; return 'Lo lanzan igual. Ya prometiste un parche para el día uno.'; } }
     ] });
   const SCANDAL = {
