@@ -34,7 +34,8 @@
       const assets = U.sum(p.assets, (a) => a.value);
       const loans = U.sum(p.loans, (l) => l.left);
       const inv = U.sum(Object.values(p.inv));
-      return Math.round(p.money + assets + inv - loans + (p.business ? p.business.value : 0));
+      const firms = U.sum(p.companies || [], (c) => c.value * (c.public ? c.public.stake : 1));
+      return Math.round(p.money + assets + inv - loans + (p.business ? p.business.value : 0) + firms);
     },
 
     addLoan(g, name, amount, years, startAge, assetId) {
@@ -414,6 +415,7 @@
     openBusiness(g, type) {
       const B = MV.BUSINESSES.find((x) => x.id === type), p = g.p;
       if (p.business) return 'Ya tienes un negocio.';
+      if (MV.sys.company && MV.sys.company.count(p) >= MV.sys.company.MAX) return `Ya tienes ${MV.sys.company.MAX} empresas. Vende o cierra una antes de abrir un negocio.`;
       if (p.money < B.cost) return `Necesitas ${U.money(B.cost)} para empezar.`;
       MV.fx.money(g, -B.cost);
       const name = `${B.name} "${U.pick(['El Gran', 'Don', 'La Esquina de', 'Lo de', 'Club', 'Casa'])} ${p.first}"`;

@@ -89,6 +89,7 @@
       list.append(UI.row('🏷️', 'Vender el negocio', `Valor aproximado: ${U.money(b.value)}`, null, () => UI.confirm(`¿Vender ${b.name}?`, () => UI.runSystem('🏷️', () => MV.sys.money.sellBusiness(g)), 'Vender')));
       body.append(list);
     }
+    UI.companiesSection(body);
     if (p.age < 14) return;
     body.append(title('Buscar'));
     const opts = h('div', { class: 'list' });
@@ -97,7 +98,7 @@
     if (p.age >= 14) opts.append(UI.row('🏟️', 'Deporte profesional', 'Fútbol, básquet, tenis, vóley y más', null, () => UI.showSports()));
     opts.append(UI.row('🌟', 'Carreras especiales', 'Actuación, música, moda y política', null, () => UI.showFame()));
     if (p.age >= 18 && !p.edu.stage) opts.append(UI.row('🎓', 'Estudiar', 'Universidad, técnica, posgrado o escuela nocturna', null, () => UI.showStudy()));
-    if (p.age >= 18 && !p.business) opts.append(UI.row('🏪', 'Abrir un negocio', 'Sé tu propio jefe', null, () => UI.showBusiness()));
+    if (p.age >= 18 && !p.business && MV.sys.company.count(p) < MV.sys.company.MAX) opts.append(UI.row('🏪', 'Abrir un negocio', 'Sé tu propio jefe', null, () => UI.showBusiness()));
     body.append(opts);
   }
 
