@@ -99,9 +99,9 @@
     }
   };
   MV.sys.studio = studio;
-  C().register('estudio', { revenue: studio.revenueStudio });
-  C().register('apps', { revenue: studio.revenueApps });
-  C().register('social', { revenue: studio.revenueSocial });
+  C().register('estudio', { init: (c) => { c.games = []; c.project = null; }, revenue: studio.revenueStudio });
+  C().register('apps', { init: (c) => { c.apps = []; }, revenue: studio.revenueApps });
+  C().register('social', { init: (c) => { c.users = 1000; }, revenue: studio.revenueSocial });
 
   // — Eventos —
   const gone = 'Esa empresa ya no es tuya. El problema es de otra persona ahora.';

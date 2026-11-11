@@ -244,6 +244,18 @@ const SHOTS = process.argv[2] || null;
     const proj = await page.evaluate(() => MV.UI.g.p.companies[0].project);
     if (!proj || proj.name !== 'Noche en la Oficina' || proj.genre !== 'terror' || proj.size !== 'chico') errors.push('El juego no quedó en desarrollo: ' + JSON.stringify(proj));
     if (!/En desarrollo/.test(await page.$eval('#layer .layer-item:last-child', (e) => e.textContent))) errors.push('La hoja del estudio no muestra el juego en desarrollo');
+    // Agencias: fichar un jugador de eSports y firmar un cliente
+    const ag = await page.evaluate(() => { const g = MV.UI.g, C = MV.sys.company; C.found(g, 'esports', 'Los Mapaches'); C.found(g, 'representacion', 'Estrellas SA'); const r = g.p.companies[2]; r.rep = 100; MV.UI.closeSheets(); MV.UI.showCompany(g.p.companies[1].id); return [g.p.companies[1].id, r.id]; });
+    await page.click('#layer .layer-item:last-child button.row:has-text("Fichar un jugador")');
+    await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
+    await resolve();
+    await page.evaluate((id) => { MV.UI.closeSheets(); MV.UI.showCompany(id); }, ag[1]);
+    await page.click('#layer .layer-item:last-child button.row:has-text("Buscar talentos")');
+    await page.click('#rep-com-15');
+    await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
+    await resolve();
+    const agState = await page.evaluate((ids) => ids.map((id) => { const c = MV.sys.company.get(MV.UI.g, id); return c.roster ? c.roster.length : c.clients.length; }), ag);
+    if (agState[0] !== 1 || agState[1] !== 1) errors.push('Las agencias no ficharon jugador o cliente: ' + agState.join(','));
   }
   await page.evaluate(() => MV.UI.closeSheets());
 

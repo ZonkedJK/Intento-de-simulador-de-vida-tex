@@ -27,6 +27,20 @@
     gerente: { name: 'Gerente general|Gerenta general', icon: '👔' }
   };
 
+  /** Agencias: alias de gamers, ligas de eSports y profesiones que se representan (sueldos por nivel 1 a 5). */
+  MV.GAMER_ALIASES = ['xXNinjaXx', 'Tostadora', 'ElPibe', 'Sniperella', 'Morfeo', 'CapitánLag', 'Zurdo', 'Pixelia', 'Lechuza', 'NoScope', 'Abuela420',
+    'Cacerola', 'Kaiser', 'Mapache', 'Turbo', 'Fideo', 'Brujita', 'Chispa', 'ElTío', 'Glitch', 'Medialuna', 'Rayo', 'Sopapilla', 'Venom', 'Yerba', 'Zeta'];
+  MV.ESPORTS_LEAGUES = {
+    regional: { name: 'Liga regional', prize: [5000, 20000], strength: 0 },
+    internacional: { name: 'Liga internacional', prize: [50000, 300000], strength: 10 },
+    mundial: { name: 'Mundial', prize: [500000, 2000000], strength: 20 }
+  };
+  MV.AGENCY_PROFS = {
+    deportista: { name: 'Deportista|Deportista', icon: '⚽', pay: [40000, 150000, 600000, 2500000, 12000000] },
+    actor: { name: 'Actor|Actriz', icon: '🎬', pay: [30000, 100000, 400000, 1500000, 8000000] },
+    musico: { name: 'Músico|Música', icon: '🎤', pay: [20000, 80000, 300000, 1200000, 6000000] }
+  };
+
   /** Marketing anual: costo e impulso a ventas y crecimiento. */
   MV.MARKETING = {
     ninguno: { name: 'Ninguno', cost: 0, boost: 0 },

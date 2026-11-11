@@ -12,7 +12,7 @@
     MAX: 3,
     hooks: {},
 
-    /** Cada tipo aporta sus ingresos (y costos propios, como el plantel) del año. */
+    /** Cada tipo aporta { init(c), revenue(g, c), costs(g, c) }: estado inicial, ingresos y costos propios del año. */
     register(type, h) { company.hooks[type] = h; },
 
     /** Empresas que cuentan para el límite: las propias más el negocio clásico. */
@@ -31,6 +31,7 @@
       const nm = MV.sys.works.clean(name) || `${K.name} ${p.last}`;
       const c = { id: U.uid('co'), type, name: nm, cash: K.cost, since: p.age, staff: [], marketing: 'ninguno', redYears: 0,
         last: { revenue: 0, costs: 0, result: 0 }, value: K.cost, hist: [{ age: p.age, value: K.cost }], public: null, rep: 10 };
+      if (company.hooks[type] && company.hooks[type].init) company.hooks[type].init(c);
       list(p).push(c);
       MV.fx.stat(g, 'stress', 8);
       return `Fundaste ${nm} (${K.name.toLowerCase()}) y pusiste ${U.money(K.cost)} en su caja. ${U.pick(['Ya tienes tarjetas con tu nombre y "CEO" abajo.', 'Tu madre ya le contó a todo el barrio.', 'La oficina es tu cocina, por ahora.'])}`;
