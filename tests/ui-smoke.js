@@ -16,6 +16,9 @@ const SHOTS = process.argv[2] || null;
   page.on('pageerror', (e) => errors.push('Excepción: ' + e.message));
   const shot = async (n) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, n + '.png') }); };
   const tryClick = async (sel) => { try { await page.click(sel, { timeout: 1500 }); return true; } catch (e) { return false; } };
+  const css = (sel, prop, pseudo) => page.$eval(sel, (e, a) => getComputedStyle(e, a[1] || null)[a[0]], [prop, pseudo || null]);
+  const rect = (sel) => page.$eval(sel, (e) => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
+  const cross = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
   const resolve = async () => {
     for (let k = 0; k < 25; k++) {
       if (await page.$('#layer .choice')) { await tryClick('#layer .choice >> nth=0'); continue; }
@@ -382,6 +385,92 @@ const SHOTS = process.argv[2] || null;
   const favTop = await page.$eval('#act-favs', (e) => e.textContent).catch(() => '');
   if (!/Ir al gimnasio/.test(favTop)) errors.push('El favorito no aparece arriba en Actividades');
   await page.evaluate(() => MV.UI.closeSheets());
+  // Interfaz A — pantalla principal
+  await page.evaluate(() => { MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; g.p.prison = null; MV.log(g, 'Te ascendieron.', '📈', 'good'); MV.log(g, 'Te rompiste una muela.', '🦷', 'bad'); MV.UI.refreshGame(); window.scrollTo(0, document.body.scrollHeight); });
+  await page.waitForTimeout(80);
+  {
+    const id = await rect('.idcard'), mo = await rect('.idcard .money'), st = await rect('.stats');
+    if (id.l < 10 || id.w > 370 || !/3px 4px 0px/.test(await css('.idcard', 'boxShadow'))) errors.push('El carnet no flota: ' + JSON.stringify(id));
+    if (!(mo.t < id.t)) errors.push('La etiqueta de dinero no sobresale del carnet');
+    if (st.l < 10 || !/3px 4px 0px/.test(await css('.stats', 'boxShadow'))) errors.push('El panel de estadísticas no flota');
+    const LVL = { 'lvl-lo': 'rgb(226, 92, 92)', 'lvl-mid': 'rgb(240, 180, 41)', 'lvl-hi': 'rgb(63, 174, 90)' };
+    (await page.$$eval('.stats .bar > i', (els) => els.map((e) => [e.className, getComputedStyle(e).backgroundColor]))).forEach(([c, bg]) => { if (LVL[c] !== bg) errors.push(`Barra ${c} con color ${bg}`); });
+    if (!(await page.$('.entry.good .hl-green')) || !(await page.$('.entry.bad .hl-pink'))) errors.push('Las entradas buenas y malas no llevan resaltador');
+    const wb = await page.evaluate(() => { const s = MV.sys.wellbeing.score(MV.UI.g).score, c = document.getElementById('wellbeing-chip').className; return { s, ok: /\bok\b/.test(c), warn: /\bwarn\b/.test(c) }; });
+    if (wb.ok !== (wb.s >= 60) || wb.warn !== (wb.s < 40)) errors.push('El chip de bienestar no sigue su puntaje: ' + JSON.stringify(wb));
+    const sizes = await page.evaluate(() => [document.querySelector('.ageup').offsetWidth, document.querySelector('.nav').offsetHeight]);
+    if (sizes[0] !== 88 || sizes[1] !== 92) errors.push('Barra inferior: botón ' + sizes[0] + ' px, alto ' + sizes[1] + ' px');
+    const lastEntry = await page.$$eval('.diary .entry', (els) => els[els.length - 1].getBoundingClientRect().bottom);
+    if (lastEntry > st.t + 1) errors.push('La última entrada del diario queda tapada por el panel');
+    if (cross(await rect('.ageup5'), await rect('.ageup'))) errors.push('⏩ 5 pisa el botón +1 año (390 px)');
+    const nameVsMoney = () => page.evaluate(() => {
+      const n = document.querySelector('.idcard .name'), rg = document.createRange(); rg.selectNodeContents(n);
+      const a = rg.getBoundingClientRect(), b = document.querySelector('.idcard .money').getBoundingClientRect();
+      return { cross: a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top, top: b.top };
+    });
+    const nm0 = await nameVsMoney();
+    if (nm0.cross) errors.push('La etiqueta de dinero tapa el nombre');
+    if (nm0.top < 0) errors.push('La etiqueta de dinero se sale por arriba de la pantalla: ' + nm0.top);
+    // Foco 1: nombre larguísimo, dinero enorme y letra muy grande
+    const keep = await page.evaluate(() => { const p = MV.UI.g.p, k = { first: p.first, last: p.last, money: p.money }; p.first = 'Maximiliana Guadalupe'; p.last = 'de los Santos Echeverría'; p.money = 1234567890123; document.documentElement.setAttribute('data-font', 'muy_grande'); MV.UI.refreshGame(); return k; });
+    const nm = await page.$eval('.idcard .name', (e) => ({ cut: e.scrollWidth > e.clientWidth, r: e.getBoundingClientRect().right }));
+    if (!nm.cut || nm.r > (await rect('.idcard')).r) errors.push('Un nombre largo no se corta con "…" dentro del carnet');
+    if (cross(await rect('.idcard .money'), await rect('.idcard button[aria-label="Menú"]'))) errors.push('La etiqueta de dinero tapa el menú');
+    const nm1 = await nameVsMoney();
+    if (nm1.cross) errors.push('Con letra muy grande, la etiqueta de dinero tapa el nombre');
+    if (nm1.top < 0) errors.push('Con letra muy grande, la etiqueta de dinero se sale por arriba: ' + nm1.top);
+    await page.evaluate((k) => { Object.assign(MV.UI.g.p, k); document.documentElement.removeAttribute('data-font'); MV.UI.refreshGame(); }, keep);
+    // Foco 3: modo oscuro (pizarrón) y texto resaltado legible
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+    if (await css('body', 'backgroundColor') !== 'rgb(30, 42, 38)') errors.push('El modo oscuro no usa el pizarrón');
+    if (await css('.entry.good .hl-green', 'color') !== 'rgb(27, 33, 30)') errors.push('En oscuro, el texto resaltado no es oscuro');
+    if (await css('.year.current h3 .age', 'color') !== 'rgb(27, 33, 30)') errors.push('En oscuro, el año actual no es legible sobre el rosa');
+    await page.evaluate(() => MV.UI.applyTheme());
+    // Foco 4: escritorio
+    await page.setViewportSize({ width: 1024, height: 800 });
+    const app = await rect('#app'), id4 = await rect('.idcard');
+    if (id4.l < app.l || id4.r > app.r) errors.push('En escritorio el carnet se sale de la columna');
+    if (cross(await rect('.ageup5'), await rect('.ageup'))) errors.push('⏩ 5 pisa el botón +1 año (escritorio)');
+    await page.setViewportSize({ width: 390, height: 844 });
+  }
+  // Interfaz A — decisión
+  {
+    const job0 = await page.evaluate(() => { const g = MV.UI.g; const j = g.p.job; g.p.job = { id: 'actor', level: 1, salary: 100000, perf: 60, years: 1, lvlYears: 1, type: 'fame', start: g.p.age }; g.p.money = Math.max(g.p.money, 100000); g.queue = []; MV.UI.closeAll(); MV.EV.push(g, 'auditoria', {}, true); MV.UI.flushQueue(); return j; });
+    await page.waitForSelector('#layer .card .choice');
+    if (!/Inspección fiscal/.test(await page.$eval('#layer .card h2 .hl-yellow', (e) => e.textContent).catch(() => ''))) errors.push('El título de la decisión no lleva resaltador');
+    if ((await page.$$('#layer .card .choice .sub')).length !== 4) errors.push('Las opciones de la inspección no muestran subtítulos');
+    if (await css('#layer .card', 'width', '::after') !== '22px' || await css('#layer .card', 'content', '::before') !== 'none') errors.push('La tarjeta no tiene el clip');
+    if (await css('#layer .card .text', 'color') !== 'rgb(38, 52, 95)') errors.push('El texto de la tarjeta no usa el color de lectura');
+    await page.click('#layer .card .choice >> nth=0');
+    await resolve();
+    await page.evaluate((j) => { MV.UI.g.p.job = j; MV.UI.save(); MV.UI.refreshGame(); }, job0);
+    // Foco 5: la confirmación también lleva el clip y se cierra
+    await page.evaluate(() => MV.UI.confirm('¿Probar?', () => {}));
+    if (await css('#layer .card', 'width', '::after') !== '22px') errors.push('La confirmación no tiene el clip');
+    await page.click('#layer .card .btn:not(.danger)');
+    if (await page.$('#layer .card')) errors.push('La confirmación no se cerró');
+    // Un título largo se resalta en cada línea
+    await page.evaluate(() => { const g = MV.UI.g; if (!MV.EV.byId.prueba_titulo) MV.ev({ id: 'prueba_titulo', manual: true, icon: '🤝', title: 'Una oferta que no puedes rechazar, ni aunque quieras', text: 'x', choices: [{ t: 'Aceptar', eff: {} }] }); g.queue = []; MV.EV.push(g, 'prueba_titulo', {}, true); MV.UI.flushQueue(); });
+    await page.waitForSelector('#layer .card h2 .hl');
+    const hlRects = await page.$eval('#layer .card h2 .hl', (e) => e.getClientRects().length);
+    if (hlRects < 2) errors.push('Un título de dos líneas se resalta como un solo bloque');
+    await page.click('#layer .card .choice >> nth=0');
+    await resolve();
+  }
+  // Interfaz A — hojas
+  {
+    await page.evaluate(() => { MV.UI.closeAll(); MV.UI.g.p.prison = null; MV.UI.showActivities(); });
+    await page.waitForSelector('.sheet .cat');
+    if (!(await page.$('.sheet .grab'))) errors.push('La hoja no tiene agarradera');
+    const head = await page.$eval('.sheet-head', (e) => { const st = getComputedStyle(e); return [st.backgroundColor, st.borderBottomWidth]; });
+    if (head[0] !== 'rgba(0, 0, 0, 0)' || head[1] !== '0px') errors.push('El encabezado de la hoja sigue siendo una franja: ' + head.join(' '));
+    if (!/^🔎/.test(await page.$eval('#act-search', (e) => e.placeholder))) errors.push('El buscador no muestra la lupa');
+    const tints = await page.$$eval('.sheet .cat', (els) => els.slice(0, 4).map((e) => getComputedStyle(e).backgroundColor));
+    if (new Set(tints).size !== 4 || tints.includes('rgb(255, 255, 255)')) errors.push('Los mosaicos no tienen tintes: ' + tints.join(' '));
+    const ib = await page.$$eval('.sheet .icon-btn', (els) => els.map((e) => e.offsetWidth));
+    if (ib.some((w) => w < 44)) errors.push('Botones de la hoja de menos de 44 px: ' + ib.join(','));
+    await page.evaluate(() => MV.UI.closeSheets());
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {
@@ -442,6 +531,26 @@ const SHOTS = process.argv[2] || null;
   await page.evaluate(() => { const g = MV.UI.g; const k = MV.newNPC(g, { age: 3, last: g.p.last, money: 0 }); MV.addRel(g, k, 'hijo', 80); MV.sys.legacy.die(g, 'una prueba automatizada'); MV.UI.save(); MV.UI.showDeath(); });
   await page.waitForSelector('.tomb');
   if ((await page.$$('#death-charts svg.viz')).length !== 2) errors.push('La pantalla de la muerte no muestra los gráficos de la vida');
+  // Interfaz A — muerte
+  {
+    const d = await page.evaluate(() => {
+      const kids = [...document.querySelector('.death').children];
+      const at = (sel) => kids.findIndex((k) => k.matches(sel) || !!k.querySelector(sel));
+      const tomb = at('.tomb'), av = document.querySelector('.tomb .avatar svg');
+      return { grass: !!kids[tomb + 1] && kids[tomb + 1].classList.contains('grass'), cause: !!document.querySelector('.death .cause .hl-pink'),
+        filter: av ? getComputedStyle(av).filter : 'sin avatar', order: [at('.verdict'), at('#death-charts'), at('button.row')],
+        go: (document.querySelector('.death button.row .go') || {}).textContent, dates: (document.querySelector('.tomb .dates') || {}).textContent };
+    });
+    if (!d.grass) errors.push('La lápida no tiene pasto');
+    if (!d.cause) errors.push('La causa de muerte no lleva resaltador');
+    if (d.filter !== 'none') errors.push('El avatar de la lápida sigue en gris: ' + d.filter);
+    if (!(d.order[0] >= 0 && d.order[0] < d.order[1] && d.order[1] < d.order[2])) errors.push('Orden de la pantalla de muerte: ' + d.order.join(','));
+    if (d.go !== 'Continuar') errors.push('Los herederos no muestran la píldora Continuar');
+    if (!/ · \d+ años?$/.test(d.dates || '')) errors.push('Fechas de la lápida: ' + d.dates);
+    if (await page.evaluate(() => !!document.getElementById('death-charts').parentElement.closest('.box'))) errors.push('Los gráficos de la muerte quedan en una caja dentro de otra');
+    const causeDot = await page.evaluate(() => { const g = MV.UI.g, c = g.summary.cause; g.summary.cause = 'Te atragantaste con una aceituna en una boda.'; MV.UI.showDeath(); const t = document.querySelector('.death .cause').textContent; g.summary.cause = c; MV.UI.showDeath(); return t; });
+    if (/\.\.$/.test(causeDot)) errors.push('La causa termina con doble punto: ' + causeDot);
+  }
   await shot('muerte');
   await page.click('#copy-summary');
   await page.waitForTimeout(1900);

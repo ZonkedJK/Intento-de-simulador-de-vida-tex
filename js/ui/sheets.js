@@ -523,7 +523,7 @@
           const hits = all.filter((a) => fold(a.label + ' ' + (a.sub || '')).includes(q));
           results.append(hits.length ? UI.actionList(hits, undefined, undefined, { fav: true }) : note(`Nada con "${actQuery.trim()}". Prueba otra palabra.`));
         };
-        body.append(h('input', { type: 'search', id: 'act-search', class: 'act-search', placeholder: 'Buscar actividad…', 'aria-label': 'Buscar actividad', value: actQuery,
+        body.append(h('input', { type: 'search', id: 'act-search', class: 'act-search', placeholder: '🔎 Buscar actividad…', 'aria-label': 'Buscar actividad', value: actQuery,
           oninput: (e) => { actQuery = e.target.value; showResults(); } }), results, main);
         const favs = (g.favs || []).map((id) => all.find((a) => a.id === id)).filter(Boolean);
         if (favs.length) main.append(h('h3', { class: 'section-title' }, '⭐ Favoritas'), h('div', { id: 'act-favs' }, UI.actionList(favs, undefined, undefined, { fav: true })));

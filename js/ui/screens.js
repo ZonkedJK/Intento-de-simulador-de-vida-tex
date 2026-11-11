@@ -114,20 +114,35 @@
     const app = UI.clear(document.getElementById('app'));
     const heirs = MV.sys.legacy.heirs(g);
     const root = h('main', { class: 'death' });
+    // Lápida, pasto, causa y epitafio
     root.append(h('div', { class: 'tomb' },
-      UI.avatar({ id: s.id, age: s.age, gender: s.gender, look: s.look, alive: false }, 88),
       h('div', { class: 'rip' }, 'Aquí yace'),
       h('h1', null, s.name),
-      h('div', { class: 'dates' }, `${s.born} – ${s.died}, ${s.age} año${s.age === 1 ? '' : 's'}`),
-      h('p', null, `Murió por ${s.cause}`),
-      h('p', { class: 'epitaph' }, `«${s.epitaph}»`)));
+      h('div', { class: 'dates' }, `${s.born} – ${s.died} · ${s.age} año${s.age === 1 ? '' : 's'}`),
+      UI.avatar({ id: s.id, age: s.age, gender: s.gender, look: s.look, alive: false }, 62)));
+    root.append(h('div', { class: 'grass', 'aria-hidden': 'true' }));
+    root.append(h('p', { class: 'cause' }, 'Murió por ', UI.hl(s.cause, 'pink'), /[.!?…]$/.test(s.cause) ? '' : '.'));
+    root.append(h('p', { class: 'epitaph' }, `«${s.epitaph}»`));
     root.append(h('div', { class: 'box verdict' }, h('span', { class: 'e', 'aria-hidden': 'true' }, s.verdict.icon), h('div', null, h('b', null, s.verdict.name), h('p', { style: { margin: 0 } }, s.verdict.text))));
+    // Gráficos de la vida
+    root.append(title('💰 Tu vida en gráficos'), UI.lifeCharts(g.p, 'death-charts'));
+    // Herederos
+    if (heirs.length) {
+      const grandHeirs = (MV.relOf(g, heirs[0].id) || {}).type === 'nieto';
+      root.append(title('👪 Continuar la dinastía'), note(`Juega como uno de tus ${grandHeirs ? 'nietos' : 'hijos'}. Heredará tu patrimonio (menos impuestos).`));
+      const l = h('div', { class: 'list' });
+      heirs.forEach((n) => l.append(UI.row(UI.avatar(n, 38), MV.fullName(n), `${MV.relLabel((MV.relOf(g, n.id) || {}).type || 'hijo', n)}, ${n.age} años${g.p.heirId === n.id ? ', heredero principal' : ''}`, h('span', { class: 'go' }, 'Continuar'), () => {
+        const ng = MV.sys.legacy.continueAs(g, n.id);
+        UI.startGame(ng);
+      })));
+      root.append(l);
+    }
+    // Datos, compartir y logros
     root.append(h('div', { class: 'box' },
       kv('Patrimonio', U.money(s.worth)), kv('Ocupación', s.job), kv('Estudios', s.edu), kv('Hijos', String(s.kids)), kv('Matrimonios', String(s.marriages)),
       kv('Delitos', String(s.crimes)), kv('Karma', String(s.karma)), kv('Fama', String(s.fame)), kv('Generación', `${s.generation} de la dinastía ${s.dynasty ? s.dynasty.name : ''}`),
       s.aspiration ? kv('Aspiración', `${s.aspiration.name || ''}: ${s.aspiration.done ? 'cumplida' : 'sin cumplir'}`) : null));
     const shareText = MV.sys.legacy.summaryText(g);
-    root.append(title('Tu vida en gráficos'), UI.lifeCharts(g.p, 'death-charts'));
     root.append(h('div', { class: 'btn-row' },
       h('button', { class: 'btn', id: 'copy-summary', style: { flex: 1 }, onclick: () => UI.copyText(shareText) }, '📋 Copiar resumen'),
       typeof navigator !== 'undefined' && navigator.share ? h('button', { class: 'btn', style: { flex: 1 }, onclick: () => navigator.share({ title: 'Mil Vidas', text: shareText }).catch(() => {}) }, '📤 Compartir') : null));
@@ -136,16 +151,6 @@
       const grid = h('div', { class: 'ach-grid' });
       s.ach.forEach((id) => { const A = MV.ach.def(id); if (A) grid.append(h('div', { class: 'ach' }, h('span', { class: 'e' }, A.icon), h('div', null, h('b', null, A.name), A.desc))); });
       root.append(grid);
-    }
-    if (heirs.length) {
-      const grandHeirs = (MV.relOf(g, heirs[0].id) || {}).type === 'nieto';
-      root.append(title('Continuar la dinastía'), note(`Juega como uno de tus ${grandHeirs ? 'nietos' : 'hijos'}. Heredará tu patrimonio (menos impuestos).`));
-      const l = h('div', { class: 'list' });
-      heirs.forEach((n) => l.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${MV.relLabel((MV.relOf(g, n.id) || {}).type || 'hijo', n)}, ${n.age} años${g.p.heirId === n.id ? ', heredero principal' : ''}`, 'Continuar', () => {
-        const ng = MV.sys.legacy.continueAs(g, n.id);
-        UI.startGame(ng);
-      })));
-      root.append(l);
     }
     root.append(h('div', { class: 'btn-row' },
       h('button', { class: 'btn primary', style: { flex: 1 }, onclick: () => UI.showCreate() }, 'Una vida nueva'),

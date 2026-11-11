@@ -152,7 +152,11 @@
       if (!d || !EV.stillValid(g, d, ctx)) { g.queue.shift(); return EV.view(g); }
       const choices = d.choices.map((c, i) => ({ c, i }))
         .filter((x) => !x.c.when || x.c.when(g, ctx))
-        .map((x) => ({ label: MV.fx.tpl(g, typeof x.c.t === 'function' ? x.c.t(g, ctx) : x.c.t, ctx), i: x.i }));
+        .map((x) => {
+          const o = { label: MV.fx.tpl(g, typeof x.c.t === 'function' ? x.c.t(g, ctx) : x.c.t, ctx), i: x.i };
+          if (x.c.sub != null) o.sub = MV.fx.tpl(g, typeof x.c.sub === 'function' ? x.c.sub(g, ctx) : x.c.sub, ctx);
+          return o;
+        });
       const t = ctx.target ? MV.person(g, ctx.target) : null;
       return {
         id: d.id, title: MV.fx.tpl(g, typeof d.title === 'function' ? d.title(g, ctx) : (d.title || ''), ctx),

@@ -29,4 +29,6 @@
   UI.$ = (s, r) => (r || document).querySelector(s);
   UI.clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
   UI.svgEl = (markup) => { const d = document.createElement('div'); d.innerHTML = markup; return d.firstElementChild; };
+  /** Texto con resaltador de marcador: color 'yellow' | 'green' | 'pink' | 'blue'. */
+  UI.hl = (content, color) => UI.h('span', { class: 'hl hl-' + (color || 'yellow') }, content);
 })(window.MV = window.MV || {});
