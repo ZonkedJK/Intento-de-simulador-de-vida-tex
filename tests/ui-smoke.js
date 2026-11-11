@@ -512,6 +512,23 @@ const SHOTS = process.argv[2] || null;
   await page.evaluate(() => { const g = MV.UI.g; const k = MV.newNPC(g, { age: 3, last: g.p.last, money: 0 }); MV.addRel(g, k, 'hijo', 80); MV.sys.legacy.die(g, 'una prueba automatizada'); MV.UI.save(); MV.UI.showDeath(); });
   await page.waitForSelector('.tomb');
   if ((await page.$$('#death-charts svg.viz')).length !== 2) errors.push('La pantalla de la muerte no muestra los gráficos de la vida');
+  // Interfaz A — muerte
+  {
+    const d = await page.evaluate(() => {
+      const kids = [...document.querySelector('.death').children];
+      const at = (sel) => kids.findIndex((k) => k.matches(sel) || !!k.querySelector(sel));
+      const tomb = at('.tomb'), av = document.querySelector('.tomb .avatar svg');
+      return { grass: !!kids[tomb + 1] && kids[tomb + 1].classList.contains('grass'), cause: !!document.querySelector('.death .cause .hl-pink'),
+        filter: av ? getComputedStyle(av).filter : 'sin avatar', order: [at('.verdict'), at('#death-charts'), at('button.row')],
+        go: (document.querySelector('.death button.row .go') || {}).textContent, dates: (document.querySelector('.tomb .dates') || {}).textContent };
+    });
+    if (!d.grass) errors.push('La lápida no tiene pasto');
+    if (!d.cause) errors.push('La causa de muerte no lleva resaltador');
+    if (d.filter !== 'none') errors.push('El avatar de la lápida sigue en gris: ' + d.filter);
+    if (!(d.order[0] >= 0 && d.order[0] < d.order[1] && d.order[1] < d.order[2])) errors.push('Orden de la pantalla de muerte: ' + d.order.join(','));
+    if (d.go !== 'Continuar') errors.push('Los herederos no muestran la píldora Continuar');
+    if (!/ · \d+ años?$/.test(d.dates || '')) errors.push('Fechas de la lápida: ' + d.dates);
+  }
   await shot('muerte');
   await page.click('#copy-summary');
   await page.waitForTimeout(1900);
