@@ -217,8 +217,7 @@ test('una partida v5 con autos viejos y mascotas se migra a v6 y sigue jugando',
   const pet = MV.newPet(g, 'gato', { age: 4 }); MV.addRel(g, pet, 'mascota', 80);
   MV.store.set('milvidas.partida', g);
   const back = MV.loadGame();
-  assert.equal(MV.VERSION, 6);
-  assert.equal(back.version, 6);
+  assert.equal(back.version, MV.VERSION);
   assert.deepEqual(back.favs, []);
   assert.deepEqual(back.p.history, []);
   assert.deepEqual(back.p.hobbies, {});
@@ -234,4 +233,23 @@ test('una partida v5 con autos viejos y mascotas se migra a v6 y sigue jugando',
   for (let y = 0; y < 20 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
   assert.ok(back.p.age > 30);
   assert.ok(back.p.history.length > 0);
+});
+
+test('una partida v6 se migra a v7 (empresas, cartera y mánager vacíos) y sigue jugando', () => {
+  const MV = load({ seed: 67 });
+  const g = MV.newGame({ seed: 67 }); g.p.age = 30; g.p.money = 50000;
+  g.version = 6; delete g.p.companies; delete g.p.portfolio; delete g.p.manager; delete g.market;
+  MV.sys.money.openBusiness(g, 'foodtruck');
+  MV.store.set('milvidas.partida', g);
+  const back = MV.loadGame();
+  assert.equal(MV.VERSION, 7);
+  assert.equal(back.version, 7);
+  assert.deepEqual(back.p.companies, []);
+  assert.deepEqual(back.p.portfolio, {});
+  assert.equal(back.p.manager, null);
+  assert.ok(back.p.business, 'el negocio clásico sigue');
+  assert.equal(MV.sys.company.count(back.p), 1);
+  for (let y = 0; y < 20 && !back.over; y++) { resolveQueue(MV, back); MV.ageUp(back); }
+  assert.ok(back.p.age > 30);
+  assert.ok(back.market, 'la bolsa se creó al jugar');
 });

@@ -153,7 +153,7 @@
       const p = g.p, job = p.job;
       const key = J.key(p);
       // Ingresos variables
-      job.salary = Math.round(J.pay[job.level] * U.float(0.6, 1.4) * (0.7 + key / 200));
+      job.salary = Math.round(J.pay[job.level] * U.float(0.6, 1.4) * (0.7 + key / 200) * MV.sys.agency.managerBoost(p) * (job.deal || 1));
       if (J.type === 'fame') MV.fx.stat(g, 'fame', job.level * 3 + U.int(0, 4));
       if (J.retireAge && p.age >= J.retireAge) {
         const t = career.title(p);
@@ -185,7 +185,7 @@
       const p = g.p;
       if (!p.job) return [];
       const J = MV.jobById(p.job.id);
-      if (J.type === 'sport') return MV.sys.sports.actions(g);
+      if (J.type === 'sport') return MV.sys.sports.actions(g).concat(MV.sys.agency.careerActions(g));
       const job = p.job;
       const list = [
         { id: 'esforzarse', icon: '💪', label: 'Esforzarte más', sub: '+rendimiento, +estrés', limit: 3,
@@ -232,6 +232,7 @@
             () => { MV.fx.stat(g, 'happy', -3); return 'Tu jefe te mostró 200 fotos de su viaje a la playa.'; }
           ])() });
       }
+      if (J.type === 'fame') MV.sys.agency.careerActions(g).forEach((a) => list.push(a));
       if (J.type === 'fame' && J.id !== 'politico') list.push({ id: 'promo', icon: '📣', label: 'Promocionarte', sub: '+fama', limit: 2,
         run: (g) => { MV.fx.stat(g, 'fame', U.int(2, 6)); MV.fx.skill(g, 'carisma', 1); return U.pick(['Diste una entrevista en la tele. Hablaste de más.', 'Saliste en una revista. Te photoshoparon hasta ser irreconocible.', 'Hiciste un video viral bailando con tu abuela.']); } });
       if (J.id === 'politico') list.push({ id: 'corrupcion', icon: '🤑', label: 'Aceptar un sobre', sub: 'Dinero fácil, karma difícil', limit: 1,

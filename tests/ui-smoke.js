@@ -215,6 +215,75 @@ const SHOTS = process.argv[2] || null;
   if (!/Recesión mundial/.test(newsText)) errors.push('Bienes y dinero no muestra el clima económico: ' + newsText);
   await page.evaluate(() => MV.UI.closeSheets());
 
+  // Empresas: fundar un estudio con nombre propio, contratar, marketing e inyectar dinero
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 20); g.p.money = Math.max(g.p.money, 5e6); g.p.companies = []; g.p.business = null; MV.UI.showWork(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Fundar una empresa")');
+  await page.fill('#co-name', 'Pixel Pantano');
+  await page.click('#layer .layer-item:last-child button.row:has-text("Estudio de videojuegos")');
+  await resolve();
+  const coName = await page.evaluate(() => (MV.UI.g.p.companies[0] || {}).name);
+  if (coName !== 'Pixel Pantano') errors.push('Fundar una empresa no la creó con su nombre: ' + coName);
+  else {
+    await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showCompany(MV.UI.g.p.companies[0].id); });
+    await page.click('#layer .layer-item:last-child button.row:has-text("Contratar")');
+    await page.click('#layer .layer-item:last-child button.row:has-text("Programador")');
+    await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
+    await resolve();
+    await page.click('#co-mkt-medio');
+    await page.click('#layer .layer-item:last-child button.row:has-text("Inyectar dinero")');
+    await page.click('#layer .layer-item:last-child button.row:has-text("$10.000")');
+    await resolve();
+    const coState = await page.evaluate(() => { const c = MV.UI.g.p.companies[0]; return { staff: c.staff.length, mkt: c.marketing, cash: c.cash }; });
+    if (coState.staff !== 1 || coState.mkt !== 'medio' || coState.cash !== 60000) errors.push('La hoja de la empresa no contrató, no cambió el marketing o no inyectó: ' + JSON.stringify(coState));
+    // Estudio: lanzar un juego (nombre, género y tamaño) y verlo en desarrollo
+    await page.click('#layer .layer-item:last-child button.row:has-text("Empezar un juego")');
+    await page.fill('#game-name', 'Noche en la Oficina');
+    await page.click('#game-genre-terror');
+    await page.click('#layer .layer-item:last-child button.row:has-text("Chico")');
+    await resolve();
+    const proj = await page.evaluate(() => MV.UI.g.p.companies[0].project);
+    if (!proj || proj.name !== 'Noche en la Oficina' || proj.genre !== 'terror' || proj.size !== 'chico') errors.push('El juego no quedó en desarrollo: ' + JSON.stringify(proj));
+    if (!/En desarrollo/.test(await page.$eval('#layer .layer-item:last-child', (e) => e.textContent))) errors.push('La hoja del estudio no muestra el juego en desarrollo');
+    // Agencias: fichar un jugador de eSports y firmar un cliente
+    const ag = await page.evaluate(() => { const g = MV.UI.g, C = MV.sys.company; C.found(g, 'esports', 'Los Mapaches'); C.found(g, 'representacion', 'Estrellas SA'); C.inject(g, g.p.companies[1].id, 1000000); const r = g.p.companies[2]; r.rep = 100; MV.UI.closeSheets(); MV.UI.showCompany(g.p.companies[1].id); return [g.p.companies[1].id, r.id]; });
+    await page.click('#layer .layer-item:last-child button.row:has-text("Fichar un jugador")');
+    await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
+    await resolve();
+    await page.evaluate((id) => { MV.UI.closeSheets(); MV.UI.showCompany(id); }, ag[1]);
+    await page.click('#layer .layer-item:last-child button.row:has-text("Buscar talentos")');
+    await page.click('#rep-com-15');
+    await page.click('#layer .layer-item:last-child .list button.row >> nth=0');
+    await resolve();
+    const agState = await page.evaluate((ids) => ids.map((id) => { const c = MV.sys.company.get(MV.UI.g, id); return c.roster ? c.roster.length : c.clients.length; }), ag);
+    if (agState[0] !== 1 || agState[1] !== 1) errors.push('Las agencias no ficharon jugador o cliente: ' + agState.join(','));
+    // Salida a bolsa de una empresa grande y verla en la bolsa
+    await page.evaluate(() => { const g = MV.UI.g, c = g.p.companies[0]; c.value = 2e7; c.since = g.p.age - 4; MV.sys.market.ensure(g); MV.UI.closeSheets(); MV.UI.showCompany(c.id); });
+    await page.click('#layer .layer-item:last-child button.row:has-text("Salir a bolsa")');
+    await page.click('#layer .layer-item:last-child button.row:has-text("30 %")');
+    await resolve();
+    const tk = await page.evaluate(() => { const c = MV.UI.g.p.companies[0]; return c.public ? c.public.ticker : null; });
+    if (!tk) errors.push('La empresa no salió a bolsa');
+    else {
+      await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showStocks(); });
+      if (!(await page.$(`#layer .layer-item:last-child button.row:has-text("${tk}")`))) errors.push('La empresa cotizante no aparece en la bolsa');
+    }
+  }
+  await page.evaluate(() => MV.UI.closeSheets());
+
+  // Bolsa de valores: comprar y vender 10 acciones de VOLT; la ficha tiene gráfico
+  await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.money = Math.max(g.p.money, 1e6); MV.sys.market.ensure(g); MV.sys.market.yearly(g, { quiet: true }); g.p.portfolio = {}; MV.UI.showAssets(); });
+  await page.click('#layer .layer-item:last-child button.row:has-text("Bolsa de valores")');
+  await page.click('#layer .layer-item:last-child button.row:has-text("VOLT")');
+  if (!(await page.$('#layer .layer-item:last-child svg.viz'))) errors.push('La ficha de la acción no tiene gráfico');
+  await page.click('#buy-10');
+  await resolve();
+  const held = await page.evaluate(() => (MV.UI.g.p.portfolio.VOLT || { shares: 0 }).shares);
+  if (held !== 10) errors.push('Comprar 10 acciones dejó ' + held);
+  await page.click('#sell-all');
+  await resolve();
+  if (await page.evaluate(() => (MV.UI.g.p.portfolio.VOLT || { shares: 0 }).shares) !== 0) errors.push('Vender todas no vendió');
+  await page.evaluate(() => MV.UI.closeSheets());
+
   // Concesionaria: filtrar por categoría, elegir color y comprar
   await page.evaluate(() => { MV.UI.closeSheets(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 20); g.p.money = Math.max(g.p.money, 5e6); MV.UI.showAssets(); });
   await page.click('#layer .layer-item:last-child button.row:has-text("Concesionaria")');

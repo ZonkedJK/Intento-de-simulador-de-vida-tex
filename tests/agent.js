@@ -92,7 +92,32 @@ function special(MV, g) {
       const part = U.pick(['exercise', 'diet']);
       check(MV.sys.wellbeing.setRoutine(g, part, U.pick(Object.keys(MV.ROUTINES[part]))));
     }
-  } else if (r < 0.62 && p.age >= 18 && !p.prison) {
+  } else if (r < 0.7 && p.age >= 18 && !p.prison) {
+    // Parte B: empresas, agencias, bolsa y mánager
+    const C = MV.sys.company, S = MV.sys.studio, A = MV.sys.agency, M = MV.sys.market;
+    const check = (t) => { if (typeof t !== 'string' || BAD_TEXT.test(t)) throw new Error('Texto roto en empresas o bolsa: ' + t); };
+    const k = U.rand();
+    if (!(p.companies || []).length && U.chance(0.4)) { if (p.money < 3e6) p.money += 3e6; check(C.found(g, U.pick(Object.keys(MV.COMPANY_TYPES)), U.chance(0.3) ? 'Mi <b>Empresa</b> ${x}' : '')); }
+    else if (k < 0.15) { const sid = U.pick(MV.STOCKS).id; check(U.chance(0.6) ? M.buy(g, sid, U.pick([10, 100, 'all'])) : M.sell(g, sid, U.pick([10, 'all']))); }
+    else if (k < 0.2) check(U.chance(0.5) ? A.hireManager(g) : A.fireManager(g));
+    else if ((p.companies || []).length) {
+      const c = U.pick(p.companies), K = MV.COMPANY_TYPES[c.type], j = U.rand();
+      if (j < 0.2) check(C.hire(g, c.id, U.pick(K.roles.concat(['gerente'])), U.int(0, 2)));
+      else if (j < 0.25 && c.staff.length) check(C.fire(g, c.id, U.pick(c.staff).id));
+      else if (j < 0.3 && c.staff.length) check(C.raise(g, c.id, U.pick(c.staff).id));
+      else if (j < 0.35) check(C.setMarketing(g, c.id, U.pick(Object.keys(MV.MARKETING))));
+      else if (j < 0.42) check(C.inject(g, c.id, U.pick([10000, 100000, p.money])));
+      else if (j < 0.47) check(C.withdraw(g, c.id, U.pick([10000, Math.max(1, c.cash)])));
+      else if (j < 0.7) {
+        if (c.type === 'estudio') check(S.startGame(g, c.id, U.chance(0.2) ? '<i>Juego</i>' : '', U.pick(MV.WORK_KINDS.juego.genres).id, U.pick(Object.keys(MV.STUDIO_SIZES))));
+        else if (c.type === 'apps') check(S.newApp(g, c.id, '', U.pick(MV.WORK_KINDS.app.genres).id));
+        else if (c.type === 'esports') { A.players(g, c.id); check(U.chance(0.7) ? A.sign(g, c.id, U.int(0, 2)) : (c.roster.length ? A.sellPlayer(g, c.id, U.pick(c.roster).id) : A.joinOwnTeam(g, c.id))); }
+        else if (c.type === 'representacion') { A.talents(g, c.id); check(A.signClient(g, c.id, U.int(0, 2), U.pick([0.1, 0.15, 0.2]))); }
+      } else if (j < 0.8) { if (M.canIpo(g, c.id).ok) check(M.ipo(g, c.id, U.pick([0.2, 0.3, 0.4]))); else if (c.public) check(M.buyback(g, c.id, U.pick([0.05, 0.1, 1]))); }
+      else if (j < 0.83) check(C.sell(g, c.id));
+      else if (j < 0.85) check(C.close(g, c.id));
+    }
+  } else if (r < 0.72 && p.age >= 18 && !p.prison) {
     // Vehículos: a veces regala uno para probar sus acciones.
     const kinds = ['Avión privado', 'Helicóptero', 'Yate'];
     if (!p.assets.some((a) => kinds.includes(a.kind))) { const k = U.pick(kinds); p.assets.push({ id: MV.U.uid('a'), type: 'lujo', kind: k, icon: '🛥️', name: k, value: 1000000, cond: 100 }); }

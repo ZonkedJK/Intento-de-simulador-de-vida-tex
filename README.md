@@ -20,12 +20,15 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Estadísticas | Felicidad, salud, inteligencia y apariencia, más estrés, karma y fama visibles |
 | Habilidades | Música, deporte, cocina, programación, arte, carisma, idiomas y crimen; suben con la práctica |
 | Educación | Primaria, secundaria, 17 carreras universitarias, 6 técnicas, 4 posgrados, escuela nocturna, hasta 3 clubes o talleres a la vez, becas y préstamos estudiantiles |
-| Trabajo | 49 empleos con requisitos y ascensos (incluye entrenador y comentarista para exdeportistas, y piloto comercial, piloto de helicóptero y capitán de yate con su licencia), 10 de medio tiempo, entrevistas con preguntas, trabajar desde casa, capacitarte para un ascenso, año sabático, jubilación y pensión |
+| Trabajo | 49 empleos con requisitos y ascensos (incluye entrenador y comentarista para exdeportistas, y piloto comercial, piloto de helicóptero y capitán de yate con su licencia), 10 de medio tiempo, entrevistas con preguntas, trabajar desde casa, capacitarte para un ascenso, año sabático, jubilación y pensión; si eres deportista o famoso, un mánager o negociar tu propio contrato |
 | Deporte profesional | 11 deportes (fútbol, básquet con draft en una liga norteamericana, tenis, vóley, béisbol, boxeo, golf, atletismo, natación, automovilismo y e-sports), con sueldos de hasta decenas de millones, contratos, lesiones, títulos y retiro; puedes buscar un equipo, escudería o patrocinador mejor para subir de categoría (hasta campeón de la Fórmula Mundial) y volver del retiro |
 | Reclutamiento | Clubes por deporte desde la escuela, cazatalentos al terminar la secundaria, beca deportiva, reclutadores universitarios y pruebas abiertas; cuentan la habilidad Deporte, la salud, los años de práctica y un talento natural oculto |
 | Fama | Actor/actriz, música, moda y política (con elecciones), más redes sociales con seguidores y patrocinios |
 | Mafia | Carrera criminal con encargos, ascensos y riesgo de arresto |
 | Dinero | Impuestos, gastos de vida, alquiler, hipotecas, préstamos, 4 tipos de inversión y 8 negocios propios |
+| Empresas propias | Hasta 3 a la vez (estudio de videojuegos, empresa de apps, red social, agencia de eSports y agencia de representación), con caja propia, empleados con nombre y nivel, gerente general, marketing, balance y valuación anual, quiebra, venta y cierre |
+| Agencias | Equipo de eSports con fichajes, ligas regional, internacional y mundial, premios y patrocinios (y puedes jugar en tu propio equipo); representación de deportistas, actores y músicos con comisión y renovaciones que se negocian |
+| Bolsa de valores | 12 empresas inventadas que se mueven con las noticias del mundo, crash, burbujas y dividendos; salida a bolsa de tu empresa con su propia sigla, junta de accionistas que te puede echar e información privilegiada (con riesgo de juicio) |
 | Noticias del mundo | Cada año puede traer uno de 15 titulares (recesión, fiebre cripto, burbuja inmobiliaria, pandemia, inflación, auge tecnológico…) que mueven inversiones, casas, costo de vida, empleo y salud |
 | Licencias | Examen en pantalla de 10 preguntas (apruebas con 7): conducir desde los 16 con 20 señales dibujadas, y yate, avión y helicóptero desde los 18 (instrumentos, luces, banderas náuticas y radio) |
 | Vehículos | Con tu avión vuelas a cualquier destino pagando solo combustible; paseos y fiestas en helicóptero y yate. Sin licencia pagas piloto o capitán |
@@ -41,15 +44,15 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Mascotas | Trucos propios de cada especie y concursos con premios, trofeos y logro; gatos callejeros para recoger de cualquier edad (gatito, joven, adulto o anciano) |
 | Mascotas míticas | Un guardián del bosque cascarrabias (al plantar árboles), un dragoncito de bolsillo (lo vende un mercader en tus viajes), un unicornio gruñón (con buen karma) y un fantasma doméstico (en casas embrujadas), cada uno con dibujo, trucos y manías propias |
 | Vivir mejor | Bienestar de 0 a 100 en la tarjeta, 6 hobbies con racha, retiro de descanso y rutina anual de ejercicio y dieta |
-| Obras | Escribe libros, compone canciones y pinta cuadros con título y género propios; la crítica da estrellas, y los éxitos pagan regalías |
+| Obras | Escribe libros, compone canciones, pinta cuadros y programa juegos y apps con título y género propios; la crítica da estrellas, y los éxitos pagan regalías |
 | Regalos | Menú desplegable con 37 regalos de $2 a $5 millones; cada persona tiene gustos según su edad y personalidad |
 | Viajes | 10 destinos; eliges si vas solo o con tu pareja, familia o amigos |
 | Salud | 21 enfermedades, 4 niveles de tratamiento (del curandero al tratamiento experimental), adicciones y rehabilitación |
 | Crimen | 11 delitos, juicio con elección de abogado (o soborno), cárcel con pandillas, motines, fuga, apelación y libertad condicional |
-| Actividades | 76: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, karaoke, escape room, clases, maratón, refugio de animales, demandas, emigrar a 28 países y más; con buscador y favoritas |
+| Actividades | 78: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, karaoke, escape room, clases, maratón, refugio de animales, demandas, emigrar a 28 países y más; con buscador y favoritas |
 | Países | 28 países de Latinoamérica, Norteamérica, Europa y Asia, cada uno con sus nombres, ciudades y un deporte popular |
-| Eventos | 185 eventos al azar (132 con decisiones), más 34 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
-| Metas | 16 aspiraciones de vida, 62 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
+| Eventos | 185 eventos al azar (132 con decisiones), más 42 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
+| Metas | 16 aspiraciones de vida, 67 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
 | Legado | Muerte con epitafio y veredicto, resumen para copiar o compartir, testamento, herencia (el heredero recibe la casa familiar; si es el único o el nombrado, todos los bienes), árbol genealógico y cementerio de todas tus vidas |
 | Imágenes | Avatares SVG con 9 peinados, barbas, 5 expresiones, ropa según tu ocupación y accesorios; 16 escenas ilustradas; tema claro (cuaderno) y oscuro (pizarrón) |
 | Animaciones | Números que flotan al cambiar una estadística, avatar que salta o tiembla y dinero que cuenta (se apagan en Ajustes o con "reducir movimiento") |
@@ -62,12 +65,13 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 index.html            carga los scripts en orden (sin compilación)
 css/styles.css        estética de cuaderno cuadriculado y modo pizarrón
 js/core/              utilidades y azar con semilla, estado, efectos, motor de eventos
-js/data/              países, educación, empleos, deportes, mundo (bienes, salud, crimen...), noticias, obras, desafíos, licencias, islas, autos, actividades
+js/data/              países, educación, empleos, deportes, mundo (bienes, salud, crimen...), noticias, obras, desafíos, licencias, islas, autos, empresas y bolsa, actividades
 js/data/events/       eventos por etapa: infancia, adolescencia, adultez, vejez, generales y deportes
 js/systems/           bucle anual: mundo, personas, salud, educación, trabajo, deportes, tatuajes, obras, desafíos, licencias, vehículos,
-                      islas, música, mascotas míticas, autos, bienestar, historia, dinero, crimen, relaciones, legado, guardado
+                      islas, música, mascotas míticas, autos, bienestar, historia, empresas, estudio, agencias, bolsa,
+                      dinero, crimen, relaciones, legado, guardado
 js/ui/                interfaz: avatares, escenas, animaciones, pantalla principal, pestañas, tatuajes, obras, señales, examen, islas,
-                      concesionaria, gráficos y pantallas
+                      concesionaria, gráficos, empresas, bolsa y pantallas
 tests/                pruebas con node --test y prueba de interfaz con Playwright
 ```
 

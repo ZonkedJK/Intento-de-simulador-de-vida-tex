@@ -92,6 +92,14 @@
       (p.assets || []).forEach((a) => { if (a.type === 'auto') { a.tune = a.tune || {}; a.insured = !!a.insured; } });
       g.version = 6;
     }
+    if (g.version === 6) {
+      // v7: empresas propias, cartera de acciones y mánager; la bolsa se crea cuando hace falta.
+      const p = g.p;
+      p.companies = Array.isArray(p.companies) ? p.companies : [];
+      p.portfolio = p.portfolio && typeof p.portfolio === 'object' ? p.portfolio : {};
+      p.manager = p.manager || null;
+      g.version = 7;
+    }
     return g;
   };
 

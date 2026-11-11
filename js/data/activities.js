@@ -220,6 +220,8 @@
   const work = (kind) => (g, o) => MV.sys.works.create(g, kind, o && o.title, o && o.genre);
   A({ id: 'libro', cat: 'ocio', icon: '✍️', label: 'Escribir un libro', sub: 'Con título propio. Puede ser un best seller', minAge: 16, limit: 1, ui: 'work', work: 'libro', run: work('libro') });
   A({ id: 'cancion', cat: 'ocio', icon: '🎵', label: 'Componer una canción', sub: 'Con título propio. Puede ser un hit', minAge: 12, limit: 1, ui: 'work', work: 'cancion', run: work('cancion') });
+  A({ id: 'programar_juego', cat: 'ocio', icon: '🎮', label: 'Programar un juego', sub: 'Con título propio. Programación (y un poco de Arte)', minAge: 12, limit: 1, ui: 'work', work: 'juego', run: work('juego') });
+  A({ id: 'programar_app', cat: 'ocio', icon: '📱', label: 'Programar una app', sub: 'Con título propio. Puede ser la app del año', minAge: 14, limit: 1, ui: 'work', work: 'app', run: work('app') });
   A({ id: 'cuadro', cat: 'ocio', icon: '🎨', label: 'Pintar un cuadro', sub: 'Con título propio. Quizás termine en un museo', minAge: 8, limit: 1, ui: 'work', work: 'cuadro', run: work('cuadro') });
   A({ id: 'voluntariado', cat: 'ocio', icon: '🤲', label: 'Hacer voluntariado', sub: '+karma, +felicidad', minAge: 12, limit: 2,
     run: (g) => { fx.stat(g, 'karma', U.int(3, 7)); fx.stat(g, 'happy', U.int(2, 5));

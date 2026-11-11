@@ -32,7 +32,7 @@
       kind = MV.WORK_KINDS[kind] ? kind : 'libro';
       const name = works.clean(title) || works.randomTitle(kind);
       const Gn = K.genres.find((x) => x.id === genre) || K.genres[0];
-      const q = 8 + p.skills[K.skill] * 0.6 + p.stats.smarts * 0.2 + p.fame * 0.15 + Gn.bonus(p) + U.int(-10, 30) + (kind === 'cancion' ? MV.sys.music.best(p) * 4 : 0);
+      const q = 8 + p.skills[K.skill] * 0.6 + p.stats.smarts * 0.2 + p.fame * 0.15 + Gn.bonus(p) + U.int(-10, 30) + (kind === 'cancion' ? MV.sys.music.best(p) * 4 : 0) + (kind === 'juego' ? p.skills.arte * 0.15 : 0);
       const st = U.clamp(Math.round(q / 18), 1, 5);
       const hit = U.chance(st === 5 ? 0.4 + p.fame / 250 : st === 4 ? 0.1 + p.fame / 300 : st === 3 ? 0.02 : 0);
       MV.fx.stat(g, 'stress', K.stress);
