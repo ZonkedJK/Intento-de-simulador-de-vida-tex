@@ -128,7 +128,7 @@
       stats: h('section', { class: 'stats', 'aria-label': 'Estadísticas' }),
       nav: h('nav', { class: 'nav', 'aria-label': 'Acciones' })
     };
-    root.append(UI.refs.idcard, UI.refs.diary, UI.refs.stats);
+    root.append(h('div', { class: 'topbar' }, UI.refs.idcard), UI.refs.diary, h('div', { class: 'dock' }, UI.refs.stats));
     app.append(root, UI.refs.nav);
     UI.refs.lastCount = 0;
     UI.refreshGame();
@@ -144,7 +144,7 @@
     const C = MV.COUNTRIES[p.country] || { flag: '' };
     R.idcard.append(
       h('button', { class: 'who', onclick: () => UI.showProfile(), 'aria-label': 'Ver ficha personal' },
-        UI.avatar(p, 54),
+        UI.avatar(p, 56),
         h('span', { class: 'who-text' },
           h('span', { class: 'name' }, MV.fullName(p)),
           h('span', { class: 'sub', style: { display: 'block' } }, `${p.age} año${p.age === 1 ? '' : 's'}, ${UI.occupation(p).toLowerCase()} ${C.flag}`))),
@@ -164,7 +164,7 @@
     });
     const chips = h('div', { class: 'chips' });
     const wb = MV.sys.wellbeing.score(g);
-    chips.append(h('span', { class: 'chip' + (wb.score < 40 ? ' warn' : ''), id: 'wellbeing-chip', title: 'Bienestar: felicidad, salud, calma y vínculos' }, `💚 Bienestar ${wb.score} · ${wb.label}`));
+    chips.append(h('span', { class: 'chip' + (wb.score < 40 ? ' warn' : wb.score >= 60 ? ' ok' : ''), id: 'wellbeing-chip', title: 'Bienestar: felicidad, salud, calma y vínculos' }, `💚 Bienestar ${wb.score} · ${wb.label}`));
     chips.append(h('span', { class: 'chip' + (p.stress >= 70 ? ' warn' : '') }, `😰 Estrés ${p.stress}`));
     chips.append(h('span', { class: 'chip' }, `☯️ Karma ${p.karma > 0 ? '+' : ''}${p.karma}`));
     if (p.fame > 0) chips.append(h('span', { class: 'chip' }, `⭐ Fama ${p.fame}`));
@@ -194,7 +194,7 @@
         h('h3', null, h('span', { class: 'age' }, y.age === 0 ? 'Nacimiento' : `${y.age} año${y.age === 1 ? '' : 's'}`), h('span', { class: 'cal' }, String(y.year))));
       y.items.forEach((it) => {
         const isNew = fresh && idx >= prevCount;
-        sec.append(h('div', { class: 'entry' + (it.tone ? ' ' + it.tone : '') + (isNew ? ' fresh' : '') }, h('span', { class: 'ic', 'aria-hidden': 'true' }, it.i), h('span', { class: 'tx' }, it.t)));
+        sec.append(h('div', { class: 'entry' + (it.tone ? ' ' + it.tone : '') + (isNew ? ' fresh' : '') }, h('span', { class: 'ic', 'aria-hidden': 'true' }, it.i), h('span', { class: 'tx' }, it.tone === 'good' ? UI.hl(it.t, 'green') : it.tone === 'bad' ? UI.hl(it.t, 'pink') : it.t)));
         idx++;
       });
       if (!y.items.length) sec.append(h('div', { class: 'entry' }, h('span', { class: 'ic' }, '·'), h('span', { class: 'tx', style: { color: 'var(--pencil)' } }, 'Un año tranquilo. Demasiado tranquilo.')));

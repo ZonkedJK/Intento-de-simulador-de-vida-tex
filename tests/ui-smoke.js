@@ -16,6 +16,9 @@ const SHOTS = process.argv[2] || null;
   page.on('pageerror', (e) => errors.push('Excepción: ' + e.message));
   const shot = async (n) => { if (SHOTS) await page.screenshot({ path: path.join(SHOTS, n + '.png') }); };
   const tryClick = async (sel) => { try { await page.click(sel, { timeout: 1500 }); return true; } catch (e) { return false; } };
+  const css = (sel, prop, pseudo) => page.$eval(sel, (e, a) => getComputedStyle(e, a[1] || null)[a[0]], [prop, pseudo || null]);
+  const rect = (sel) => page.$eval(sel, (e) => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
+  const cross = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
   const resolve = async () => {
     for (let k = 0; k < 25; k++) {
       if (await page.$('#layer .choice')) { await tryClick('#layer .choice >> nth=0'); continue; }
@@ -382,6 +385,42 @@ const SHOTS = process.argv[2] || null;
   const favTop = await page.$eval('#act-favs', (e) => e.textContent).catch(() => '');
   if (!/Ir al gimnasio/.test(favTop)) errors.push('El favorito no aparece arriba en Actividades');
   await page.evaluate(() => MV.UI.closeSheets());
+  // Interfaz A — pantalla principal
+  await page.evaluate(() => { MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; g.p.prison = null; MV.log(g, 'Te ascendieron.', '📈', 'good'); MV.log(g, 'Te rompiste una muela.', '🦷', 'bad'); MV.UI.refreshGame(); window.scrollTo(0, document.body.scrollHeight); });
+  await page.waitForTimeout(80);
+  {
+    const id = await rect('.idcard'), mo = await rect('.idcard .money'), st = await rect('.stats');
+    if (id.l < 10 || id.w > 370 || !/3px 4px 0px/.test(await css('.idcard', 'boxShadow'))) errors.push('El carnet no flota: ' + JSON.stringify(id));
+    if (!(mo.t < id.t)) errors.push('La etiqueta de dinero no sobresale del carnet');
+    if (st.l < 10 || !/3px 4px 0px/.test(await css('.stats', 'boxShadow'))) errors.push('El panel de estadísticas no flota');
+    const LVL = { 'lvl-lo': 'rgb(226, 92, 92)', 'lvl-mid': 'rgb(240, 180, 41)', 'lvl-hi': 'rgb(63, 174, 90)' };
+    (await page.$$eval('.stats .bar > i', (els) => els.map((e) => [e.className, getComputedStyle(e).backgroundColor]))).forEach(([c, bg]) => { if (LVL[c] !== bg) errors.push(`Barra ${c} con color ${bg}`); });
+    if (!(await page.$('.entry.good .hl-green')) || !(await page.$('.entry.bad .hl-pink'))) errors.push('Las entradas buenas y malas no llevan resaltador');
+    const wb = await page.evaluate(() => { const s = MV.sys.wellbeing.score(MV.UI.g).score, c = document.getElementById('wellbeing-chip').className; return { s, ok: /\bok\b/.test(c), warn: /\bwarn\b/.test(c) }; });
+    if (wb.ok !== (wb.s >= 60) || wb.warn !== (wb.s < 40)) errors.push('El chip de bienestar no sigue su puntaje: ' + JSON.stringify(wb));
+    const sizes = await page.evaluate(() => [document.querySelector('.ageup').offsetWidth, document.querySelector('.nav').offsetHeight]);
+    if (sizes[0] !== 88 || sizes[1] !== 92) errors.push('Barra inferior: botón ' + sizes[0] + ' px, alto ' + sizes[1] + ' px');
+    const lastEntry = await page.$$eval('.diary .entry', (els) => els[els.length - 1].getBoundingClientRect().bottom);
+    if (lastEntry > st.t + 1) errors.push('La última entrada del diario queda tapada por el panel');
+    if (cross(await rect('.ageup5'), await rect('.ageup'))) errors.push('⏩ 5 pisa el botón +1 año (390 px)');
+    // Foco 1: nombre larguísimo, dinero enorme y letra muy grande
+    const keep = await page.evaluate(() => { const p = MV.UI.g.p, k = { first: p.first, last: p.last, money: p.money }; p.first = 'Maximiliana Guadalupe'; p.last = 'de los Santos Echeverría'; p.money = 1234567890123; document.documentElement.setAttribute('data-font', 'muy_grande'); MV.UI.refreshGame(); return k; });
+    const nm = await page.$eval('.idcard .name', (e) => ({ cut: e.scrollWidth > e.clientWidth, r: e.getBoundingClientRect().right }));
+    if (!nm.cut || nm.r > (await rect('.idcard')).r) errors.push('Un nombre largo no se corta con "…" dentro del carnet');
+    if (cross(await rect('.idcard .money'), await rect('.idcard button[aria-label="Menú"]'))) errors.push('La etiqueta de dinero tapa el menú');
+    await page.evaluate((k) => { Object.assign(MV.UI.g.p, k); document.documentElement.removeAttribute('data-font'); MV.UI.refreshGame(); }, keep);
+    // Foco 3: modo oscuro (pizarrón) y texto resaltado legible
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+    if (await css('body', 'backgroundColor') !== 'rgb(30, 42, 38)') errors.push('El modo oscuro no usa el pizarrón');
+    if (await css('.entry.good .hl-green', 'color') !== 'rgb(27, 33, 30)') errors.push('En oscuro, el texto resaltado no es oscuro');
+    await page.evaluate(() => MV.UI.applyTheme());
+    // Foco 4: escritorio
+    await page.setViewportSize({ width: 1024, height: 800 });
+    const app = await rect('#app'), id4 = await rect('.idcard');
+    if (id4.l < app.l || id4.r > app.r) errors.push('En escritorio el carnet se sale de la columna');
+    if (cross(await rect('.ageup5'), await rect('.ageup'))) errors.push('⏩ 5 pisa el botón +1 año (escritorio)');
+    await page.setViewportSize({ width: 390, height: 844 });
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {
