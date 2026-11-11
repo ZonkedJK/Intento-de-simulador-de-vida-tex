@@ -438,6 +438,20 @@ const SHOTS = process.argv[2] || null;
     await page.click('#layer .card .btn:not(.danger)');
     if (await page.$('#layer .card')) errors.push('La confirmación no se cerró');
   }
+  // Interfaz A — hojas
+  {
+    await page.evaluate(() => { MV.UI.closeAll(); MV.UI.g.p.prison = null; MV.UI.showActivities(); });
+    await page.waitForSelector('.sheet .cat');
+    if (!(await page.$('.sheet .grab'))) errors.push('La hoja no tiene agarradera');
+    const head = await page.$eval('.sheet-head', (e) => { const st = getComputedStyle(e); return [st.backgroundColor, st.borderBottomWidth]; });
+    if (head[0] !== 'rgba(0, 0, 0, 0)' || head[1] !== '0px') errors.push('El encabezado de la hoja sigue siendo una franja: ' + head.join(' '));
+    if (!/^🔎/.test(await page.$eval('#act-search', (e) => e.placeholder))) errors.push('El buscador no muestra la lupa');
+    const tints = await page.$$eval('.sheet .cat', (els) => els.slice(0, 4).map((e) => getComputedStyle(e).backgroundColor));
+    if (new Set(tints).size !== 4 || tints.includes('rgb(255, 255, 255)')) errors.push('Los mosaicos no tienen tintes: ' + tints.join(' '));
+    const ib = await page.$$eval('.sheet .icon-btn', (els) => els.map((e) => e.offsetWidth));
+    if (ib.some((w) => w < 44)) errors.push('Botones de la hoja de menos de 44 px: ' + ib.join(','));
+    await page.evaluate(() => MV.UI.closeSheets());
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {

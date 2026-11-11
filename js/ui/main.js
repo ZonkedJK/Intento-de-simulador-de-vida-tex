@@ -37,7 +37,7 @@
       back ? h('button', { class: 'icon-btn', 'aria-label': 'Volver', onclick: () => UI.popSheet() }, '‹') : null,
       h('h2', null, (o.icon ? o.icon + ' ' : '') + o.title),
       h('button', { class: 'icon-btn', 'aria-label': 'Cerrar', onclick: () => UI.closeSheets() }, '✕'));
-    const node = h('section', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': o.title }, head, body);
+    const node = h('section', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': o.title }, h('div', { class: 'grab', 'aria-hidden': 'true' }), head, body);
     const item = pushLayer(node, 'sheet');
     item.render = () => {
       const scroll = body.scrollTop;
