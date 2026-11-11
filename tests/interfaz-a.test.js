@@ -28,3 +28,34 @@ test('las opciones sin sub no lo traen; sub acepta función y plantillas', () =>
   assert.ok(!('sub' in a));
   assert.equal(b.sub, 'Lista');
 });
+
+const fs = require('fs');
+const path = require('path');
+const CSS = () => fs.readFileSync(path.join(__dirname, '..', 'css', 'styles.css'), 'utf8');
+/** Variables declaradas en el primer bloque que empieza con `start` (hasta su primera llave de cierre). */
+function vars(css, start) {
+  const i = css.indexOf(start);
+  assert.ok(i >= 0, 'falta el bloque ' + start);
+  const body = css.slice(i + start.length, css.indexOf('}', i));
+  const out = {};
+  for (const m of body.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)) out[m[1]] = m[2].trim();
+  return out;
+}
+
+test('las variables del cuaderno y del pizarrón tienen los valores de Figma', () => {
+  const css = CSS();
+  const light = vars(css, ':root {');
+  const dark = vars(css, ':root[data-theme="dark"] {');
+  const media = vars(css, ':root:not([data-theme="light"]) {');
+  const L = { paper: '#fffdf7', grid: '#dbe6f6', margin: '#f2a0a6', card: '#ffffff', ink: '#1f3a93', copy: '#26345f', pencil: '#5b6270',
+    'hl-yellow': '#ffe066', 'hl-green': '#b8f2a0', 'hl-pink': '#ffb3c7', 'hl-blue': '#a8d8ff', 'on-hl': '#1b2a5e',
+    'lvl-lo': '#e25c5c', 'lvl-mid': '#f0b429', 'lvl-hi': '#3fae5a', stone: '#eef0f4', hard: '#1f3a93', clip: '#8a94a6', 'hl-stop': '55%', 'nav-h': '92px' };
+  const D = { paper: '#1e2a26', grid: '#283832', margin: 'rgba(255, 128, 128, 0.6)', card: '#25332e', ink: '#eef1e8', copy: '#dfe5dc', pencil: '#a3afa6',
+    'hl-yellow': '#f2dc68', 'hl-green': '#98e0a3', 'hl-pink': '#f09ac6', 'hl-blue': '#96cdee', 'on-hl': '#1b211e',
+    'lvl-lo': '#ff8a80', 'lvl-mid': '#f2c14e', 'lvl-hi': '#6fd08a', stone: '#34433d', hard: '#0f1714', clip: '#9aa6b8', 'hl-stop': '0%' };
+  for (const [k, v] of Object.entries(L)) assert.equal(light[k], v, 'claro --' + k);
+  for (const [k, v] of Object.entries(D)) assert.equal(dark[k], v, 'oscuro --' + k);
+  assert.deepEqual(media, dark, 'los dos bloques oscuros declaran lo mismo');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  assert.match(html, /<meta name="theme-color" content="#fffdf7">/);
+});
