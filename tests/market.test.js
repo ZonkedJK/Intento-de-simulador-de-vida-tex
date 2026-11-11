@@ -98,3 +98,114 @@ test('el patrimonio suma las acciones', () => {
   const price = M(MV).price(g, 'TORR');
   assert.equal(MV.netWorth(g), w0 - Math.round(price * 100 * 1.01) + Math.round(price * 100));
 });
+
+// ——— Salida a bolsa, junta de accionistas e información privilegiada ———
+function bigCo(MV, seed, value) {
+  const g = investor(MV, seed, 1e6);
+  MV.sys.company.found(g, 'estudio', 'Pixel Pantano');
+  const c = g.p.companies[0];
+  c.value = value == null ? 1e7 : value; c.since = g.p.age - 3;
+  return { g, c };
+}
+
+test('no se sale a bolsa sin valuación ni antigüedad', () => {
+  const MV = load({ seed: 20 });
+  const a = bigCo(MV, 20, 4e6);
+  assert.equal(M(MV).canIpo(a.g, a.c.id).ok, false);
+  assert.match(M(MV).ipo(a.g, a.c.id, 0.3), /5\.000\.000/);
+  const b = bigCo(MV, 21); b.c.since = b.g.p.age - 1;
+  assert.match(M(MV).canIpo(b.g, b.c.id).why, /3 años/);
+  assert.equal(b.c.public, null);
+});
+
+test('salir a bolsa paga tu parte y la empresa cotiza con su propia sigla; el patrimonio cuenta solo tu parte', () => {
+  const MV = load({ seed: 22 });
+  const { g, c } = bigCo(MV, 22);
+  const w0 = MV.netWorth(g), m0 = g.p.money;
+  const msg = M(MV).ipo(g, c.id, 0.3);
+  assert.ok(!BAD_TEXT.test(msg), msg);
+  assert.equal(g.p.money, m0 + 3000000);
+  assert.match(c.public.ticker, /^[A-Z]{4}$/);
+  assert.ok(!IDS.includes(c.public.ticker));
+  assert.equal(c.public.stake, 0.7);
+  const row = M(MV).list(g).find((x) => x.id === c.public.ticker);
+  assert.ok(row, 'aparece en la bolsa'); assert.equal(row.price, 10);
+  assert.equal(MV.netWorth(g), w0, 'cobrar el 30 % y quedarte con el 70 % no cambia el patrimonio');
+  assert.match(M(MV).buy(g, c.public.ticker, 10), /recomprar/i);
+  assert.match(M(MV).ipo(g, c.id, 0.3), /ya cotiza/i);
+});
+
+test('dos años de pérdidas llaman a la junta y si te echan te quedan las acciones', () => {
+  const MV = load({ seed: 23 });
+  const { g, c } = bigCo(MV, 23);
+  M(MV).ipo(g, c.id, 0.4);
+  const t = c.public.ticker;
+  MV.sys.company.register('estudio', { revenue: () => 0 });
+  MV.sys.company.inject(g, c.id, 900000);
+  for (let y = 0; y < 2; y++) { g.p.age++; g.queue = []; MV.sys.company.yearly(g); M(MV).yearly(g, { quiet: true }); }
+  const v = g.queue.find((q) => q.id === 'junta_accionistas');
+  assert.ok(v, 'llega la junta');
+  g.queue = [v];
+  const view = MV.EV.view(g);
+  assert.equal(view.choices.length, 3); assert.ok(!BAD_TEXT.test(view.text), view.text);
+  const value = c.value;
+  MV.EV.choose(g, 2);
+  assert.equal(MV.sys.company.get(g, c.id), null, 'ya no la manejas');
+  assert.equal(g.p.portfolio[t].shares, 600000, 'te quedan tus acciones');
+  assert.ok(M(MV).list(g).find((x) => x.id === t), 'sigue cotizando');
+  assert.ok(Math.abs(M(MV).portfolioValue(g) - value * 0.6) <= 1, 'tus acciones valen tu parte');
+  M(MV).yearly(g, { quiet: true });
+  assert.ok(M(MV).price(g, t) > 0);
+});
+
+test('recomprar todo deja de cotizar y vender o quebrar la saca de la bolsa', () => {
+  const MV = load({ seed: 24 });
+  const { g, c } = bigCo(MV, 24);
+  M(MV).ipo(g, c.id, 0.2);
+  const t = c.public.ticker, m = g.p.money;
+  assert.ok(!BAD_TEXT.test(M(MV).buyback(g, c.id, 0.2)));
+  assert.equal(g.p.money, m - Math.round(c.value * 0.2 * 1.1));
+  assert.equal(c.public, null);
+  assert.ok(!M(MV).list(g).find((x) => x.id === t), 'dejó de cotizar');
+  const x = bigCo(MV, 25);
+  M(MV).ipo(x.g, x.c.id, 0.3);
+  const t2 = x.c.public.ticker;
+  MV.sys.company.sell(x.g, x.c.id);
+  assert.ok(!M(MV).list(x.g).find((r) => r.id === t2), 'vender la empresa la saca de la bolsa');
+});
+
+test('el dato privilegiado hace ganar y a veces termina en juicio', () => {
+  const MV = load({ seed: 26 });
+  calm(MV);
+  const g = investor(MV, 26, 100000);
+  g.world = null;
+  MV.EV.push(g, 'dato_privilegiado', { stock: 'VOLT', source: 'un amigo' }, true);
+  const v = MV.EV.view(g);
+  assert.equal(v.choices.length, 3); assert.ok(!BAD_TEXT.test(v.text), v.text);
+  const k0 = g.p.karma, p0 = M(MV).price(g, 'VOLT');
+  const res = MV.EV.choose(g, 0);
+  assert.ok(!BAD_TEXT.test(res.msg), res.msg);
+  assert.ok(g.p.portfolio.VOLT.shares > 0);
+  assert.equal(g.p.karma, k0 - 6);
+  M(MV).yearly(g, { quiet: true });
+  assert.ok(M(MV).price(g, 'VOLT') >= p0 * 1.4, 'sube al año siguiente');
+  let probes = 0;
+  for (let i = 0; i < 200; i++) {
+    const h = investor(MV, 900 + i, 100000);
+    MV.EV.push(h, 'dato_privilegiado', { stock: 'BSUR', source: 'tu cuñado' }, true);
+    MV.EV.choose(h, 0);
+    if ((h.later || []).some((x) => x.id === 'investigacion_bolsa')) probes++;
+  }
+  assert.ok(probes > 25 && probes < 80, 'investigaciones: ' + probes);
+  const j = investor(MV, 27, 100000);
+  MV.EV.push(j, 'investigacion_bolsa', { gain: 10000 }, true);
+  const iv = MV.EV.view(j);
+  assert.ok(!BAD_TEXT.test(iv.text), iv.text);
+  MV.EV.choose(j, iv.choices[iv.choices.length - 1].i);
+  assert.equal(j.p.money, 90000);
+  assert.ok(j.queue.some((q) => q.id === 'juicio'), 'termina en juicio');
+  const n = investor(MV, 28, 100000);
+  MV.EV.push(n, 'dato_privilegiado', { stock: 'VOLT', source: 'un amigo' }, true);
+  const k1 = n.p.karma; MV.EV.choose(n, 2);
+  assert.equal(n.p.karma, k1 + 4, 'denunciarlo da karma');
+});

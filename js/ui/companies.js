@@ -69,6 +69,17 @@
         Object.keys(MV.MARKETING).forEach((k) => mr.append(h('button', { type: 'button', id: 'co-mkt-' + k, class: 'chip-btn' + (c.marketing === k ? ' on' : ''), role: 'radio', 'aria-checked': String(c.marketing === k),
           onclick: () => { C().setMarketing(g, cid, k); UI.save(); UI.refreshSheets(); } }, `${MV.MARKETING[k].name}${MV.MARKETING[k].cost ? ' · ' + U.money(MV.MARKETING[k].cost) : ''}`)));
         body.append(mr);
+        // Bolsa
+        body.append(title('Bolsa'));
+        const bl = h('div', { class: 'list' });
+        if (c.public) {
+          bl.append(UI.row('📈', `Cotiza como ${c.public.ticker}`, `Tienes el ${Math.round(c.public.stake * 100)} %. Con dos años seguidos de pérdidas, la junta puede echarte.`, '›', () => UI.showStock(c.public.ticker)));
+          bl.append(UI.row('🔁', 'Recomprar acciones', 'Cuesta 10 % más que su valor. Con el 100 % deja de cotizar', '›', () => showBuyback(cid)));
+        } else {
+          const can = MV.sys.market.canIpo(g, cid);
+          bl.append(UI.row('🔔', 'Salir a bolsa', can.ok ? 'Vendes entre 20 % y 40 % y cobras ese dinero' : can.why, '›', () => showIpo(cid), !can.ok));
+        }
+        body.append(bl);
         // Caja y opciones
         body.append(title('Caja y opciones'));
         const ol = h('div', { class: 'list' });
@@ -121,6 +132,38 @@
         if (!cands.length) { body.append(note('No quedan candidatos para este puesto este año.')); return; }
         const l = h('div', { class: 'list' });
         cands.forEach((x, i) => l.append(UI.row('🙋', `${x.first} ${x.last}`, `Nivel ${'★'.repeat(x.level)}${'☆'.repeat(5 - x.level)} · ${U.money(x.salary)} al año`, null, () => { UI.popSheet(); UI.popSheet(); UI.runSystem('🤝', () => C().hire(g, cid, role, i)); })));
+        body.append(l);
+      }
+    });
+  }
+
+  function showIpo(cid) {
+    UI.sheet({
+      title: 'Salir a bolsa', icon: '🔔',
+      render: (body) => {
+        const g = UI.g, c = C().get(g, cid);
+        if (!c) { body.append(note('Esta empresa ya no es tuya.')); return; }
+        body.append(note(`${c.name} vale ${U.money(c.value)}. ¿Qué parte vendes? Lo que vendas lo cobras ahora; con el resto sigues mandando.`));
+        const l = h('div', { class: 'list' });
+        [0.2, 0.3, 0.4].forEach((pct) => l.append(UI.row('🔔', `${Math.round(pct * 100)} %`, `Cobras ${U.money(Math.round(c.value * pct))} y te quedas con el ${Math.round((1 - pct) * 100)} %`, null, () => { UI.popSheet(); UI.runSystem('🔔', () => MV.sys.market.ipo(g, cid, pct)); })));
+        body.append(l);
+      }
+    });
+  }
+
+  function showBuyback(cid) {
+    UI.sheet({
+      title: 'Recomprar acciones', icon: '🔁',
+      render: (body) => {
+        const g = UI.g, c = C().get(g, cid);
+        if (!c || !c.public) { body.append(note('Esta empresa ya no cotiza.')); return; }
+        const rest = Math.round((1 - c.public.stake) * 100) / 100;
+        body.append(note(`Tienes el ${Math.round(c.public.stake * 100)} % de ${c.name}. Tienes ${U.money(g.p.money)}.`));
+        const l = h('div', { class: 'list' });
+        [0.05, 0.1, rest].filter((x, i, a) => x > 0 && x <= rest && a.indexOf(x) === i).forEach((pct) => {
+          const cost = Math.round(c.value * pct * 1.1);
+          l.append(UI.row('🔁', pct === rest ? `Todo lo que falta (${Math.round(pct * 100)} %)` : `${Math.round(pct * 100)} %`, `Cuesta ${U.money(cost)}`, null, () => { UI.popSheet(); UI.runSystem('🔁', () => MV.sys.market.buyback(g, cid, pct)); }, cost > g.p.money));
+        });
         body.append(l);
       }
     });

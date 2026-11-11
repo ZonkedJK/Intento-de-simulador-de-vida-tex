@@ -118,7 +118,9 @@
 
     /** Saca la empresa de tu vida y borra sus eventos pendientes. */
     remove(g, cid) {
-      g.p.companies = list(g.p).filter((c) => c.id !== cid);
+      const c = company.get(g, cid);
+      if (c && c.public && MV.sys.market) MV.sys.market.delist(g, c.public.ticker);
+      g.p.companies = list(g.p).filter((x) => x.id !== cid);
       const keep = (it) => !(it.ctx && it.ctx.company === cid);
       g.queue = g.queue.filter(keep);
       if (g.later) g.later = g.later.filter(keep);

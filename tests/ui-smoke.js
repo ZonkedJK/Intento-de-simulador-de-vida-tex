@@ -256,6 +256,17 @@ const SHOTS = process.argv[2] || null;
     await resolve();
     const agState = await page.evaluate((ids) => ids.map((id) => { const c = MV.sys.company.get(MV.UI.g, id); return c.roster ? c.roster.length : c.clients.length; }), ag);
     if (agState[0] !== 1 || agState[1] !== 1) errors.push('Las agencias no ficharon jugador o cliente: ' + agState.join(','));
+    // Salida a bolsa de una empresa grande y verla en la bolsa
+    await page.evaluate(() => { const g = MV.UI.g, c = g.p.companies[0]; c.value = 2e7; c.since = g.p.age - 4; MV.sys.market.ensure(g); MV.UI.closeSheets(); MV.UI.showCompany(c.id); });
+    await page.click('#layer .layer-item:last-child button.row:has-text("Salir a bolsa")');
+    await page.click('#layer .layer-item:last-child button.row:has-text("30 %")');
+    await resolve();
+    const tk = await page.evaluate(() => { const c = MV.UI.g.p.companies[0]; return c.public ? c.public.ticker : null; });
+    if (!tk) errors.push('La empresa no salió a bolsa');
+    else {
+      await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showStocks(); });
+      if (!(await page.$(`#layer .layer-item:last-child button.row:has-text("${tk}")`))) errors.push('La empresa cotizante no aparece en la bolsa');
+    }
   }
   await page.evaluate(() => MV.UI.closeSheets());
 

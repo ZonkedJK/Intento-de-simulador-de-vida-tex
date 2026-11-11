@@ -39,6 +39,7 @@
     { id: 'gamedev', name: 'Desarrollador estrella', icon: '🎮', desc: 'Un juego tuyo es un éxito mundial.' },
     { id: 'appdev', name: 'App del año', icon: '📱', desc: 'Una app tuya llega al número 1.' },
     { id: 'red_social', name: 'Cien millones', icon: '🌐', desc: 'Tu red social llega a 100 millones de usuarios.' },
+    { id: 'campana', name: 'Toque de campana', icon: '🔔', desc: 'Tu empresa sale a la bolsa.' },
     { id: 'campeon_esports', name: 'Campeones del mundo', icon: '🕹️', desc: 'Tu equipo de eSports gana el Mundial.' },
     { id: 'santo', name: 'Santo en vida', icon: '😇', desc: 'Llega a 80 de karma.', check: (g) => g.p.karma >= 80 },
     { id: 'villano', name: 'Villano de manual', icon: '😈', desc: 'Llega a -80 de karma.', check: (g) => g.p.karma <= -80 },
