@@ -54,7 +54,7 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Eventos | 185 eventos al azar (132 con decisiones), más 42 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
 | Metas | 16 aspiraciones de vida, 67 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
 | Legado | Muerte con epitafio y veredicto, resumen para copiar o compartir, testamento, herencia (el heredero recibe la casa familiar; si es el único o el nombrado, todos los bienes), árbol genealógico y cementerio de todas tus vidas |
-| Imágenes | Avatares SVG con 9 peinados, barbas, 5 expresiones, ropa según tu ocupación y accesorios; 16 escenas ilustradas; tema claro (cuaderno) y oscuro (pizarrón) |
+| Imágenes | Avatares SVG con 9 peinados, barbas, 5 expresiones, ropa según tu ocupación y accesorios; 16 escenas ilustradas; interfaz de cuaderno mejorado (tarjetas flotantes con sombra dura, resaltadores y barras en semáforo) diseñada en Figma; tema claro (cuaderno) y oscuro (pizarrón) |
 | Animaciones | Números que flotan al cambiar una estadística, avatar que salta o tiembla y dinero que cuenta (se apagan en Ajustes o con "reducir movimiento") |
 | Resúmenes y gráficos | Tarjeta "Tu año a los N" con lo más importante, y gráficos de patrimonio y estadísticas en la ficha y al morir |
 | Comodidad | Avanzar 5 años de una vez (se detiene en cada decisión), 3 partidas guardadas y ajustes de tema, tamaño de letra, animaciones y resumen del año |
