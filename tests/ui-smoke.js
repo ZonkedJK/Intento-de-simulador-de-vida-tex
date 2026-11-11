@@ -235,6 +235,15 @@ const SHOTS = process.argv[2] || null;
     await resolve();
     const coState = await page.evaluate(() => { const c = MV.UI.g.p.companies[0]; return { staff: c.staff.length, mkt: c.marketing, cash: c.cash }; });
     if (coState.staff !== 1 || coState.mkt !== 'medio' || coState.cash !== 60000) errors.push('La hoja de la empresa no contrató, no cambió el marketing o no inyectó: ' + JSON.stringify(coState));
+    // Estudio: lanzar un juego (nombre, género y tamaño) y verlo en desarrollo
+    await page.click('#layer .layer-item:last-child button.row:has-text("Empezar un juego")');
+    await page.fill('#game-name', 'Noche en la Oficina');
+    await page.click('#game-genre-terror');
+    await page.click('#layer .layer-item:last-child button.row:has-text("Chico")');
+    await resolve();
+    const proj = await page.evaluate(() => MV.UI.g.p.companies[0].project);
+    if (!proj || proj.name !== 'Noche en la Oficina' || proj.genre !== 'terror' || proj.size !== 'chico') errors.push('El juego no quedó en desarrollo: ' + JSON.stringify(proj));
+    if (!/En desarrollo/.test(await page.$eval('#layer .layer-item:last-child', (e) => e.textContent))) errors.push('La hoja del estudio no muestra el juego en desarrollo');
   }
   await page.evaluate(() => MV.UI.closeSheets());
 
