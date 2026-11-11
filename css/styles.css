@@ -312,27 +312,30 @@ button.row:disabled:hover { background: none; }
 .modal-wrap { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; overflow-y: auto; }
 .card {
   position: relative; width: 100%; max-width: 460px; background: var(--card); border: 2px solid var(--ink);
-  border-radius: 6px; box-shadow: var(--sh-lg); padding: 16px 16px 14px;
+  border-radius: var(--r-modal); box-shadow: var(--sh-lg); padding: 16px 16px 18px;
   animation: drop-in 0.24s cubic-bezier(.2, .8, .3, 1.1) both;
 }
 @keyframes drop-in { from { transform: translateY(-14px) rotate(-1deg); opacity: 0; } }
-.card::before, .card::after {
-  content: ''; position: absolute; top: -12px; width: 78px; height: 24px;
-  background: color-mix(in srgb, var(--hl-yellow) 70%, transparent); border: 1px solid color-mix(in srgb, var(--ink) 20%, transparent);
+.card::before { content: none; }
+/* Clip de oficina que sujeta la tarjeta */
+.card::after {
+  content: ''; position: absolute; top: -14px; right: 34px; width: 22px; height: 46px; box-sizing: border-box;
+  border: 3px solid var(--clip); border-radius: 11px; background: transparent;
 }
-.card::before { left: 18px; transform: rotate(-5deg); }
-.card::after { right: 18px; transform: rotate(4deg); }
-.scene { margin: 2px -4px 10px; border: 2px solid var(--ink); border-radius: 4px; overflow: hidden; line-height: 0; background: var(--paper); }
+.scene { margin: 2px 0 12px; border: 2px solid var(--ink); border-radius: 12px 8px 13px 9px; overflow: hidden; line-height: 0; background: var(--card); }
 .scene svg { width: 100%; height: auto; display: block; }
-.card h2 { margin: 6px 0 6px; font-family: var(--font-hand); font-weight: 700; font-size: 1.35rem; line-height: 1.2; display: flex; gap: 8px; align-items: center; }
-.card .text { margin: 0 0 12px; font-size: 1.02rem; }
+.card h2 { margin: 6px 0 6px; font-family: var(--font-hand); font-weight: 800; font-size: 1.55rem; line-height: 1.2; display: flex; gap: 8px; align-items: center; }
+.card .text { margin: 0 0 12px; font-size: 1rem; line-height: 1.45; color: var(--copy); }
 .card .who-line { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; color: var(--pencil); font-size: 0.9rem; }
-.choices { display: flex; flex-direction: column; gap: 8px; }
+.choices { display: flex; flex-direction: column; gap: 10px; }
 .choice {
-  text-align: left; padding: 10px 14px; border: 2px solid var(--ink); border-radius: 8px 4px 8px 6px; background: var(--card);
-  font-weight: 700; line-height: 1.3; min-height: 46px;
+  text-align: left; padding: 0.8rem 0.875rem; border: 2px solid var(--ink); border-radius: var(--r-box); background: var(--card);
+  font-weight: 700; line-height: 1.3; min-height: 46px; box-shadow: var(--sh-sm); transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 .choice:hover, .choice:focus-visible { background: var(--hl-yellow); color: var(--on-hl); }
+.choice:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--hard); }
+.choice .sub { display: block; font-weight: 400; font-size: 0.8125rem; color: var(--pencil); margin-top: 2px; }
+.choice:hover .sub, .choice:focus-visible .sub { color: var(--on-hl); }
 .result { font-size: 1.05rem; margin: 4px 0 12px; }
 .deltas { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
 .delta { font-family: var(--font-hand); font-weight: 700; font-size: 0.9rem; padding: 2px 9px; border-radius: 4px; transform: rotate(-1deg); }

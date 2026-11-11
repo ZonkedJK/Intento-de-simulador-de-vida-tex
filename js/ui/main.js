@@ -309,7 +309,7 @@
     const content = [];
     if (v.scene) content.push(h('div', { class: 'scene', html: UI.sceneSVG(v.scene) }));
     if (v.target) content.push(h('div', { class: 'who-line' }, UI.avatar(v.target, 40), h('span', null, `${MV.fullName(v.target)}, ${v.target.age} años`)));
-    content.push(h('h2', null, h('span', { 'aria-hidden': 'true' }, v.icon), v.title || 'Este año'));
+    content.push(h('h2', null, h('span', { 'aria-hidden': 'true' }, v.icon), UI.hl(v.title || 'Este año', 'yellow')));
     content.push(h('p', { class: 'text' }, v.text));
     const choices = h('div', { class: 'choices' });
     let card;
@@ -322,7 +322,7 @@
         if (v.info || !res || (!res.msg && !(res.deltas || []).length)) { UI.flushQueue(done); return; }
         UI.showResult(res, () => UI.flushQueue(done), v.icon);
       }
-    }, c.label)));
+    }, c.label, c.sub ? h('span', { class: 'sub' }, c.sub) : null)));
     content.push(choices);
     card = UI.card(content);
   };

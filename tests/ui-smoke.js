@@ -421,6 +421,23 @@ const SHOTS = process.argv[2] || null;
     if (cross(await rect('.ageup5'), await rect('.ageup'))) errors.push('⏩ 5 pisa el botón +1 año (escritorio)');
     await page.setViewportSize({ width: 390, height: 844 });
   }
+  // Interfaz A — decisión
+  {
+    const job0 = await page.evaluate(() => { const g = MV.UI.g; const j = g.p.job; g.p.job = { id: 'actor', level: 1, salary: 100000, perf: 60, years: 1, lvlYears: 1, type: 'fame', start: g.p.age }; g.p.money = Math.max(g.p.money, 100000); g.queue = []; MV.UI.closeAll(); MV.EV.push(g, 'auditoria', {}, true); MV.UI.flushQueue(); return j; });
+    await page.waitForSelector('#layer .card .choice');
+    if (!/Inspección fiscal/.test(await page.$eval('#layer .card h2 .hl-yellow', (e) => e.textContent).catch(() => ''))) errors.push('El título de la decisión no lleva resaltador');
+    if ((await page.$$('#layer .card .choice .sub')).length !== 4) errors.push('Las opciones de la inspección no muestran subtítulos');
+    if (await css('#layer .card', 'width', '::after') !== '22px' || await css('#layer .card', 'content', '::before') !== 'none') errors.push('La tarjeta no tiene el clip');
+    if (await css('#layer .card .text', 'color') !== 'rgb(38, 52, 95)') errors.push('El texto de la tarjeta no usa el color de lectura');
+    await page.click('#layer .card .choice >> nth=0');
+    await resolve();
+    await page.evaluate((j) => { MV.UI.g.p.job = j; MV.UI.save(); MV.UI.refreshGame(); }, job0);
+    // Foco 5: la confirmación también lleva el clip y se cierra
+    await page.evaluate(() => MV.UI.confirm('¿Probar?', () => {}));
+    if (await css('#layer .card', 'width', '::after') !== '22px') errors.push('La confirmación no tiene el clip');
+    await page.click('#layer .card .btn:not(.danger)');
+    if (await page.$('#layer .card')) errors.push('La confirmación no se cerró');
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {
