@@ -403,16 +403,28 @@ const SHOTS = process.argv[2] || null;
     const lastEntry = await page.$$eval('.diary .entry', (els) => els[els.length - 1].getBoundingClientRect().bottom);
     if (lastEntry > st.t + 1) errors.push('La última entrada del diario queda tapada por el panel');
     if (cross(await rect('.ageup5'), await rect('.ageup'))) errors.push('⏩ 5 pisa el botón +1 año (390 px)');
+    const nameVsMoney = () => page.evaluate(() => {
+      const n = document.querySelector('.idcard .name'), rg = document.createRange(); rg.selectNodeContents(n);
+      const a = rg.getBoundingClientRect(), b = document.querySelector('.idcard .money').getBoundingClientRect();
+      return { cross: a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top, top: b.top };
+    });
+    const nm0 = await nameVsMoney();
+    if (nm0.cross) errors.push('La etiqueta de dinero tapa el nombre');
+    if (nm0.top < 0) errors.push('La etiqueta de dinero se sale por arriba de la pantalla: ' + nm0.top);
     // Foco 1: nombre larguísimo, dinero enorme y letra muy grande
     const keep = await page.evaluate(() => { const p = MV.UI.g.p, k = { first: p.first, last: p.last, money: p.money }; p.first = 'Maximiliana Guadalupe'; p.last = 'de los Santos Echeverría'; p.money = 1234567890123; document.documentElement.setAttribute('data-font', 'muy_grande'); MV.UI.refreshGame(); return k; });
     const nm = await page.$eval('.idcard .name', (e) => ({ cut: e.scrollWidth > e.clientWidth, r: e.getBoundingClientRect().right }));
     if (!nm.cut || nm.r > (await rect('.idcard')).r) errors.push('Un nombre largo no se corta con "…" dentro del carnet');
     if (cross(await rect('.idcard .money'), await rect('.idcard button[aria-label="Menú"]'))) errors.push('La etiqueta de dinero tapa el menú');
+    const nm1 = await nameVsMoney();
+    if (nm1.cross) errors.push('Con letra muy grande, la etiqueta de dinero tapa el nombre');
+    if (nm1.top < 0) errors.push('Con letra muy grande, la etiqueta de dinero se sale por arriba: ' + nm1.top);
     await page.evaluate((k) => { Object.assign(MV.UI.g.p, k); document.documentElement.removeAttribute('data-font'); MV.UI.refreshGame(); }, keep);
     // Foco 3: modo oscuro (pizarrón) y texto resaltado legible
     await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
     if (await css('body', 'backgroundColor') !== 'rgb(30, 42, 38)') errors.push('El modo oscuro no usa el pizarrón');
     if (await css('.entry.good .hl-green', 'color') !== 'rgb(27, 33, 30)') errors.push('En oscuro, el texto resaltado no es oscuro');
+    if (await css('.year.current h3 .age', 'color') !== 'rgb(27, 33, 30)') errors.push('En oscuro, el año actual no es legible sobre el rosa');
     await page.evaluate(() => MV.UI.applyTheme());
     // Foco 4: escritorio
     await page.setViewportSize({ width: 1024, height: 800 });
@@ -437,6 +449,13 @@ const SHOTS = process.argv[2] || null;
     if (await css('#layer .card', 'width', '::after') !== '22px') errors.push('La confirmación no tiene el clip');
     await page.click('#layer .card .btn:not(.danger)');
     if (await page.$('#layer .card')) errors.push('La confirmación no se cerró');
+    // Un título largo se resalta en cada línea
+    await page.evaluate(() => { const g = MV.UI.g; if (!MV.EV.byId.prueba_titulo) MV.ev({ id: 'prueba_titulo', manual: true, icon: '🤝', title: 'Una oferta que no puedes rechazar, ni aunque quieras', text: 'x', choices: [{ t: 'Aceptar', eff: {} }] }); g.queue = []; MV.EV.push(g, 'prueba_titulo', {}, true); MV.UI.flushQueue(); });
+    await page.waitForSelector('#layer .card h2 .hl');
+    const hlRects = await page.$eval('#layer .card h2 .hl', (e) => e.getClientRects().length);
+    if (hlRects < 2) errors.push('Un título de dos líneas se resalta como un solo bloque');
+    await page.click('#layer .card .choice >> nth=0');
+    await resolve();
   }
   // Interfaz A — hojas
   {
@@ -528,6 +547,9 @@ const SHOTS = process.argv[2] || null;
     if (!(d.order[0] >= 0 && d.order[0] < d.order[1] && d.order[1] < d.order[2])) errors.push('Orden de la pantalla de muerte: ' + d.order.join(','));
     if (d.go !== 'Continuar') errors.push('Los herederos no muestran la píldora Continuar');
     if (!/ · \d+ años?$/.test(d.dates || '')) errors.push('Fechas de la lápida: ' + d.dates);
+    if (await page.evaluate(() => !!document.getElementById('death-charts').parentElement.closest('.box'))) errors.push('Los gráficos de la muerte quedan en una caja dentro de otra');
+    const causeDot = await page.evaluate(() => { const g = MV.UI.g, c = g.summary.cause; g.summary.cause = 'Te atragantaste con una aceituna en una boda.'; MV.UI.showDeath(); const t = document.querySelector('.death .cause').textContent; g.summary.cause = c; MV.UI.showDeath(); return t; });
+    if (/\.\.$/.test(causeDot)) errors.push('La causa termina con doble punto: ' + causeDot);
   }
   await shot('muerte');
   await page.click('#copy-summary');

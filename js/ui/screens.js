@@ -121,11 +121,11 @@
       h('div', { class: 'dates' }, `${s.born} – ${s.died} · ${s.age} año${s.age === 1 ? '' : 's'}`),
       UI.avatar({ id: s.id, age: s.age, gender: s.gender, look: s.look, alive: false }, 62)));
     root.append(h('div', { class: 'grass', 'aria-hidden': 'true' }));
-    root.append(h('p', { class: 'cause' }, 'Murió por ', UI.hl(s.cause, 'pink'), '.'));
+    root.append(h('p', { class: 'cause' }, 'Murió por ', UI.hl(s.cause, 'pink'), /[.!?…]$/.test(s.cause) ? '' : '.'));
     root.append(h('p', { class: 'epitaph' }, `«${s.epitaph}»`));
     root.append(h('div', { class: 'box verdict' }, h('span', { class: 'e', 'aria-hidden': 'true' }, s.verdict.icon), h('div', null, h('b', null, s.verdict.name), h('p', { style: { margin: 0 } }, s.verdict.text))));
     // Gráficos de la vida
-    root.append(title('💰 Tu vida en gráficos'), h('div', { class: 'box' }, UI.lifeCharts(g.p, 'death-charts')));
+    root.append(title('💰 Tu vida en gráficos'), UI.lifeCharts(g.p, 'death-charts'));
     // Herederos
     if (heirs.length) {
       const grandHeirs = (MV.relOf(g, heirs[0].id) || {}).type === 'nieto';

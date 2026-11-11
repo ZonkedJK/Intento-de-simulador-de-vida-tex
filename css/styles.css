@@ -129,12 +129,12 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* Cabecera: carnet del personaje */
 .topbar {
   position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
-  padding: 12px 12px 8px; background: linear-gradient(var(--paper) 75%, transparent);
+  padding: 1.625rem 12px 8px; background: linear-gradient(var(--paper) 75%, transparent);
 }
 .idcard {
   position: relative; min-height: 78px;
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center;
-  padding: 10px 8px 10px 12px; background: var(--card);
+  padding: 14px 8px 10px 12px; background: var(--card);
   border: 2px solid var(--ink); border-radius: var(--r-card); box-shadow: var(--sh);
 }
 .idcard .who { min-width: 0; background: none; border: 0; padding: 0; text-align: left; display: flex; gap: 12px; align-items: center; }
@@ -147,7 +147,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
   background: var(--hl-green); color: var(--on-hl); white-space: nowrap; transform: rotate(-1.5deg);
 }
 .money.neg { background: var(--hl-pink); }
-.idcard .money { position: absolute; top: -13px; right: 60px; transform: rotate(3deg); border: 1.5px solid var(--ink); box-shadow: 2px 2px 0 var(--hard); font-weight: 800; }
+/* La etiqueta se ancla por abajo: crece hacia arriba con la letra y nunca baja más de 5 px sobre el nombre. */
+.idcard .money { position: absolute; bottom: calc(100% - 5px); right: 60px; line-height: 1.2; transform: rotate(3deg); border: 1.5px solid var(--ink); box-shadow: 2px 2px 0 var(--hard); font-weight: 800; }
 .icon-btn { background: none; border: 0; font-size: 1.35rem; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; }
 .icon-btn:hover { background: color-mix(in srgb, var(--hl-yellow) 55%, transparent); }
 
@@ -167,7 +168,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 }
 .year h3 .age { background: linear-gradient(transparent 55%, color-mix(in srgb, var(--hl-pink) 45%, transparent) 55%); padding: 0 4px; color: var(--ink); font-weight: 800; font-size: 1.3rem; }
 .year h3 .cal { font-size: 0.85rem; color: var(--pencil); font-weight: 500; }
-.year.current h3 .age { background: linear-gradient(transparent 55%, var(--hl-pink) 55%); }
+.year.current h3 .age { background: linear-gradient(transparent var(--hl-stop), var(--hl-pink) var(--hl-stop)); color: var(--hl-ink); }
 /* Resaltadores de marcador (UI.hl): en claro, la mitad de abajo; en oscuro, plenos y con texto oscuro. */
 .hl { color: var(--hl-ink); padding: 0 1px; border-radius: 3px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 .hl-yellow { background: linear-gradient(transparent var(--hl-stop), var(--hl-yellow) var(--hl-stop)); }
