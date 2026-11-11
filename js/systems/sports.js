@@ -136,6 +136,7 @@
         if (!up && salary <= job.salary) continue;
         offers.push({ sport: J.sport, club: clubs[i] || job.club, level, salary });
       }
+      if (p.manager) offers.forEach((o) => { o.salary = Math.round(o.salary * MV.sys.agency.managerBoost(p)); });
       job.offersAge = p.age;
       job.offers = offers;
       return offers;

@@ -143,6 +143,45 @@
       return { ok, factor: ok ? Math.round(U.float(1.15, 1.35) * 100) / 100 : 0.9 };
     }
   };
+  // ——— Tu carrera: mánager o representarte a ti mismo ———
+  const careerOk = (p) => !!p.job && (p.job.type === 'sport' || p.job.type === 'fame');
+  agency.hireManager = function (g) {
+    const p = g.p;
+    if (!careerOk(p)) return 'Un mánager solo sirve si eres deportista, gamer profesional o famoso.';
+    if (p.manager) return `Ya tienes mánager: ${p.manager.first} ${p.manager.last}.`;
+    const gender = U.pick(['m', 'f']);
+    p.manager = { first: MV.randomFirst(gender, p.country), last: MV.randomLast(p.country), gender, fee: 0.1 };
+    return `Contrataste a ${p.manager.first} ${p.manager.last} como ${U.gw(gender, 'tu mánager', 'tu mánager')}. Se queda con el 10 % de lo que ganas, pero negocia como un tiburón.`;
+  };
+  agency.fireManager = function (g) {
+    const p = g.p;
+    if (!p.manager) return 'No tienes mánager.';
+    const m = p.manager;
+    p.manager = null;
+    return `Despediste a ${m.first} ${m.last}. Desde ahora negocias tú (con tu Carisma y tu cara de póker).`;
+  };
+  /** Mejora de una oferta o sueldo por tener mánager (1 si no tienes). */
+  agency.managerBoost = (p) => (p.manager ? U.float(1.1, 1.25) : 1);
+  /** Comisión anual del mánager (10 % de tu sueldo); si ya no tienes carrera, se va. Repone un sueldo castigado por una amenaza fallida. */
+  agency.managerFee = function (g) {
+    const p = g.p;
+    if (p.flags.slump && p.job) { p.job.salary = Math.max(p.job.salary, p.flags.slump); }
+    delete p.flags.slump;
+    if (!p.manager) return 0;
+    if (!careerOk(p)) { MV.log(g, `${p.manager.first}, tu mánager, renunció: sin carrera no hay comisión.`, '💼'); p.manager = null; return 0; }
+    return Math.round(p.job.salary * p.manager.fee);
+  };
+  agency.careerActions = function (g) {
+    const p = g.p, out = [];
+    if (!careerOk(p)) return out;
+    if (p.manager) out.push({ id: 'despedir_manager', icon: '💼', label: `Despedir a tu mánager (${p.manager.first})`, sub: 'Te ahorras el 10 %, pero negocias tú', limit: 1, confirm: '¿Despedir a tu mánager?', run: (g) => agency.fireManager(g) });
+    else {
+      out.push({ id: 'contratar_manager', icon: '💼', label: 'Contratar un mánager', sub: 'Cobra 10 % de tu sueldo; mejores ofertas y sueldos', limit: 1, run: (g) => agency.hireManager(g) });
+      out.push({ id: 'negociar_propio', icon: '🤝', label: 'Negociar tu contrato', sub: 'Pedir más, aceptar o amenazar con irte', limit: 1, run: (g) => { MV.EV.push(g, 'negociar_propio', {}, true); return 'Pediste una reunión para hablar de tu contrato. Te pusiste tu mejor camisa.'; } });
+    }
+    return out;
+  };
+
   MV.sys.agency = agency;
   C().register('esports', { init: (c) => { c.roster = []; c.selfPlay = false; }, revenue: agency.revenueEsports, costs: (g, c) => (c.roster || []).reduce((s, x) => s + x.salary, 0) });
   C().register('representacion', { init: (c) => { c.clients = []; }, revenue: agency.revenueAgency });
@@ -163,6 +202,24 @@
     if (r.ok) return `Firmaron la renovación: ${x.first} gana ${U.money(x.salary)} al año. Sin dramas.`;
     return how === 'amenazar' ? `La otra parte dijo "adiós". ${x.first} se quedó un año casi sin contrato (${U.money(x.salary)}) y te mira feo.` : `Pediste de más y la oferta bajó a ${U.money(x.salary)}. ${x.first} firmó con cara de velorio.`;
   };
+  const selfDeal = (how) => (g) => {
+    const p = g.p, job = p.job;
+    if (!job || !careerOk(p)) return 'Ya no tienes contrato que negociar.';
+    const before = job.salary, r = agency.negotiate(g, how, { level: (job.level || 0) + 1, carisma: p.skills.carisma, lawyer: 0 });
+    if (how === 'amenazar' && !r.ok) p.flags.slump = before;
+    job.salary = Math.round(before * r.factor);
+    MV.fx.skill(g, 'carisma', 1);
+    if (r.ok && r.factor > 1.1) return `¡Lo lograste! Tu sueldo pasa de ${U.money(before)} a ${U.money(job.salary)}.`;
+    if (r.ok) return `Firmaste: ahora ganas ${U.money(job.salary)}. Prudente.`;
+    return how === 'amenazar' ? `Te dijeron "ahí está la puerta". Este año ganas ${U.money(job.salary)}. Duele.` : `Pediste de más y te bajaron a ${U.money(job.salary)}. Mejor contrata un mánager.`;
+  };
+  MV.ev({ id: 'negociar_propio', manual: true, icon: '🤝', scene: 'trabajo', title: 'Tu contrato',
+    text: (g) => { const job = g.p.job; return job ? `Te sientas a negociar tu contrato sin mánager. Hoy ganas ${U.money(job.salary)} al año. Del otro lado hay tres abogados y un café frío.` : 'Ya no tienes contrato que negociar.'; },
+    choices: [
+      { t: 'Pedir más', eff: selfDeal('mas') },
+      { t: 'Aceptar lo que ofrecen', eff: selfDeal('aceptar') },
+      { t: 'Amenazar con irte', eff: selfDeal('amenazar') }
+    ] });
   MV.ev({ id: 'renovar_contrato', manual: true, icon: '✍️', scene: 'trabajo', title: 'Renovación de contrato',
     text: (g, ctx) => { const { c, x } = findClient(g, ctx); return x ? `Vence el contrato de ${x.first} ${x.last} (${profName(x.prof, x.gender).toLowerCase()}, nivel ${x.level}), cliente de ${c.name}. Hoy gana ${U.money(x.salary)} al año. ¿Cómo negocias?` : gone; },
     choices: [

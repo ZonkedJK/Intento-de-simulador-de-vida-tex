@@ -141,6 +141,8 @@
         }
       });
       out += maint;
+      const mgrFee = MV.sys.agency ? MV.sys.agency.managerFee(g) : 0;
+      if (mgrFee) { out += mgrFee; lines.push(`mánager −${U.money(mgrFee)}`); }
       if (money.carPrestige(p) >= 70) { MV.fx.stat(g, 'looks', 1); MV.fx.stat(g, 'fame', 1); }
       money.homeYearly(g);
       // Inversiones (con el clima económico del año)

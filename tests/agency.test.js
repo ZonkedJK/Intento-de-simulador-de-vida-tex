@@ -151,3 +151,84 @@ test('cuando vence un contrato llega la renovación y los clientes pueden irse',
   assert.ok(renew > 40, 'renovaciones: ' + renew);
   assert.ok(left > 5, 'se fueron: ' + left);
 });
+
+// ——— Tu carrera: mánager o representarte a ti mismo ———
+function athlete(MV, seed) {
+  const g = MV.newGame({ seed }); g.p.age = 24; g.p.money = 1e6; g.queue = [];
+  g.p.skills.deporte = 95; g.p.stats.health = 100; g.p.club = 'futbol'; g.p.sportsExp = { futbol: 10 };
+  g.p.job = { id: 'sport_futbol', level: 1, salary: 100000, perf: 70, years: 3, lvlYears: 3, type: 'sport', start: 21, club: 'Club Uno' };
+  return g;
+}
+
+test('el mánager cobra 10 % y mejora las ofertas en promedio', () => {
+  const MV = load({ seed: 20 });
+  const best = (withMgr) => {
+    let s = 0, n = 0;
+    for (let i = 0; i < 60; i++) {
+      const g = athlete(MV, 700 + i);
+      if (withMgr) MV.sys.agency.hireManager(g);
+      const offers = MV.sys.sports.teamOffers(g);
+      if (offers.length) { s += Math.max(...offers.map((o) => o.salary)); n++; }
+    }
+    return s / Math.max(1, n);
+  };
+  const a = best(true), b = best(false);
+  assert.ok(a > b * 1.08, `con mánager ${a} vs sin ${b}`);
+  const g = athlete(MV, 21);
+  assert.ok(!BAD_TEXT.test(MV.sys.agency.hireManager(g)));
+  assert.equal(g.p.manager.fee, 0.1);
+  assert.equal(MV.sys.agency.managerFee(g), 10000);
+  assert.match(MV.sys.agency.hireManager(g), /ya tienes/i);
+  assert.ok(!BAD_TEXT.test(MV.sys.agency.fireManager(g)));
+  assert.equal(g.p.manager, null);
+  assert.equal(MV.sys.agency.managerFee(g), 0);
+});
+
+test('con mánager, los sueldos de la fama suben y si pierdes la carrera el mánager se va', () => {
+  const MV = load({ seed: 22 });
+  const avg = (mgr) => {
+    let s = 0, n = 0;
+    for (let i = 0; i < 80; i++) {
+      const g = MV.newGame({ seed: 800 + i }); g.p.age = 30; g.queue = [];
+      const J = MV.FAME.actor;
+      const job = { id: 'actor', level: 2, salary: 1, perf: 60, years: 2, lvlYears: 2, type: 'fame', start: 28 };
+      g.p.job = job;
+      if (mgr) MV.sys.agency.hireManager(g);
+      MV.sys.career.yearlySpecial(g, J);
+      s += job.salary; n++;
+    }
+    return s / n;
+  };
+  assert.ok(avg(true) > avg(false) * 1.08);
+  const g = athlete(MV, 23);
+  MV.sys.agency.hireManager(g);
+  g.p.job = null;
+  assert.equal(MV.sys.agency.managerFee(g), 0);
+  assert.equal(g.p.manager, null, 'sin carrera, el mánager se va');
+});
+
+test('sin trabajo de deporte o fama no se contrata mánager', () => {
+  const MV = load({ seed: 24 });
+  const g = MV.newGame({ seed: 24 }); g.p.age = 30;
+  assert.match(MV.sys.agency.hireManager(g), /deport|fama|famos/i);
+  g.p.job = { id: MV.JOBS[0].id, level: 0, salary: 30000, perf: 50, years: 1, lvlYears: 1, type: 'full', start: 29 };
+  assert.match(MV.sys.agency.hireManager(g), /deport|fama|famos/i);
+  assert.equal(g.p.manager || null, null);
+});
+
+test('negociar tu propio contrato cambia tu sueldo según la decisión', () => {
+  const MV = load({ seed: 25 });
+  const g = athlete(MV, 25);
+  const act = () => MV.sys.career.actions(g).find((a) => a.id === 'negociar_propio');
+  assert.ok(act(), 'sin mánager puedes negociar tú');
+  const res = MV.doAction(g, act());
+  assert.ok(!BAD_TEXT.test(res.msg), res.msg);
+  const v = MV.EV.view(g);
+  assert.equal(v.id, 'negociar_propio'); assert.equal(v.choices.length, 3);
+  assert.ok(!BAD_TEXT.test(v.text), v.text);
+  MV.EV.choose(g, 1);
+  assert.equal(g.p.job.salary, Math.round(100000 * 1.05));
+  MV.sys.agency.hireManager(g);
+  assert.ok(!act(), 'con mánager negocia él');
+  assert.ok(MV.sys.career.actions(g).find((a) => a.id === 'despedir_manager'));
+});
