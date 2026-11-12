@@ -342,3 +342,120 @@ test('vender una propiedad asegurada borra su póliza', () => {
   I(MV).yearly(g);
   assert.equal(g.p.money, m);
 });
+
+// ——— Tarea 4: eventos de inquilinos, desastres y robos ———
+/** Encola un evento y devuelve su vista. */
+function pushView(MV, g, id, ctx) { g.queue = []; MV.EV.push(g, id, ctx, true); return MV.EV.view(g); }
+const idx = (v, re) => { const c = v.choices.find((x) => re.test(x.label)); assert.ok(c, 'falta ' + re + ' en ' + v.choices.map((x) => x.label).join(' | ')); return c.i; };
+const clean = (v) => { [v.title, v.text].concat(v.choices.map((c) => c.label + ' ' + (c.sub || ''))).forEach((s) => assert.ok(!BAD_TEXT.test(s), s)); };
+
+test('los eventos de inquilinos tienen textos limpios y hacen lo que dicen', () => {
+  const MV = load({ seed: 50 });
+  const setup = (seed, kind) => { const g = adult(MV, seed); const a = rented(MV, g, 'casa', 200000, 'normal', kind); return { g, a }; };
+  // No paga: desalojar y perdonar
+  let { g, a } = setup(50, 'moroso');
+  let v = pushView(MV, g, 'inquilino_no_paga', { asset: a.id }); clean(v);
+  assert.ok(v.choices.length === 3);
+  let m = g.p.money; const old = a.rent.tenant;
+  let r = MV.EV.choose(g, idx(v, /Desalojar/));
+  assert.equal(g.p.money, m - 3000); assert.equal(a.rent.vacant, g.p.age); assert.notEqual(a.rent.tenant, old);
+  assert.equal(R(MV).income(g).amount, 0, 'vacía ese año');
+  assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  ({ g, a } = setup(51, 'moroso'));
+  v = pushView(MV, g, 'inquilino_no_paga', { asset: a.id });
+  const k = g.p.karma; r = MV.EV.choose(g, idx(v, /Perdonar/));
+  assert.equal(g.p.karma, k + 3); assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  // Esperar: mitad debe el doble, mitad se va
+  let owed = 0;
+  for (let s = 0; s < 200; s++) {
+    ({ g, a } = setup(5200 + s, 'moroso')); const t = a.rent.tenant;
+    v = pushView(MV, g, 'inquilino_no_paga', { asset: a.id });
+    r = MV.EV.choose(g, idx(v, /Esperar/));
+    assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+    if (a.rent.owed) owed++; else assert.notEqual(a.rent.tenant, t, 'si no debe, se fue');
+  }
+  assert.ok(owed > 70 && owed < 130, 'esperar ' + owed);
+  // Rompe: pagarlo tú, el seguro solo con póliza, cobrarle
+  ({ g, a } = setup(53, 'fiestero'));
+  v = pushView(MV, g, 'inquilino_rompe', { asset: a.id }); clean(v);
+  assert.ok(!v.choices.some((c) => /seguro/i.test(c.label)), 'sin póliza no hay seguro');
+  m = g.p.money; r = MV.EV.choose(g, idx(v, /Pagarlo/));
+  assert.equal(g.p.money, m - Math.round(200000 * 0.05)); assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  ({ g, a } = setup(54, 'fiestero')); I(MV).buy(g, 'hogar', a.id);
+  v = pushView(MV, g, 'inquilino_rompe', { asset: a.id });
+  m = g.p.money; const cond = a.cond; r = MV.EV.choose(g, idx(v, /seguro/i));
+  assert.equal(g.p.money, m); assert.equal(a.cond, cond); assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  let left = 0;
+  for (let s = 0; s < 200; s++) {
+    ({ g, a } = setup(5500 + s, 'fiestero')); const t = a.rent.tenant, c0 = a.cond, m0 = g.p.money;
+    v = pushView(MV, g, 'inquilino_rompe', { asset: a.id });
+    r = MV.EV.choose(g, idx(v, /Cobrar/));
+    assert.equal(g.p.money, m0);
+    if (a.rent.tenant !== t) { left++; assert.equal(a.cond, c0 - 15); } else assert.equal(a.cond, c0);
+  }
+  assert.ok(left > 35 && left < 85, 'se va enojado ' + left);
+  // Compra: vender y no vender
+  ({ g, a } = setup(56, 'puntual'));
+  v = pushView(MV, g, 'inquilino_compra', { asset: a.id }); clean(v);
+  m = g.p.money; r = MV.EV.choose(g, idx(v, /^Vender/));
+  assert.ok(!g.p.assets.includes(a)); assert.ok(Math.abs(g.p.money - (m + 200000 * 1.05)) <= 1, 'cobraste ' + (g.p.money - m));
+  assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  ({ g, a } = setup(57, 'puntual'));
+  v = pushView(MV, g, 'inquilino_compra', { asset: a.id });
+  r = MV.EV.choose(g, idx(v, /No vender/));
+  assert.ok(g.p.assets.includes(a)); assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  // Se va (aviso): llega otro
+  ({ g, a } = setup(58, 'puntual')); const t0 = a.rent.tenant;
+  g.queue = []; MV.EV.push(g, 'inquilino_se_va', { asset: a.id });
+  assert.notEqual(a.rent.tenant, t0);
+  assert.ok(g.queue.length === 1 && g.queue[0].info && !BAD_TEXT.test(g.queue[0].info.text), JSON.stringify(g.queue));
+  // Desastre: −40 de condición y 10 % sin seguro; gratis con seguro
+  ({ g, a } = setup(59, 'puntual')); a.cond = 90;
+  m = g.p.money; g.queue = []; MV.EV.push(g, 'desastre_hogar', { asset: a.id });
+  assert.equal(a.cond, 50); assert.equal(g.p.money, m - 20000);
+  assert.ok(!BAD_TEXT.test(g.queue[0].info.text), g.queue[0].info.text);
+  ({ g, a } = setup(60, 'puntual')); a.cond = 90; I(MV).buy(g, 'hogar', a.id);
+  m = g.p.money; MV.EV.push(g, 'desastre_hogar', { asset: a.id });
+  assert.equal(a.cond, 50); assert.equal(g.p.money, m);
+});
+
+test('esperar al moroso puede traer el doble', () => {
+  const MV = load({ seed: 61 });
+  const g = adult(MV, 61);
+  const a = rented(MV, g, 'casa', 100000, 'barato', 'puntual');
+  a.rent.owed = true;
+  assert.equal(R(MV).income(g).amount, 7000);
+  assert.equal(a.rent.owed, undefined);
+  assert.equal(R(MV).income(g).amount, 3500);
+});
+
+test('el robo en tu casa asegurada no te cuesta', () => {
+  const MV = load({ seed: 62 });
+  const g = adult(MV, 62);
+  const casa = own(MV, g, 'casa', 200000); g.p.home = casa.id; g.p.housing = 'propia';
+  I(MV).buy(g, 'hogar', casa.id);
+  const v = pushView(MV, g, 'robo_casa', {});
+  const m = g.p.money;
+  const r = MV.EV.choose(g, idx(v, /Llamar a la policía/));
+  assert.equal(g.p.money, m);
+  assert.match(r.msg, /seguro/i);
+  const h = adult(MV, 63);
+  const c2 = own(MV, h, 'casa', 200000); h.p.home = c2.id; h.p.housing = 'propia';
+  const w = pushView(MV, h, 'robo_casa', {});
+  const n = h.p.money;
+  MV.EV.choose(h, idx(w, /Llamar a la policía/));
+  assert.ok(h.p.money < n, 'sin seguro te roban');
+});
+
+test('income encola los eventos', () => {
+  const MV = load({ seed: 64 });
+  for (let s = 0; s < 40; s++) {
+    MV.rng.seed(6400 + s);
+    const g = adult(MV, 6400 + s); const a = rented(MV, g, 'casa', 100000, 'barato', 'moroso');
+    if (R(MV).income(g).amount === 0) {
+      assert.ok(g.queue.some((q) => q.id === 'inquilino_no_paga' && q.ctx.asset === a.id), JSON.stringify(g.queue));
+      return;
+    }
+  }
+  assert.fail('ningún moroso dejó de pagar');
+});

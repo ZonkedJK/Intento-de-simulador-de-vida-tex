@@ -120,6 +120,11 @@
           return;
         }
         let r = Math.round(a.value * L.pct * (a.type === 'local' ? 1.5 : 1));
+        // Desalojado: queda vacía el año del desalojo (se cobra al cumplir años, de ahí el −1).
+        if (a.rent.vacant != null && a.rent.vacant >= p.age - 1) {
+          lines.push(`${a.name} estuvo vacío`);
+          return;
+        }
         if (U.chance(L.vacancy)) {
           a.rent.tenant = realty.newTenant(g, a, a.rent.level);
           delete a.rent.owed;
@@ -130,12 +135,17 @@
         if (t.kind === 'moroso' && U.chance(0.4)) {
           a.rent.unpaid = p.age;
           lines.push(`${t.name} no pagó ${a.name}`);
+          MV.EV.push(g, 'inquilino_no_paga', { asset: a.id });
           return;
         }
-        if (t.kind === 'fiestero' && U.chance(0.3)) a.rent.broke = p.age;
+        let broke = false;
+        if (t.kind === 'fiestero' && U.chance(0.3)) { a.rent.broke = p.age; broke = true; }
         if (a.rent.owed) { r *= 2; delete a.rent.owed; }
         amount += r;
         lines.push(`alquiler de ${a.name} ${U.money(r)}`);
+        if (broke) MV.EV.push(g, 'inquilino_rompe', { asset: a.id });
+        else if (U.chance(0.05)) MV.EV.push(g, 'inquilino_compra', { asset: a.id });
+        else if (U.chance(0.08)) MV.EV.push(g, 'inquilino_se_va', { asset: a.id });
       });
       return { amount, lines };
     },
