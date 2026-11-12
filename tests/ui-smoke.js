@@ -471,6 +471,33 @@ const SHOTS = process.argv[2] || null;
     if (ib.some((w) => w < 44)) errors.push('Botones de la hoja de menos de 44 px: ' + ib.join(','));
     await page.evaluate(() => MV.UI.closeSheets());
   }
+  // Parte C1 — jefe, compañeros, freelance, aumento y oferta en Ocupación
+  {
+    await page.evaluate(() => { MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 20); MV.sys.career.hire(g, MV.jobById('cajero')); MV.UI.save(); MV.UI.refreshGame(); MV.UI.showWork(); });
+    await page.waitForSelector('#work-boss');
+    const bossTxt = await page.$eval('#work-boss', (e) => e.textContent);
+    if (!/jef[ea]/i.test(bossTxt) || !(await page.$('#work-boss .bar'))) errors.push('Ocupación no muestra al jefe con su barra: ' + bossTxt);
+    const kinds = await page.evaluate(() => Object.values(MV.BOSS_KINDS).map((k) => k.icon));
+    if (!kinds.some((k) => bossTxt.includes(k))) errors.push('El jefe no muestra el ícono de su carácter: ' + bossTxt);
+    const mates = await page.$$eval('#work-mates .row', (els) => els.map((e) => e.textContent));
+    if (mates.length !== 2 || !mates.every((t) => /aliado|rival|chismoso/.test(t))) errors.push('Los compañeros no aparecen con su rol: ' + mates.join(' | '));
+    if (!(await page.$('#work-freelance'))) errors.push('Ocupación no ofrece encargos freelance');
+    await page.click('#work-boss');
+    if (!(await page.waitForSelector('.sheet-head h2:has-text("Relación")', { timeout: 2000 }).catch(() => null))) errors.push('Tocar al jefe no abre su ficha');
+    await page.evaluate(() => { MV.UI.closeSheets(); MV.UI.showWork(); });
+    await page.click('#layer .layer-item:last-child button.row:has-text("Pedir un aumento")');
+    await page.waitForSelector('#layer .card .choice');
+    if ((await page.$$('#layer .card .choice')).length !== 3) errors.push('Pedir un aumento no ofrece 3 opciones');
+    await resolve();
+    await page.evaluate(() => { MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; MV.EV.push(g, 'oferta_trabajo', { job: 'cartero', level: 0, salary: 20000 }, true); MV.UI.flushQueue(); });
+    await page.waitForSelector('#layer .card .choice');
+    if ((await page.$$('#layer .card .choice .sub')).length !== 3) errors.push('La oferta no muestra el riesgo de cada opción');
+    await page.click('#layer .card .choice >> nth=0');
+    await resolve();
+    const hired = await page.evaluate(() => ({ id: (MV.UI.g.p.job || {}).id, boss: !!MV.sys.workplace.boss(MV.UI.g) }));
+    if (hired.id !== 'cartero' || !hired.boss) errors.push('Aceptar la oferta no dejó el trabajo con jefe: ' + JSON.stringify(hired));
+    await page.evaluate(() => MV.UI.closeAll());
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {
