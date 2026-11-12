@@ -402,3 +402,59 @@ test('pedir aumento: tres opciones', () => {
   }
   assert.deepEqual([...seen].sort(), ['-15', '20', 'afuera']);
 });
+
+// ——— Tarea 5: encargos freelance ———
+function skilled(MV, seed, skills, age) {
+  const g = MV.newGame({ seed }); g.p.age = age || 30; g.queue = [];
+  Object.keys(g.p.skills).forEach((k) => { g.p.skills[k] = 0; });
+  Object.assign(g.p.skills, skills || {});
+  return g;
+}
+
+test('freelance: opciones según habilidades', () => {
+  const MV = load({ seed: 51 });
+  const g = skilled(MV, 51, { programacion: 30, arte: 5 });
+  const os = W(MV).freelanceOptions(g);
+  assert.deepEqual(os.map((o) => o.id), ['programacion']);
+  assert.ok(os[0].icon && os[0].label && os[0].sub);
+});
+
+test('freelance: pago, mitad y límite', () => {
+  const MV = load({ seed: 52 });
+  let half = 0;
+  for (let s = 0; s < 300; s++) {
+    MV.rng.seed(7000 + s);
+    const g = skilled(MV, 7000 + s, { programacion: 40 }); g.p.money = 0; g.p.stress = 20;
+    const msg = W(MV).freelance(g, 'programacion');
+    assert.ok(!BAD_TEXT.test(msg), msg);
+    assert.ok(g.p.money >= 40 * 75 && g.p.money <= 40 * 400, 'pago ' + g.p.money);
+    assert.ok(g.p.skills.programacion > 40 && g.p.skills.programacion <= 41, 'habilidad ' + g.p.skills.programacion); // +1 con rendimientos decrecientes (fx.skill)
+    assert.equal(g.p.stress, 23);
+    if (/exposición/.test(msg)) { half++; assert.ok(g.p.money <= 40 * 200); }
+  }
+  assert.ok(half >= 1, 'a veces te pagan en exposición');
+  const g = skilled(MV, 53, { programacion: 40 });
+  const a = W(MV).freelanceAction(g);
+  assert.equal(a.id, 'freelance'); assert.equal(a.limit, 2);
+  assert.ok(!MV.doAction(g, a, 'programacion').blocked);
+  assert.ok(!MV.doAction(g, a, 'programacion').blocked);
+  assert.ok(MV.doAction(g, a, 'programacion').blocked, 'la tercera queda bloqueada');
+});
+
+test('freelance: sin habilidad o muy joven explica qué falta', () => {
+  const MV = load({ seed: 54 });
+  const g = skilled(MV, 54, {});
+  const a = W(MV).freelanceAction(g);
+  assert.ok(!a.opts, 'sin opciones no hay lista');
+  assert.equal(a.check(g), 'Para tomar encargos necesitas alguna habilidad en 10 o más (programación, arte, idiomas, cocina, música o carisma).');
+  const y = skilled(MV, 55, { arte: 50 }, 15);
+  assert.equal(W(MV).freelanceAction(y).check(y), 'Los encargos freelance son desde los 16 años.');
+});
+
+test('freelance con o sin trabajo', () => {
+  const MV = load({ seed: 56 });
+  const g = skilled(MV, 56, { cocina: 25 }); g.p.job = null;
+  assert.ok(!MV.doAction(g, W(MV).freelanceAction(g), 'cocina').blocked);
+  const h = worker(MV, 57, 'cajero'); h.p.skills.cocina = 25;
+  assert.ok(!MV.doAction(h, W(MV).freelanceAction(h), 'cocina').blocked);
+});

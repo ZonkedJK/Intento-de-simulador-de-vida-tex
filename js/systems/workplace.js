@@ -127,6 +127,38 @@
       const extra = (B ? B.K.stress : 0) + (job.weekends ? 4 : 0);
       if (extra) MV.fx.stat(g, 'stress', extra);
       workplace.bonus(g);
+    },
+
+    // ——— Encargos freelance (con o sin trabajo) ———
+    /** Un encargo por cada habilidad con nivel 10 o más. */
+    freelanceOptions(g) {
+      const p = g.p;
+      return MV.FREELANCE.filter((f) => (p.skills[f.skill] || 0) >= 10)
+        .map((f) => ({ id: f.skill, icon: f.icon, label: f.label, sub: `${MV.SKILLS[f.skill].name} ${Math.floor(p.skills[f.skill])} · paga según tu nivel` }));
+    },
+
+    /** Hace el encargo: paga nivel × $150–400 (15 %: la mitad), +3 de estrés y entrena la habilidad. */
+    freelance(g, skill) {
+      const p = g.p, F = MV.FREELANCE.find((f) => f.skill === skill);
+      if (!F) return 'Ese encargo no existe.';
+      let pay = Math.round((p.skills[skill] || 0) * U.int(150, 400));
+      const half = U.chance(0.15);
+      if (half) pay = Math.round(pay / 2);
+      MV.fx.money(g, pay);
+      MV.fx.stat(g, 'stress', 3);
+      MV.fx.skill(g, skill, 1);
+      if (half) return `${F.icon} ${F.label}: el cliente te pagó la mitad y el resto "en exposición". Cobraste ${U.money(pay)}.`;
+      return `${F.icon} ${F.label}: ${U.pick(['el cliente quedó feliz y pidió "un cambio chiquito" once veces.', 'lo entregaste a tiempo. Nadie lo puede creer, ni tú.', 'te recomendaron a un amigo que "paga en cuanto cobre".'])} Cobraste ${U.money(pay)}.`;
+    },
+
+    /** Acción de la hoja de Ocupación: con opciones si hay habilidades; si no, explica qué falta. */
+    freelanceAction(g) {
+      const os = workplace.freelanceOptions(g);
+      const a = { id: 'freelance', icon: '💼', label: 'Hacer un encargo freelance', sub: '2 por año · según tus habilidades', limit: 2,
+        check: (gg) => (gg.p.age < 16 ? 'Los encargos freelance son desde los 16 años.' : !workplace.freelanceOptions(gg).length ? 'Para tomar encargos necesitas alguna habilidad en 10 o más (programación, arte, idiomas, cocina, música o carisma).' : null),
+        run: (gg, opt) => workplace.freelance(gg, opt) };
+      if (os.length && g.p.age >= 16) a.opts = () => workplace.freelanceOptions(g);
+      return a;
     }
   };
 
