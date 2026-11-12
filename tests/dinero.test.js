@@ -246,3 +246,99 @@ test('mudarte a tu casa alquilada saca al inquilino', () => {
   assert.equal(R(MV).income(g).amount, 0);
   assert.ok(!R(MV).rentable(g, a), 'tu hogar no se alquila');
 });
+
+// ——— Tarea 3: seguros ———
+const I = (MV) => MV.sys.insurance;
+
+test('primas exactas', () => {
+  const MV = load({ seed: 40 });
+  const g = adult(MV, 40); g.p.age = 40; g.p.stats.health = 80;
+  assert.equal(I(MV).premium(g, 'vida', 500000), 3000);
+  g.p.stats.health = 30;
+  assert.equal(I(MV).premium(g, 'vida', 500000), 6000);
+  assert.equal(I(MV).premium(g, 'salud'), 3100);
+  const casa = own(MV, g, 'casa', 200000);
+  assert.equal(I(MV).premium(g, 'hogar', casa.id), 600);
+});
+
+test('quién puede contratar', () => {
+  const MV = load({ seed: 41 });
+  const g = adult(MV, 41); g.p.age = 17;
+  assert.ok(!/contrataste/i.test(I(MV).buy(g, 'salud')));
+  assert.equal(I(MV).covered(g, 'salud'), false);
+  const h = adult(MV, 42); h.p.stats.health = 15;
+  assert.equal(I(MV).buy(h, 'vida', 500000), 'Ninguna aseguradora te quiere: dicen que eres un riesgo con patas');
+  assert.equal(I(MV).covered(h, 'vida'), false);
+  h.p.stats.health = 70;
+  I(MV).buy(h, 'vida', 500000);
+  assert.equal(I(MV).covered(h, 'vida'), true);
+  assert.equal(h.p.insurance.vida, 500000);
+  const casa = own(MV, h, 'casa', 200000);
+  I(MV).buy(h, 'hogar', casa.id);
+  assert.equal(I(MV).covered(h, 'hogar', casa.id), true);
+  assert.ok(!/contrataste/i.test(I(MV).buy(h, 'hogar', 'no-existe')));
+  I(MV).cancel(h, 'vida');
+  assert.equal(I(MV).covered(h, 'vida'), false);
+});
+
+test('cobro anual y cancelación por falta de pago', () => {
+  const MV = load({ seed: 43 });
+  const g = adult(MV, 43); g.p.stats.health = 80;
+  I(MV).buy(g, 'vida', 500000);
+  I(MV).buy(g, 'salud');
+  const m = g.p.money;
+  I(MV).yearly(g);
+  assert.equal(g.p.money, m - I(MV).premium(g, 'vida', 500000) - I(MV).premium(g, 'salud'));
+  g.p.money = 100;
+  I(MV).yearly(g);
+  assert.equal(g.p.money, 100);
+  assert.equal(I(MV).covered(g, 'vida'), false);
+  assert.equal(I(MV).covered(g, 'salud'), false);
+  const text = g.log.map((y) => y.items.map((i) => i.t).join(' ')).join(' ');
+  assert.match(text, /Se canceló tu seguro de vida por falta de pago/);
+});
+
+test('salud paga el 80 % de los tratamientos', () => {
+  const MV = load({ seed: 44 });
+  const id = Object.keys(MV.CONDITIONS).find((k) => MV.CONDITIONS[k].cost > 1000);
+  const C = MV.CONDITIONS[id], T = MV.sys.health.TIERS.hospital;
+  const g = adult(MV, 44);
+  I(MV).buy(g, 'salud');
+  g.p.conds = []; MV.sys.health.add(g, id);
+  const m = g.p.money;
+  MV.sys.health.treat(g, id, 'hospital');
+  assert.equal(m - g.p.money, Math.round(C.cost * T.cost * 0.2));
+  const h = adult(MV, 45);
+  h.p.conds = []; MV.sys.health.add(h, id);
+  const n = h.p.money;
+  MV.sys.health.treat(h, id, 'hospital');
+  assert.equal(n - h.p.money, Math.round(C.cost * T.cost));
+});
+
+test('vida suma la herencia de los herederos', () => {
+  const total = (withIns) => {
+    const MV = load({ seed: 46 });
+    const g = adult(MV, 46, 50000); g.p.age = 60; g.p.loans = []; g.p.stats.health = 70;
+    const kid = MV.newNPC(g, { age: 30, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+    if (withIns) { I(MV).buy(g, 'vida', 500000); g.p.money = 50000; }
+    MV.sys.legacy.die(g, 'una prueba');
+    return { MV, g, kid, total: MV.sys.legacy.estateFor(g, kid.id).total };
+  };
+  const a = total(false), b = total(true);
+  assert.equal(b.total - a.total, 500000);
+  assert.equal(b.g.summary.lifeIns, 500000);
+  const ng = b.MV.sys.legacy.continueAs(b.g, b.kid.id);
+  assert.deepEqual(ng.p.insurance, { vida: 0, salud: false, hogar: {} });
+});
+
+test('vender una propiedad asegurada borra su póliza', () => {
+  const MV = load({ seed: 47 });
+  const g = adult(MV, 47);
+  const casa = own(MV, g, 'casa', 200000);
+  I(MV).buy(g, 'hogar', casa.id);
+  MV.sys.money.sellFor(g, casa.id, 200000);
+  assert.equal(I(MV).covered(g, 'hogar', casa.id), false);
+  const m = g.p.money;
+  I(MV).yearly(g);
+  assert.equal(g.p.money, m);
+});

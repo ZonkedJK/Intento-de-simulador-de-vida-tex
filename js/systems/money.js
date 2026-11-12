@@ -309,6 +309,7 @@
       if (loan) { net -= loan.left; p.loans = p.loans.filter((l) => l !== loan); }
       MV.fx.money(g, net);
       p.assets = p.assets.filter((x) => x !== a);
+      MV.sys.insurance.forget(g, a.id);
       g.queue = g.queue.filter((q) => !(q.ctx && q.ctx.asset === a.id));
       if (p.home === a.id) {
         p.home = null;

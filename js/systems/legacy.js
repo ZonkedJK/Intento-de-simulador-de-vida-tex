@@ -101,7 +101,8 @@
         generation: g.generation, dynasty: g.dynasty, country: p.country, city: p.city,
         grandkids: MV.rels(g, 'nieto', true).length,
         works: (p.works || []).filter((w) => w.hit).map((w) => w.title).slice(-3),
-        challenge: MV.sys.challenge.label(g)
+        challenge: MV.sys.challenge.label(g),
+        lifeIns: (p.insurance && p.insurance.vida) || 0
       };
       g.summary = summary;
       MV.log(g, `Moriste a los ${p.age} años por ${cause}.`, '🪦', 'bad');
@@ -146,7 +147,9 @@
       let share = named ? (named === heirId ? 0.85 : 0.15 / Math.max(1, n - 1)) : 1 / n;
       if (n === 1) share = 1;
       const worth = Math.max(0, g.summary ? g.summary.worth : MV.netWorth(g));
-      const total = Math.round(worth * 0.9 * share);
+      // El seguro de vida se cobra aparte: no paga impuesto de herencia.
+      const life = g.summary ? (g.summary.lifeIns || 0) : ((old.insurance && old.insurance.vida) || 0);
+      const total = Math.round(worth * 0.9 * share) + Math.round(life * share);
       const houses = old.assets.filter((a) => a.type === 'casa');
       const home = houses.find((a) => a.id === old.home) || houses.slice().sort((a, b) => b.value - a.value)[0] || null;
       // Un menor no puede administrar ni vender bienes: recibe la casa y el resto en dinero.

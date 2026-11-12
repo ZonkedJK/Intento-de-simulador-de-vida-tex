@@ -24,7 +24,7 @@
       const C = MV.CONDITIONS[id];
       if (!C || !health.has(g, id)) return 'No tienes esa condición.';
       const T = health.TIERS[tier] || health.TIERS.medico;
-      const cost = g.p.age < 18 ? 0 : Math.round(C.cost * T.cost); // a los menores les pagan sus padres
+      const cost = g.p.age < 18 ? 0 : Math.round(C.cost * T.cost * MV.sys.insurance.healthFactor(g)); // a los menores les pagan sus padres
       MV.fx.money(g, -cost);
       const ok = U.chance(U.clamp(C.cure + T.bonus, 0.02, 0.99));
       if (ok) {
