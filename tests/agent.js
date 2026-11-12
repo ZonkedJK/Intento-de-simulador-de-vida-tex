@@ -24,6 +24,8 @@ function possibleActions(MV, g) {
     MV.sys.edu.actions(g).forEach((a) => add(a));
     MV.sys.career.actions(g).forEach((a) => add(a));
     if (p.age >= 16) add(MV.sys.workplace.freelanceAction(g)); // encargos freelance (Parte C1)
+    if (p.age >= 18) MV.sys.dirty.actions(g).forEach((a) => add(a)); // lavar dinero (Parte C2)
+    (p.assets || []).filter((a) => a.type === 'vacaciones').forEach((a) => add(MV.sys.realty.summerAction(g, a.id)));
   }
   MV.rels(g).forEach(({ r, n }) => {
     r.acts = r.acts || {};
@@ -118,7 +120,36 @@ function special(MV, g) {
       else if (j < 0.83) check(C.sell(g, c.id));
       else if (j < 0.85) check(C.close(g, c.id));
     }
-  } else if (r < 0.72 && p.age >= 18 && !p.prison) {
+  } else if (r < 0.95 && p.age >= 18 && !p.prison) {
+    // Parte C2: inmuebles con inquilinos, seguros, jubilación y algún delito con botín.
+    const R = MV.sys.realty, I = MV.sys.insurance, RT = MV.sys.retirement;
+    const check = (t) => { if (typeof t !== 'string' || BAD_TEXT.test(t)) throw new Error('Texto roto en C2: ' + t); };
+    const props = p.assets.filter((a) => R.isRealty(a));
+    const unrented = props.filter((a) => !a.rent && R.rentable(g, a));
+    const k = U.rand();
+    if (k < 0.15 || (k < 0.35 && !props.length)) {
+      const kind = U.pick(R.TYPES);
+      const it = U.pick(MV.sys.money.listings(g, kind).filter((x) => x.value * 0.2 <= p.money));
+      if (it) check(MV.sys.money.buy(g, it, U.chance(0.5)));
+    } else if (k < 0.35) {
+      const a = unrented.length ? U.pick(unrented) : U.pick(props), j = U.rand();
+      if (a.type === 'terreno') check(R.build(g, a.id, U.pick(['casa', 'local'])));
+      else if (!a.rent && R.rentable(g, a)) check(R.rentOut(g, a.id, U.pick(Object.keys(MV.RENT_LEVELS))));
+      else if (a.rent && j < 0.3) check(R.setLevel(g, a.id, U.pick(Object.keys(MV.RENT_LEVELS))));
+      else if (a.rent && j < 0.4) check(R.stopRent(g, a.id));
+      else if (a.type === 'casa' && j < 0.45) check(R.moveIn(g, a.id));
+      else check(U.chance(0.7) ? I.buy(g, 'hogar', a.id) : I.cancel(g, 'hogar', a.id));
+    } else if (k < 0.5) {
+      const kind = U.pick(['vida', 'salud']);
+      check(U.chance(0.75) ? I.buy(g, kind, U.pick(I.SUMS)) : I.cancel(g, kind));
+    } else if (k < 0.7) {
+      check(RT.setRate(g, p.pensionRate ? U.pick(RT.RATES) : U.pick(RT.RATES.slice(1))));
+      if (U.chance(0.05)) check(RT.withdraw(g));
+      if (p.age >= 55 && !p.job && U.chance(0.3)) check(RT.retireWithSavings(g));
+    } else if (k < 0.85 && p.age < 60) {
+      check(MV.sys.crime.commit(g, U.pick(['robo_auto', 'carterista', 'hurto'])));
+    }
+  } else if (r < 0.97 && p.age >= 18 && !p.prison) {
     // Vehículos: a veces regala uno para probar sus acciones.
     const kinds = ['Avión privado', 'Helicóptero', 'Yate'];
     if (!p.assets.some((a) => kinds.includes(a.kind))) { const k = U.pick(kinds); p.assets.push({ id: MV.U.uid('a'), type: 'lujo', kind: k, icon: '🛥️', name: k, value: 1000000, cond: 100 }); }

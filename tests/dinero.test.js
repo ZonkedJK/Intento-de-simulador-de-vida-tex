@@ -675,3 +675,25 @@ test('migración v8 → v9', () => {
   assert.equal(c.rent.level, 'normal'); assert.ok(c.rent.tenant && c.rent.tenant.name && MV.TENANT_KINDS[c.rent.tenant.kind]);
   assert.ok(MV.validGame(back));
 });
+
+// ——— Tarea 8: el jugador automático usa todo lo nuevo ———
+test('el jugador automático vive 20 vidas con inmuebles, seguros, jubilación y dinero sucio', () => {
+  const { live } = require('./agent');
+  const MV = load({ seed: 300 });
+  const done = new Set();
+  let rented = 0, insured = 0, funds = 0;
+  for (let s = 300; s < 320; s++) {
+    const g = MV.newGame({ seed: s });
+    live(MV, g, { acts: 4, check: (gg) => {
+      const p = gg.p;
+      if (p.assets.some((a) => a.rent)) rented++;
+      if (p.insurance && (p.insurance.vida || p.insurance.salud || Object.keys(p.insurance.hogar).length)) insured++;
+      if (p.pensionFund > 0) funds++;
+      assert.ok(Number.isFinite(p.dirty) && p.dirty >= 0 && Number.isFinite(p.pensionFund), 'valores de dinero inválidos');
+    } });
+    Object.keys(g.evDone).forEach((k) => done.add(k));
+  }
+  assert.ok(['inquilino_no_paga', 'inquilino_rompe', 'inquilino_compra', 'inquilino_se_va'].some((k) => done.has(k)), 'ningún evento de inquilino');
+  assert.ok(done.has('investigacion_lavado'), 'ninguna investigación');
+  assert.ok(rented && insured && funds, `alquiló ${rented}, aseguró ${insured}, aportó ${funds}`);
+});
