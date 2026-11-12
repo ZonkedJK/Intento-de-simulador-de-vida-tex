@@ -3,7 +3,7 @@
   'use strict';
   const U = MV.U;
 
-  MV.VERSION = 7;
+  MV.VERSION = 8;
 
   MV.LOOK = {
     SKIN: ['#f7dcc8', '#efc6a4', '#dfab84', '#c48b62', '#9c6644', '#6e4529', '#4a2e1c'],
@@ -39,9 +39,9 @@
     padre: ['Padre', 'Madre'], hermano: ['Hermano', 'Hermana'], abuelo: ['Abuelo', 'Abuela'],
     pareja: ['Novio', 'Novia'], conyuge: ['Esposo', 'Esposa'], ex: ['Ex', 'Ex'],
     hijo: ['Hijo', 'Hija'], nieto: ['Nieto', 'Nieta'], amigo: ['Amigo', 'Amiga'], enemigo: ['Enemigo', 'Enemiga'],
-    amante: ['Amante', 'Amante'], companero: ['Compañero', 'Compañera'], mascota: ['Mascota', 'Mascota']
+    amante: ['Amante', 'Amante'], companero: ['Compañero', 'Compañera'], jefe: ['Jefe', 'Jefa'], mascota: ['Mascota', 'Mascota']
   };
-  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'nieto', 'hermano', 'abuelo', 'mascota', 'amigo', 'companero', 'enemigo', 'ex'];
+  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'nieto', 'hermano', 'abuelo', 'mascota', 'amigo', 'companero', 'jefe', 'enemigo', 'ex'];
   MV.FAMILY = ['padre', 'hermano', 'abuelo', 'hijo', 'nieto'];
 
   MV.relLabel = function (type, person) {

@@ -34,6 +34,17 @@
   J('militar', 'Ejército', '🎖️', ['Soldado', 'Cabo', 'Sargento', 'Teniente', 'Capitán|Capitana', 'Coronel', 'General'], [20000, 25000, 32000, 45000, 62000, 88000, 135000], { edu: 'secundaria', health: 60, clean: true, age: 18 }, { stress: 6 });
   J('camionero', 'Transporte', '🚚', ['Camionero|Camionera', 'Camionero de larga distancia|Camionera de larga distancia'], [26000, 39000], { edu: 'primaria', license: true, age: 21 }, { stress: 4 });
   J('taxista', 'Transporte urbano', '🚕', ['Conductor de app|Conductora de app', 'Taxista', 'Dueño de flota de taxis|Dueña de flota de taxis'], [16000, 24000, 62000], { edu: 'primaria', license: true, age: 18 }, { stress: 5 });
+  J('jardinero', 'Jardinería', '🌿', ['Jardinero|Jardinera', 'Paisajista', 'Diseñador de jardines|Diseñadora de jardines'], [16000, 28000, 52000], { edu: 'ninguna', health: 40, age: 16 }, { stress: 1 });
+  J('cartero', 'Correo', '✉️', ['Cartero|Cartera', 'Jefe de reparto|Jefa de reparto', 'Director de sucursal postal|Directora de sucursal postal'], [17000, 25000, 40000], { edu: 'primaria', health: 45 }, { stress: 2 });
+  J('pescador', 'Pesca', '🎣', ['Pescador|Pescadora', 'Patrón de barco|Patrona de barco', 'Dueño de flota pesquera|Dueña de flota pesquera'], [15000, 32000, 70000], { edu: 'ninguna', health: 50, age: 16 }, { stress: 3 });
+  J('bibliotecario', 'Biblioteca', '📚', ['Auxiliar de biblioteca', 'Bibliotecario|Bibliotecaria', 'Director de biblioteca|Directora de biblioteca'], [16000, 27000, 45000], { edu: 'secundaria', smarts: 55 }, { stress: 1 });
+  J('barista', 'Cafetería', '☕', ['Barista', 'Barista campeón|Barista campeona', 'Tostador de café|Tostadora de café'], [14000, 24000, 46000], { edu: 'secundaria' }, { stress: 3, skillUp: 'cocina' });
+  J('tatuador', 'Tatuajes', '🖋️', ['Aprendiz de tatuador|Aprendiz de tatuadora', 'Tatuador|Tatuadora', 'Tatuador de culto|Tatuadora de culto'], [12000, 30000, 85000], { skill: { arte: 30 }, age: 18 }, { stress: 2, skillUp: 'arte' });
+  J('crupier', 'Casino', '🎰', ['Crupier', 'Jefe de mesa|Jefa de mesa', 'Gerente de casino'], [18000, 30000, 70000], { edu: 'secundaria', age: 18, clean: true }, { stress: 4 });
+  J('detective', 'Investigaciones', '🕵️', ['Detective privado|Detective privada', 'Detective estrella', 'Dueño de agencia de detectives|Dueña de agencia de detectives'], [22000, 45000, 90000], { edu: 'secundaria', smarts: 60, age: 21 }, { stress: 5 });
+  J('paramedico', 'Emergencias', '🚑', ['Paramédico|Paramédica', 'Paramédico jefe|Paramédica jefa', 'Coordinador de emergencias|Coordinadora de emergencias'], [26000, 38000, 56000], { edu: 'secundaria', health: 55, smarts: 50, age: 18 }, { stress: 6 });
+  J('sommelier', 'Vinos', '🍷', ['Ayudante de sommelier', 'Sommelier', 'Sommelier internacional'], [18000, 34000, 80000], { edu: 'secundaria', skill: { cocina: 25 }, age: 18 }, { stress: 2, skillUp: 'cocina' });
+  J('guardaparques', 'Parques nacionales', '🏞️', ['Guardaparques', 'Guardaparques jefe|Guardaparques jefa', 'Director de parque nacional|Directora de parque nacional'], [20000, 32000, 52000], { edu: 'secundaria', health: 55, age: 18 }, { stress: 1 });
   J('religioso', 'Religión', '⛪', ['Asistente parroquial', 'Predicador|Predicadora', 'Líder espiritual'], [12000, 22000, 45000], { edu: 'secundaria', karma: 20 }, { stress: 1 });
 
   // — Técnicos —
@@ -42,6 +53,7 @@
   J('mecanico', 'Taller mecánico', '🔧', ['Ayudante de mecánico|Ayudante de mecánica', 'Mecánico|Mecánica', 'Jefe de taller|Jefa de taller'], [16000, 30000, 48000], { tech: ['mecanica'] }, { stress: 3 });
   J('electricista', 'Oficios', '⚡', ['Ayudante de electricista', 'Electricista', 'Contratista eléctrico|Contratista eléctrica'], [17000, 34000, 62000], { tech: ['electricidad'] }, { stress: 3 });
   J('webdev', 'Tecnología', '🖥️', ['Desarrollador web junior|Desarrolladora web junior', 'Desarrollador web|Desarrolladora web', 'Líder técnico|Líder técnica'], [26000, 46000, 78000], { tech: ['programacion'], alt: (g) => g.p.skills.programacion >= 55 }, { stress: 5, skillUp: 'programacion' });
+  J('controlador', 'Aeropuerto', '🛫', ['Controlador aéreo en práctica|Controladora aérea en práctica', 'Controlador aéreo|Controladora aérea', 'Jefe de torre|Jefa de torre'], [38000, 70000, 105000], { tech: ['aviacion'], smarts: 65 }, { stress: 9 });
   J('piloto', 'Aviación', '✈️', ['Copiloto', 'Piloto', 'Comandante de vuelo'], [52000, 98000, 165000], { tech: ['aviacion'], health: 70, smarts: 50, clean: true }, { stress: 6 });
 
   // — Universitarios —
@@ -54,6 +66,9 @@
   J('piloto_comercial', 'Aerolínea', '✈️', ['Copiloto', 'Primer oficial|Primera oficial', 'Comandante', 'Comandante de vuelos internacionales'], [60000, 95000, 160000, 240000], { age: 21, edu: 'secundaria', lic: ['avion'] }, { stress: 6 });
   J('piloto_heli', 'Aviación', '🚁', ['Piloto de helicóptero turístico', 'Piloto de rescate', 'Piloto ejecutivo|Piloto ejecutiva'], [50000, 85000, 140000], { age: 20, lic: ['helicoptero'] }, { stress: 6 });
   J('capitan_yate', 'Náutica', '⛵', ['Patrón de lancha|Patrona de lancha', 'Capitán de yate|Capitana de yate', 'Capitán de superyate|Capitana de superyate'], [32000, 70000, 150000], { age: 18, lic: ['yate'] }, { stress: 4 });
+  J('farmaceutico', 'Farmacia', '💊', ['Farmacéutico|Farmacéutica', 'Farmacéutico jefe|Farmacéutica jefa', 'Dueño de cadena de farmacias|Dueña de cadena de farmacias'], [36000, 55000, 120000], { major: ['biologia', 'medicina'] }, { stress: 3 });
+  J('dentista', 'Odontología', '🦷', ['Dentista', 'Ortodoncista', 'Dentista de celebridades'], [42000, 75000, 140000], { major: ['medicina'] }, { stress: 4 });
+  J('diplomatico', 'Cancillería', '🌐', ['Agregado|Agregada', 'Cónsul', 'Embajador|Embajadora'], [40000, 75000, 150000], { major: ['derecho', 'idiomas', 'economia'], skill: { idiomas: 40 } }, { stress: 5, skillUp: 'idiomas' });
   J('psicologo', 'Psicología', '🛋️', ['Psicólogo|Psicóloga', 'Psicólogo clínico|Psicóloga clínica', 'Director de clínica|Directora de clínica'], [28000, 48000, 88000], { major: ['psicologia'] }, { stress: 5 });
   J('gerente', 'Corporación', '💼', ['Analista', 'Coordinador|Coordinadora', 'Gerente', 'Director|Directora', 'CEO'], [32000, 48000, 82000, 155000, 480000], { major: ['administracion', 'economia', 'ingenieria'] }, { stress: 8, skillUp: 'carisma' });
   J('financiero', 'Banca', '🏦', ['Analista financiero|Analista financiera', 'Banquero|Banquera', 'Gestor de fondos|Gestora de fondos', 'Director de inversiones|Directora de inversiones'], [42000, 78000, 145000, 320000], { major: ['economia', 'administracion'], smarts: 60 }, { stress: 9 });

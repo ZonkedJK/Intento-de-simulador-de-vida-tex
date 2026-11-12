@@ -100,6 +100,11 @@
       p.manager = p.manager || null;
       g.version = 7;
     }
+    if (g.version === 7) {
+      // v8: los trabajos de tiempo completo tienen jefe y compañeros con nombre.
+      if (g.p && g.p.job && g.p.job.type === 'full' && !g.p.job.boss && MV.sys.workplace) MV.sys.workplace.staff(g);
+      g.version = 8;
+    }
     return g;
   };
 

@@ -50,12 +50,13 @@
       return '';
     },
 
-    hire(g, J, level) {
+    hire(g, J, level, salary) {
       const p = g.p;
       if (p.job) career.leave(g, 'cambio');
       const lvl = U.clamp(Math.round(level || 0), 0, J.titles.length - 1); // defensa: nunca fuera de la escalera
-      p.job = { id: J.id, level: lvl, salary: Math.round(J.pay[lvl] * U.float(0.9, 1.1)), perf: 55, years: 0, lvlYears: 0, type: J.type, start: p.age };
+      p.job = { id: J.id, level: lvl, salary: salary != null ? Math.round(salary) : Math.round(J.pay[lvl] * U.float(0.9, 1.1)), perf: 55, years: 0, lvlYears: 0, type: J.type, start: p.age };
       p.retired = false;
+      MV.sys.workplace.staff(g);
       MV.ach.check(g);
       return p.job;
     },
@@ -64,6 +65,7 @@
       const p = g.p;
       if (!p.job) return;
       p.jobs.push({ id: p.job.id, title: career.title(p), from: p.job.start, to: p.age, why });
+      MV.sys.workplace.cleanup(g);
       p.job = null;
     },
 
@@ -119,8 +121,9 @@
         delete p.flags.sabbatical;
         const SJ = MV.jobById(sab.job.id);
         if (!p.job && !p.prison && SJ && U.chance(0.5 + sab.perf / 200)) {
-          p.job = Object.assign(sab.job, { lvlYears: 0, start: p.age });
+          p.job = Object.assign(sab.job, { lvlYears: 0, start: p.age, boss: null, mates: [] });
           p.retired = false;
+          MV.sys.workplace.staff(g);
           MV.log(g, `Volviste de tu año sabático y tu puesto de ${career.title(p)} te estaba esperando. Nadie notó que te habías ido.`, '🌍', 'good');
           return;
         }
@@ -132,7 +135,8 @@
       const job = p.job;
       job.years++; job.lvlYears++;
       const acts = p.yearActs;
-      job.perf = U.clamp(Math.round(job.perf * 0.6 + (p.stats.smarts * 0.4 + 30 + U.int(-12, 12)) * 0.4 +
+      const WP = MV.sys.workplace, B = WP.boss(g), w = B && B.kind === 'controlador' ? 0.5 : 0.6; // el controlador mira más el año
+      job.perf = U.clamp(Math.round(job.perf * w + (p.stats.smarts * 0.4 + 30 + U.int(-12, 12)) * (1 - w) +
         (acts.esforzarse || 0) * 4 - (acts.holgazanear || 0) * 6 - (p.addic.alcohol > 50 ? 6 : 0) - (p.addic.drogas > 50 ? 10 : 0)), 0, 100);
       MV.fx.stat(g, 'stress', J.stress || 3);
       if (J.skillUp) MV.fx.skill(g, J.skillUp, U.int(1, 3));
@@ -143,8 +147,11 @@
       if (J.type === 'sport') { MV.sys.sports.careerYearly(g, J); return; }
       if (J.type === 'fame' || J.type === 'crime') { career.yearlySpecial(g, J); return; }
       job.salary = Math.round(job.salary * U.float(1.01, 1.05));
-      if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45 + (job.trained === p.age - 1 ? 0.2 : 0))) career.promote(g);
-      else if (job.perf <= 22 && U.chance(0.4)) career.fire(g, 'Tu rendimiento fue "decepcionante", según el correo de Recursos Humanos.');
+      WP.yearly(g);
+      if (!p.job) return; // la auditoría del año pasado pudo terminar en despido
+      const FR = WP.fireRule(g);
+      if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45 + (job.trained === p.age - 1 ? 0.2 : 0) + WP.promoMod(g))) career.promote(g);
+      else if (job.perf <= FR.perf && U.chance(FR.chance)) career.fire(g, 'Tu rendimiento fue "decepcionante", según el correo de Recursos Humanos.');
       else if (U.chance(MV.sys.world.mods(g).layoff * (job.perf < 60 ? 1.5 : 0.6))) career.fire(g, `Recorte de personal por la crisis: "${MV.sys.world.current(g).title.toLowerCase()}", decía el correo.`);
       if (p.job && p.age >= 72 && U.chance(0.3)) MV.log(g, 'En el trabajo te preguntan "sutilmente" cuándo piensas jubilarte.', '👴');
     },
@@ -189,7 +196,7 @@
       const job = p.job;
       const list = [
         { id: 'esforzarse', icon: '💪', label: 'Esforzarte más', sub: '+rendimiento, +estrés', limit: 3,
-          run: (g) => { job.perf = U.clamp(job.perf + U.int(4, 10), 0, 100); MV.fx.stat(g, 'stress', 4); if (J.skillUp) MV.fx.skill(g, J.skillUp, 1); return U.pick(['Trabajaste horas extra. Tu jefe lo notó (o eso crees).', 'Te quedaste hasta tarde. El guardia ya te saluda por tu nombre.', 'Entregaste todo antes de tiempo. Sospechoso.']); } },
+          run: (g) => { const Bo = MV.sys.workplace.boss(g); job.perf = U.clamp(job.perf + U.int(4, 10) + (Bo && Bo.kind === 'griton' ? 3 : 0), 0, 100); MV.fx.stat(g, 'stress', 4); if (J.skillUp) MV.fx.skill(g, J.skillUp, 1); return U.pick(['Trabajaste horas extra. Tu jefe lo notó (o eso crees).', 'Te quedaste hasta tarde. El guardia ya te saluda por tu nombre.', 'Entregaste todo antes de tiempo. Sospechoso.']); } },
         { id: 'holgazanear', icon: '🛋️', label: 'Holgazanear', sub: '+felicidad, -rendimiento', limit: 3,
           run: (g) => {
             job.perf = U.clamp(job.perf - U.int(5, 10), 0, 100); MV.fx.stat(g, 'happy', 4); MV.fx.stat(g, 'stress', -5);
@@ -198,12 +205,8 @@
           } }
       ];
       if (J.type === 'full') {
-        list.push({ id: 'aumento', icon: '💰', label: 'Pedir un aumento', sub: 'Depende de tu rendimiento', limit: 1,
-          run: (g) => {
-            if (U.chance(job.perf / 130 + p.skills.carisma / 300)) { const inc = Math.round(job.salary * U.float(0.05, 0.15)); job.salary += inc; MV.fx.stat(g, 'happy', 6); return `¡Te dieron un aumento de ${U.money(inc)} al año!`; }
-            job.perf = U.clamp(job.perf - 5, 0, 100); MV.fx.stat(g, 'happy', -4);
-            return U.pick(['Tu jefe se rió. Mucho. Demasiado.', 'Te dijeron que "no es buen momento para la empresa". Hace 10 años que no lo es.']);
-          } });
+        list.push({ id: 'aumento', icon: '💰', label: 'Pedir un aumento', sub: 'Cuánto pides y cómo, lo decides tú', limit: 1,
+          run: (g) => { MV.EV.push(g, 'pedir_aumento', {}, true); return ''; } });
         list.push({ id: 'companeros', icon: '☕', label: 'Socializar con compañeros', sub: 'Haz amigos (o enemigos)', limit: 2,
           run: (g) => {
             const c = MV.newNPC(g, { age: U.clamp(p.age + U.int(-8, 8), 18, 70), country: p.country, job: career.title(p) });
@@ -225,12 +228,30 @@
             MV.fx.stat(g, 'stress', -25); MV.fx.stat(g, 'happy', 10);
             return `Te tomaste un año sabático de tu puesto de ${t}. ${U.pick(['Vas a "encontrarte a ti mism' + U.gw(p.gender, 'o', 'a') + '". O por lo menos dormir.', 'Vendiste la computadora del trabajo mentalmente.', 'Tu primer día libre dormiste 14 horas.'])}`;
           } });
-        list.push({ id: 'jefe', icon: '👔', label: 'Hablar con tu jefe', sub: 'Lotería emocional', limit: 1,
-          run: (g) => U.pick([
-            () => { job.perf = U.clamp(job.perf + 5, 0, 100); return 'Tu jefe te felicitó. Estás en su radar (en el bueno).'; },
-            () => { MV.fx.stat(g, 'stress', 5); return 'Tu jefe te dio tres proyectos nuevos "porque eres de confianza".'; },
-            () => { MV.fx.stat(g, 'happy', -3); return 'Tu jefe te mostró 200 fotos de su viaje a la playa.'; }
-          ])() });
+        list.push({ id: 'jefe', icon: '👔', label: U.gw((MV.sys.workplace.boss(g) || { n: {} }).n.gender, 'Hablar con tu jefe', 'Hablar con tu jefa'), sub: 'Depende de su carácter', limit: 1,
+          run: (g) => {
+            const Bo = MV.sys.workplace.boss(g);
+            if (!Bo) return 'El puesto de jefe está vacante. Nadie te da órdenes (por ahora).';
+            const n = Bo.n, r = Bo.r, el = U.gw(n.gender, 'Tu jefe', 'Tu jefa');
+            const bump = (d) => { r.rel = U.clamp(r.rel + d, 0, 100); };
+            if (Bo.kind === 'buenazo') { bump(5); return `${el} ${n.first} te invitó un café y te preguntó por tu familia. Lo raro es que escuchó la respuesta.`; }
+            if (Bo.kind === 'controlador') { MV.fx.stat(g, 'stress', 6); job.perf = U.clamp(job.perf + 4, 0, 100); return `${el} ${n.first} revisó tu trabajo línea por línea. Encontró tres comas mal puestas y una idea buena (la tuya, por suerte).`; }
+            if (Bo.kind === 'griton') {
+              if (U.chance(0.5)) { MV.fx.stat(g, 'happy', -4); return `${el} ${n.first} te gritó por un informe que todavía no te había pedido.`; }
+              return `${el} ${n.first} estaba de buen humor. Solo gritó una vez, y fue de alegría.`;
+            }
+            if (Bo.kind === 'trepador') { bump(3); job.perf = U.clamp(job.perf - 3, 0, 100); return `${el} ${n.first} te escuchó con atención… y presentó tu idea en la reunión de directorio como propia.`; }
+            return `Fuiste a hablar con ${U.gw(n.gender, 'tu jefe', 'tu jefa')} ${n.first}. No estaba. Nadie sabe dónde está. Nunca nadie lo sabe.`;
+          } });
+        list.push({ id: 'adular', icon: '🍎', label: U.gw((MV.sys.workplace.boss(g) || { n: {} }).n.gender, 'Caerle bien al jefe', 'Caerle bien a la jefa'), sub: '+relación con tu jefe, −karma, tus compañeros te miran feo', limit: 1,
+          run: (g) => {
+            const Bo = MV.sys.workplace.boss(g);
+            if (!Bo) return 'No hay a quién hacerle la pelota: el puesto de jefe está vacante.';
+            Bo.r.rel = U.clamp(Bo.r.rel + U.int(4, 10), 0, 100);
+            MV.fx.stat(g, 'karma', -1);
+            (job.mates || []).forEach((m) => { const r = MV.relOf(g, m.id); if (r) r.rel = U.clamp(r.rel - 2, 0, 100); });
+            return U.pick([`Le llevaste medialunas a ${Bo.n.first} y te reíste de su chiste. Dos veces.`, `Elogiaste la corbata de ${Bo.n.first}. Era horrible. Te salió muy natural.`, `Le diste "me gusta" a todas las fotos de vacaciones de ${Bo.n.first}. Desde 2015.`]);
+          } });
       }
       if (J.type === 'fame') MV.sys.agency.careerActions(g).forEach((a) => list.push(a));
       if (J.type === 'fame' && J.id !== 'politico') list.push({ id: 'promo', icon: '📣', label: 'Promocionarte', sub: '+fama', limit: 2,
@@ -293,6 +314,11 @@
         chance += MV.sys.world.mods(g).hire;
         if (quality === 2 && U.chance(0.1)) chance = 1;
         if (U.chance(U.clamp(chance, 0.05, 0.95))) {
+          if (J.type === 'full') { // tiempo completo: primero llega la oferta para negociar
+            MV.EV.push(g, 'oferta_trabajo', { job: J.id, level: 0, salary: Math.round(J.pay[0] * U.float(0.9, 1.1)) }, true);
+            MV.fx.stat(g, 'happy', 5);
+            return '¡Pasaste la entrevista! Recursos Humanos te va a hacer una oferta.';
+          }
           career.hire(g, J);
           MV.fx.stat(g, 'happy', 10);
           return `¡Te contrataron como ${career.title(p)}! Sueldo: ${U.money(p.job.salary)} al año.`;

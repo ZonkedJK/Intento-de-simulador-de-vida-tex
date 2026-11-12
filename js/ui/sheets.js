@@ -75,6 +75,7 @@
         kv(J.type === 'sport' && MV.SPORTS[J.sport].prize ? 'Premios del último año' : 'Sueldo', U.money(p.job.salary) + ' al año'),
         kv(J.type === 'sport' ? 'Temporadas' : 'Años en la empresa', String(p.job.years)),
         h('div', { class: 'kv' }, h('span', null, 'Rendimiento'), h('span', { style: { width: '120px' } }, UI.bar(p.job.perf)))),
+      workStaff(g),
       UI.actionList(MV.sys.career.actions(g)));
     } else if (p.retired) {
       body.append(title('Jubilación'), h('div', { class: 'box' }, kv('Pensión', U.money(p.pension) + ' al año'), h('p', { class: 'note' }, 'Tu trabajo ahora es opinar sobre las obras de construcción.')));
@@ -100,6 +101,24 @@
     if (p.age >= 18 && !p.edu.stage) opts.append(UI.row('🎓', 'Estudiar', 'Universidad, técnica, posgrado o escuela nocturna', null, () => UI.showStudy()));
     if (p.age >= 18 && !p.business && MV.sys.company.count(p) < MV.sys.company.MAX) opts.append(UI.row('🏪', 'Abrir un negocio', 'Sé tu propio jefe', null, () => UI.showBusiness()));
     body.append(opts);
+    if (p.age >= 16) body.append(title('Encargos freelance'), h('div', { id: 'work-freelance' }, UI.actionList([MV.sys.workplace.freelanceAction(g)])));
+  }
+
+  /** Jefe (carácter y relación) y compañeros con su rol; tocar a alguien abre su ficha. */
+  function workStaff(g) {
+    const WP = MV.sys.workplace, Bo = WP.boss(g);
+    if (!Bo) return ''; // append(null) escribiría "null"
+    const bossRow = UI.row(UI.avatar(Bo.n, 40), `${U.gw(Bo.n.gender, '👔 Tu jefe', '👔 Tu jefa')}: ${MV.fullName(Bo.n)}`, `${Bo.K.icon} ${MV.gt(Bo.K.name, Bo.n.gender)}`,
+      h('span', { class: 'relbar' }, UI.bar(Bo.r.rel)), () => UI.showPerson(Bo.n.id));
+    bossRow.id = 'work-boss';
+    const mates = h('div', { class: 'list', id: 'work-mates' });
+    (g.p.job.mates || []).forEach((m) => {
+      const r = MV.relOf(g, m.id), n = MV.person(g, m.id), R = MV.MATE_ROLES[m.role];
+      if (!r || !n || !n.alive || !R) return;
+      const extra = r.type !== 'companero' ? ` · ${MV.relLabel(r.type, n).toLowerCase()}` : '';
+      mates.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${R.icon} ${MV.gt(R.name, n.gender)}${extra}`, h('span', { class: 'relbar' }, UI.bar(r.rel)), () => UI.showPerson(n.id)));
+    });
+    return h('div', null, title('Tu equipo'), h('div', { class: 'list' }, bossRow), mates.children.length ? mates : null);
   }
 
   UI.showJobs = function (type) {
@@ -415,7 +434,7 @@
   }
 
   // ——————————————————— RELACIONES ———————————————————
-  const GROUP = { conyuge: 'Matrimonio', pareja: 'Pareja', amante: 'Amantes', padre: 'Padres', hijo: 'Hijos', nieto: 'Nietos', hermano: 'Hermanos', abuelo: 'Abuelos', mascota: 'Mascotas', amigo: 'Amigos', companero: 'Compañeros', enemigo: 'Enemigos', ex: 'Ex' };
+  const GROUP = { conyuge: 'Matrimonio', pareja: 'Pareja', amante: 'Amantes', padre: 'Padres', hijo: 'Hijos', nieto: 'Nietos', hermano: 'Hermanos', abuelo: 'Abuelos', mascota: 'Mascotas', amigo: 'Amigos', companero: 'Compañeros', jefe: 'Jefe', enemigo: 'Enemigos', ex: 'Ex' };
 
   UI.showRelations = function () {
     UI.sheet({

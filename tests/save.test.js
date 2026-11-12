@@ -242,8 +242,8 @@ test('una partida v6 se migra a v7 (empresas, cartera y mánager vacíos) y sigu
   MV.sys.money.openBusiness(g, 'foodtruck');
   MV.store.set('milvidas.partida', g);
   const back = MV.loadGame();
-  assert.equal(MV.VERSION, 7);
-  assert.equal(back.version, 7);
+  assert.ok(MV.VERSION >= 7);
+  assert.equal(back.version, MV.VERSION); // las migraciones siguientes (v8+) también corren
   assert.deepEqual(back.p.companies, []);
   assert.deepEqual(back.p.portfolio, {});
   assert.equal(back.p.manager, null);
