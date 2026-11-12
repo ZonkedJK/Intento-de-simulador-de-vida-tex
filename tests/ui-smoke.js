@@ -480,7 +480,7 @@ const SHOTS = process.argv[2] || null;
     const kinds = await page.evaluate(() => Object.values(MV.BOSS_KINDS).map((k) => k.icon));
     if (!kinds.some((k) => bossTxt.includes(k))) errors.push('El jefe no muestra el ícono de su carácter: ' + bossTxt);
     const mates = await page.$$eval('#work-mates .row', (els) => els.map((e) => e.textContent));
-    if (mates.length !== 2 || !mates.every((t) => /aliado|rival|chismoso/.test(t))) errors.push('Los compañeros no aparecen con su rol: ' + mates.join(' | '));
+    if (mates.length !== 2 || !mates.every((t) => /aliad[oa]|rival|chismos[oa]/.test(t))) errors.push('Los compañeros no aparecen con su rol: ' + mates.join(' | '));
     if (!(await page.$('#work-freelance'))) errors.push('Ocupación no ofrece encargos freelance');
     await page.click('#work-boss');
     if (!(await page.waitForSelector('.sheet-head h2:has-text("Relación")', { timeout: 2000 }).catch(() => null))) errors.push('Tocar al jefe no abre su ficha');
@@ -496,6 +496,11 @@ const SHOTS = process.argv[2] || null;
     await resolve();
     const hired = await page.evaluate(() => ({ id: (MV.UI.g.p.job || {}).id, boss: !!MV.sys.workplace.boss(MV.UI.g) }));
     if (hired.id !== 'cartero' || !hired.boss) errors.push('Aceptar la oferta no dejó el trabajo con jefe: ' + JSON.stringify(hired));
+    // Revisión C1: Ocupación sin jefe (medio tiempo, fama) no muestra "null"
+    for (const jid of ['repartidor', 'actor']) {
+      const txt = await page.evaluate((jid) => { MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; MV.sys.career.hire(g, MV.jobById(jid) || MV.FAME[jid]); MV.UI.showWork(); return document.querySelector('#layer .sheet-body').textContent; }, jid);
+      if (/null/.test(txt)) errors.push('Ocupación muestra "null" con ' + jid);
+    }
     await page.evaluate(() => MV.UI.closeAll());
   }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)

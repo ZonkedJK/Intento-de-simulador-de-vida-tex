@@ -12,9 +12,9 @@
   };
 
   MV.MATE_ROLES = {
-    aliado: { icon: '🤝', name: 'aliado' },
+    aliado: { icon: '🤝', name: 'aliado|aliada' },
     rival: { icon: '⚔️', name: 'rival' },
-    chismoso: { icon: '🗣️', name: 'chismoso' }
+    chismoso: { icon: '🗣️', name: 'chismoso|chismosa' }
   };
 
   /** Encargos freelance: uno por habilidad (se ofrecen con nivel 10 o más). */

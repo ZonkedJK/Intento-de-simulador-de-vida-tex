@@ -64,7 +64,7 @@
       for (const m of job.mates || []) {
         if (m.role !== role) continue;
         const x = live(g, m.id);
-        if (x) return { n: x.n, r: x.r, m };
+        if (x && x.r.type === 'companero') return { n: x.n, r: x.r, m }; // si ya es pareja, amigo o enemigo, deja de contar como compañero
       }
       return null;
     },
@@ -79,6 +79,13 @@
       if (rv && rv.m.bossRel >= 60) m -= 0.1;
       return m;
     },
+
+    /** Techo de sueldo del puesto: 2 veces el sueldo más alto de su escalera. */
+    salaryCap(g) {
+      const J = g.p.job && MV.jobById(g.p.job.id);
+      return J ? 2 * J.pay[J.pay.length - 1] : Infinity;
+    },
+    capSalary(g, s) { return Math.min(Math.round(s), workplace.salaryCap(g)); },
 
     /** Suma a la chance de aumento según el carácter del jefe. */
     raiseMod(g) {
@@ -96,7 +103,8 @@
     newBoss(g, info) {
       const job = g.p.job;
       if (!isFull(g.p)) return null;
-      if (job.boss && MV.relOf(g, job.boss.id)) MV.removeRel(g, job.boss.id);
+      const old = job.boss && MV.relOf(g, job.boss.id);
+      if (old && old.type === 'jefe') MV.removeRel(g, job.boss.id);
       job.boss = null;
       workplace.staff(g);
       const B = workplace.boss(g);
@@ -149,11 +157,12 @@
       const k = U.pick(Object.keys(MV.COUNTRIES).filter((c) => c !== p.country)), C = MV.COUNTRIES[k];
       p.country = k;
       p.city = U.pick(C.cities);
-      p.job.salary = Math.round(p.job.salary * 1.3);
+      p.job.salary = workplace.capSalary(g, p.job.salary * 1.3);
       workplace.restaff(g);
       MV.fx.stat(g, 'happy', 5);
       MV.fx.stat(g, 'stress', 5);
-      return `Te mudaste a ${p.city}, ${C.name} ${C.flag}. Nuevo sueldo: ${U.money(p.job.salary)} al año, jefe nuevo y una máquina de café que no entiendes.`;
+      const B = workplace.boss(g);
+      return `Te mudaste a ${p.city}, ${C.name} ${C.flag}. Nuevo sueldo: ${U.money(p.job.salary)} al año, ${B ? U.gw(B.n.gender, 'jefe nuevo', 'jefa nueva') : 'equipo nuevo'} y una máquina de café que no entiendes.`;
     },
 
     // ——— Encargos freelance (con o sin trabajo) ———

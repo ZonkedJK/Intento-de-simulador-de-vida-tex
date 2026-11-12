@@ -381,23 +381,23 @@ test('pedir aumento: tres opciones', () => {
   v.choices.forEach((c) => assert.ok(c.sub && !BAD_TEXT.test(c.label + c.sub + v.text), c.label));
   const ask = (seed, kind, rel, perf, i) => {
     MV.rng.seed(seed);
-    const h = withBoss(MV, seed, kind, rel); h.p.job.perf = perf; h.p.job.salary = 100000; h.queue = [];
+    const h = withBoss(MV, seed, kind, rel); h.p.job.perf = perf; h.p.job.salary = 40000; h.queue = []; // dentro del techo (88.000)
     MV.EV.push(h, 'pedir_aumento', {}, true);
     const r = MV.EV.choose(h, i);
     assert.ok(!BAD_TEXT.test(r.msg), r.msg);
     return h;
   };
   let ok5 = 0;
-  for (let s = 0; s < 100; s++) if (ask(4000 + s, 'buenazo', 100, 100, 0).p.job.salary === 105000) ok5++;
+  for (let s = 0; s < 100; s++) if (ask(4000 + s, 'buenazo', 100, 100, 0).p.job.salary === 42000) ok5++;
   assert.ok(ok5 >= 90, 'el 5 % casi siempre sale con todo a favor: ' + ok5);
   let ok15 = 0;
-  for (let s = 0; s < 100; s++) if (ask(5000 + s, 'trepador', 0, 0, 1).p.job.salary === 115000) ok15++;
+  for (let s = 0; s < 100; s++) if (ask(5000 + s, 'trepador', 0, 0, 1).p.job.salary === 46000) ok15++;
   assert.ok(ok15 <= 10, 'el 15 % casi nunca sale con todo en contra: ' + ok15);
   const seen = new Set();
   for (let s = 0; s < 200; s++) {
     const h = ask(6000 + s, 'ausente', 50, 50, 2);
     if (!h.p.job) { seen.add('afuera'); assert.equal(MV.rels(h, 'jefe').length, 0, 'se limpió el jefe'); }
-    else if (h.p.job.salary === 120000) seen.add('20');
+    else if (h.p.job.salary === 48000) seen.add('20');
     else { assert.equal(MV.relOf(h, h.p.job.boss.id).rel, 35); seen.add('-15'); }
   }
   assert.deepEqual([...seen].sort(), ['-15', '20', 'afuera']);
@@ -466,7 +466,7 @@ const WORK_EVENTS = ['trabajo_maquillar', 'trabajo_huelga', 'trabajo_traslado', 
 function office(MV, seed) {
   MV.rng.seed(seed);
   const g = worker(MV, seed, 'cajero');
-  g.p.job.level = 1; g.p.money = 100000; g.p.job.salary = 50000;
+  g.p.job.level = 1; g.p.money = 100000; g.p.job.salary = 50000; g.p.orientation = 'bi'; // el romance respeta la orientación
   g.p.job.mates[0].role = 'aliado'; g.p.job.mates[1].role = 'rival';
   const n = MV.newNPC(g, { age: 30 }); MV.addRel(g, n, 'companero', 60);
   g.p.job.mates.push({ id: n.id, role: 'chismoso', bossRel: 50 });
@@ -629,4 +629,95 @@ test('migración v7 → v8: los trabajos de tiempo completo reciben jefe y compa
   const b2 = MV.migrate(JSON.parse(JSON.stringify(free)));
   assert.equal(b2.version, 8);
   assert.equal(b2.p.rels.filter((r) => r.type === 'jefe').length, 0);
+});
+
+// ——— Correcciones de la revisión final de la Parte C1 ———
+test('C1-R1: tu pareja o cónyuge de la oficina nunca pasa a enemigo por culpar, reestructurar o vengarte', () => {
+  const MV = load({ seed: 91 });
+  for (let s = 0; s < 120; s++) {
+    const g = office(MV, 9800 + s); g.p.job.level = 2;
+    const al = W(MV).mate(g, 'aliado'), rv = W(MV).mate(g, 'rival');
+    MV.relOf(g, al.n.id).type = 'conyuge';
+    MV.relOf(g, rv.n.id).type = 'pareja';
+    const ids = [al.n.id, rv.n.id];
+    ['trabajo_error', 'trabajo_reestructuracion', 'trabajo_credito'].forEach((id) => {
+      const d = MV.EV.byId[id];
+      if (!MV.EV.eligible(g, d)) return;
+      const h = JSON.parse(JSON.stringify(g)); h.queue = []; MV.EV.push(h, id, {}, true);
+      const v = MV.EV.view(h); if (!v) return;
+      v.choices.forEach((c) => {
+        const k = JSON.parse(JSON.stringify(h));
+        MV.EV.choose(k, c.i);
+        ids.forEach((pid) => assert.ok(['conyuge', 'pareja'].includes((MV.relOf(k, pid) || {}).type), `${id} / ${c.label} cambió a la pareja`));
+      });
+    });
+  }
+  // newBoss solo quita una relación que siga siendo "jefe"
+  const g = office(MV, 92); const b = g.p.job.boss.id; MV.relOf(g, b).type = 'amigo';
+  W(MV).newBoss(g, false);
+  assert.equal(MV.relOf(g, b).type, 'amigo');
+});
+
+test('C1-R2: el romance de oficina respeta la orientación', () => {
+  const MV = load({ seed: 93 });
+  let offered = 0;
+  for (let s = 0; s < 80; s++) {
+    const g = office(MV, 9900 + s); g.p.orientation = 'hetero';
+    g.p.job.mates.forEach((m) => { MV.person(g, m.id).gender = g.p.gender; });
+    if (MV.EV.eligible(g, MV.EV.byId.trabajo_romance)) offered++;
+  }
+  assert.equal(offered, 0, 'sin coqueteos del mismo género para alguien hetero');
+});
+
+test('C1-R3: con una jefa, los textos dicen "jefa" y los roles concuerdan', () => {
+  const MV = load({ seed: 94 });
+  const texts = [];
+  ['trabajo_maquillar', 'trabajo_huelga', 'trabajo_traslado', 'trabajo_credito', 'trabajo_fiesta', 'trabajo_competencia', 'trabajo_ascenso_trampa', 'trabajo_error', 'pedir_aumento'].forEach((id) => {
+    for (let s = 0; s < 12; s++) {
+      MV.rng.seed(9950 + s);
+      const g = office(MV, 9950 + s); g.p.age = 30; MV.person(g, g.p.job.boss.id).gender = 'f';
+      g.queue = []; MV.EV.push(g, id, {}, true);
+      const v = MV.EV.view(g); if (!v) continue;
+      texts.push(v.title, v.text);
+      const own = MV.jobById('cajero').titles.map((t) => MV.gt(t, g.p.gender));
+      const clean = (t) => own.reduce((acc, x) => acc.split(x).join(''), t || '');
+      v.choices.forEach((c) => {
+        texts.push(c.label, c.sub || '');
+        const k = JSON.parse(JSON.stringify(g)), b0 = k.p.job.boss.id, msg = MV.EV.choose(k, c.i).msg;
+        const nb = k.p.job && k.p.job.boss && k.p.job.boss.id !== b0 ? MV.person(k, k.p.job.boss.id) : null; // llegó otro jefe: concuerda con su género
+        if (!nb || nb.gender === 'f') texts.push(clean(msg));
+      });
+    }
+  });
+  const bad = texts.filter((t) => /\bjefe\b/i.test(t));
+  assert.deepEqual(bad, [], 'textos con "jefe" para una jefa');
+  const g = office(MV, 95); MV.person(g, g.p.job.boss.id).gender = 'f';
+  assert.equal(MV.sys.career.actions(g).find((a) => a.id === 'jefe').label, 'Hablar con tu jefa');
+  const al = W(MV).mate(g, 'aliado'); al.n.gender = 'f'; g.p.job.level = 2;
+  g.queue = []; MV.EV.push(g, 'trabajo_reestructuracion', {}, true);
+  assert.ok(MV.EV.view(g).choices.some((c) => /\(aliada\)/.test(c.label)), 'la aliada concuerda');
+  assert.equal(MV.gt(MV.MATE_ROLES.chismoso.name, 'f'), 'chismosa');
+});
+
+test('C1-R4: los aumentos tienen techo (2 veces el sueldo más alto del puesto)', () => {
+  const MV = load({ seed: 96 });
+  const g = withBoss(MV, 96, 'buenazo', 100);
+  const cap = 2 * MV.jobById('cajero').pay[MV.jobById('cajero').pay.length - 1];
+  for (let y = 0; y < 40 && g.p.job; y++) {
+    g.p.job.perf = 100; MV.relOf(g, g.p.job.boss.id).rel = 100;
+    g.queue = []; MV.EV.push(g, 'pedir_aumento', {}, true);
+    MV.EV.choose(g, y % 2 ? 1 : 2);
+  }
+  if (g.p.job) assert.ok(g.p.job.salary <= cap, `sueldo ${g.p.job.salary} > techo ${cap}`);
+  const h = withBoss(MV, 97, 'ausente', 50); h.p.job.salary = cap;
+  h.queue = []; MV.EV.push(h, 'trabajo_competencia', {}, true); MV.EV.choose(h, 0);
+  assert.ok(h.p.job.salary <= cap, 'la competencia tampoco pasa el techo');
+});
+
+test('C1-R5: la fiesta de fin de año es para mayores de 18', () => {
+  const MV = load({ seed: 98 });
+  const g = office(MV, 98); g.p.age = 17;
+  assert.equal(MV.EV.eligible(g, MV.EV.byId.trabajo_fiesta), null);
+  g.p.age = 18;
+  assert.ok(MV.EV.eligible(g, MV.EV.byId.trabajo_fiesta));
 });

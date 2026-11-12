@@ -107,7 +107,7 @@
   /** Jefe (carácter y relación) y compañeros con su rol; tocar a alguien abre su ficha. */
   function workStaff(g) {
     const WP = MV.sys.workplace, Bo = WP.boss(g);
-    if (!Bo) return null;
+    if (!Bo) return ''; // append(null) escribiría "null"
     const bossRow = UI.row(UI.avatar(Bo.n, 40), `${U.gw(Bo.n.gender, '👔 Tu jefe', '👔 Tu jefa')}: ${MV.fullName(Bo.n)}`, `${Bo.K.icon} ${MV.gt(Bo.K.name, Bo.n.gender)}`,
       h('span', { class: 'relbar' }, UI.bar(Bo.r.rel)), () => UI.showPerson(Bo.n.id));
     bossRow.id = 'work-boss';
@@ -116,7 +116,7 @@
       const r = MV.relOf(g, m.id), n = MV.person(g, m.id), R = MV.MATE_ROLES[m.role];
       if (!r || !n || !n.alive || !R) return;
       const extra = r.type !== 'companero' ? ` · ${MV.relLabel(r.type, n).toLowerCase()}` : '';
-      mates.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${R.icon} ${R.name}${extra}`, h('span', { class: 'relbar' }, UI.bar(r.rel)), () => UI.showPerson(n.id)));
+      mates.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${R.icon} ${MV.gt(R.name, n.gender)}${extra}`, h('span', { class: 'relbar' }, UI.bar(r.rel)), () => UI.showPerson(n.id)));
     });
     return h('div', null, title('Tu equipo'), h('div', { class: 'list' }, bossRow), mates.children.length ? mates : null);
   }

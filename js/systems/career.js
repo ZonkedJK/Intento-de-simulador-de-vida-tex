@@ -228,7 +228,7 @@
             MV.fx.stat(g, 'stress', -25); MV.fx.stat(g, 'happy', 10);
             return `Te tomaste un año sabático de tu puesto de ${t}. ${U.pick(['Vas a "encontrarte a ti mism' + U.gw(p.gender, 'o', 'a') + '". O por lo menos dormir.', 'Vendiste la computadora del trabajo mentalmente.', 'Tu primer día libre dormiste 14 horas.'])}`;
           } });
-        list.push({ id: 'jefe', icon: '👔', label: 'Hablar con tu jefe', sub: 'Depende de su carácter', limit: 1,
+        list.push({ id: 'jefe', icon: '👔', label: U.gw((MV.sys.workplace.boss(g) || { n: {} }).n.gender, 'Hablar con tu jefe', 'Hablar con tu jefa'), sub: 'Depende de su carácter', limit: 1,
           run: (g) => {
             const Bo = MV.sys.workplace.boss(g);
             if (!Bo) return 'El puesto de jefe está vacante. Nadie te da órdenes (por ahora).';
