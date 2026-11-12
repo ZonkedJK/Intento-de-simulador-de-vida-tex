@@ -174,3 +174,14 @@ test('todas las acciones de relaciones, actividades, trabajo y cárcel se ejecut
   });
   assert.ok(n > 300, 'se esperaban más acciones probadas: ' + n);
 });
+
+test('un evento automático no se aplica si otro del mismo año ya lo dejó sin sentido', () => {
+  const MV = load({ seed: 98 });
+  MV.ev({ id: 't_a', w: 1000, text: 'A', auto: (g) => { g.p.flags.tA = true; return ''; } });
+  MV.ev({ id: 't_b', w: 1, when: (g) => !g.p.flags.tA, text: 'B', auto: (g) => { if (g.p.flags.tA) throw new Error('B se aplicó después de A'); return ''; } });
+  MV.EV.list = MV.EV.list.filter((d) => d.id === 't_a' || d.id === 't_b');
+  for (let s = 0; s < 200; s++) {
+    const g = MV.newGame({ seed: 9800 + s }); g.p.age = 30; g.queue = []; g.evDone = {};
+    MV.EV.runYear(g);
+  }
+});

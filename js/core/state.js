@@ -205,7 +205,7 @@
       business: null,
       inv: { plazo: 0, indice: 0, acciones: 0, cripto: 0 },
       assets: [], housing: 'padres', rent: null, loans: [],
-      insurance: { vida: 0, salud: false, hogar: {} }, pensionFund: 0, pensionRate: 0,
+      insurance: { vida: 0, salud: false, hogar: {} }, pensionFund: 0, pensionRate: 0, dirty: 0,
       conds: [], addic: { alcohol: 0, drogas: 0, apuestas: 0, tabaco: 0 },
       record: [], prison: null, wanted: 0,
       license: false, aspiration: null,

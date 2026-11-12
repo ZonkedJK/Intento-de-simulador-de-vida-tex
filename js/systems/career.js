@@ -259,16 +259,16 @@
       if (J.id === 'politico') list.push({ id: 'corrupcion', icon: '🤑', label: 'Aceptar un sobre', sub: 'Dinero fácil, karma difícil', limit: 1,
         run: (g) => {
           const amt = Math.round(job.salary * U.float(0.5, 3));
-          MV.fx.money(g, amt); MV.fx.stat(g, 'karma', -10);
-          if (U.chance(0.2)) { MV.sys.crime.arrest(g, 'Corrupción', 3); return `Aceptaste ${U.money(amt)} "para la campaña". Un periodista lo filmó todo.`; }
-          return `Aceptaste ${U.money(amt)} de un empresario "amigo". Nadie se enteró. Por ahora.`;
+          MV.sys.dirty.add(g, amt); MV.fx.stat(g, 'karma', -10);
+          if (U.chance(0.2)) { MV.sys.crime.arrest(g, 'Corrupción', 3); return `Aceptaste ${U.money(amt)} "para la campaña" (dinero sucio). Un periodista lo filmó todo.`; }
+          return `Aceptaste ${U.money(amt)} de un empresario "amigo" (dinero sucio). Nadie se enteró. Por ahora.`;
         } });
       if (J.id === 'mafia') list.push({ id: 'encargo', icon: '💼', label: 'Hacer un encargo para la familia', sub: 'Sube en la organización', limit: 2,
         run: (g) => {
           MV.fx.skill(g, 'crimen', U.int(2, 4)); MV.fx.stat(g, 'karma', -4);
           if (U.chance(0.15 * (1 - p.skills.crimen / 150))) { MV.sys.crime.arrest(g, 'Extorsión', 3); return 'El encargo salió mal. Sirenas.'; }
-          const pay = U.int(2000, 15000) * (job.level + 1); MV.fx.money(g, pay); job.perf = U.clamp(job.perf + 8, 0, 100);
-          return U.pick([`"Convenciste" a un comerciante de pagar protección. La familia te dio ${U.money(pay)}.`, `Llevaste un paquete sin preguntar qué había adentro. ${U.money(pay)}.`, `Diste un mensaje "con contundencia". ${U.money(pay)} y una palmada del jefe.`]);
+          const pay = U.int(2000, 15000) * (job.level + 1); MV.sys.dirty.add(g, pay); job.perf = U.clamp(job.perf + 8, 0, 100);
+          return `${U.pick([`"Convenciste" a un comerciante de pagar protección. La familia te dio ${U.money(pay)}.`, `Llevaste un paquete sin preguntar qué había adentro. ${U.money(pay)}.`, `Diste un mensaje "con contundencia". ${U.money(pay)} y una palmada del jefe.`])} (dinero sucio)`;
         } });
       list.push({ id: 'renunciar', icon: '🚪', label: 'Renunciar', sub: 'Dejar este trabajo', limit: 1, confirm: '¿Seguro que quieres renunciar?',
         run: (g) => {

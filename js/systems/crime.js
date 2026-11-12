@@ -19,12 +19,12 @@
       if (U.chance(okChance)) {
         let loot = U.int(C.loot[0], C.loot[1]);
         if (id === 'fraude') loot = Math.round((p.job ? p.job.salary : p.business.value * 0.1) * U.float(0.1, 0.6));
-        if (loot) MV.fx.money(g, loot);
+        if (loot) MV.sys.dirty.add(g, loot);
         MV.fx.stat(g, 'happy', U.int(1, 5));
         MV.fx.stat(g, 'stress', 4);
         if (id === 'hackeo') MV.ach.unlock(g, 'hacker');
         if (C.art) MV.fx.skill(g, 'arte', 2);
-        return loot ? `${C.icon} Salió bien: conseguiste ${U.money(loot)}. ${U.pick(['Nadie vio nada.', 'Te temblaban las piernas, pero lo lograste.', 'Fue sospechosamente fácil.'])}` :
+        return loot ? `${C.icon} Salió bien: conseguiste ${U.money(loot)} (dinero sucio). ${U.pick(['Nadie vio nada.', 'Te temblaban las piernas, pero lo lograste.', 'Fue sospechosamente fácil.'])}` :
           `${C.icon} Lo hiciste y nadie te vio. ${U.pick(['Tu obra es la comidilla del barrio.', 'Te sientes un artista incomprendido.'])}`;
       }
       if (U.chance(U.clamp(C.caught - skill * 0.25, 0.1, 0.9))) {

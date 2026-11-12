@@ -548,3 +548,112 @@ test('el heredero empieza sin fondo', () => {
   const ng = MV.sys.legacy.continueAs(g, kid.id);
   assert.equal(ng.p.pensionFund, 0); assert.equal(ng.p.pensionRate, 0);
 });
+
+// ——— Tarea 6: dinero sucio ———
+const D = (MV) => MV.sys.dirty;
+
+test('los delitos, la mafia y los sobornos dan dinero sucio', () => {
+  const MV = load({ seed: 90 });
+  let got = false;
+  for (let s = 0; s < 60 && !got; s++) {
+    MV.rng.seed(9000 + s);
+    const g = adult(MV, 9000 + s); g.p.dirty = 0; const m = g.p.money;
+    const msg = MV.sys.crime.commit(g, 'robo_auto');
+    if (g.p.dirty > 0) {
+      got = true;
+      assert.equal(g.p.money, m); assert.match(msg, /dinero sucio/);
+      assert.equal(MV.netWorth(g), m, 'el sucio no suma al patrimonio');
+    }
+  }
+  assert.ok(got, 'ningún robo salió bien');
+  const job = (id, act) => {
+    for (let s = 0; s < 60; s++) {
+      MV.rng.seed(9100 + s);
+      const g = adult(MV, 9100 + s); g.p.dirty = 0;
+      MV.sys.career.hire(g, MV.jobById(id));
+      const m = g.p.money;
+      const r = MV.doAction(g, MV.sys.career.actions(g).find((a) => a.id === act));
+      if (g.p.dirty > 0) { assert.equal(g.p.money, m); assert.match(r.msg, /dinero sucio/); return; }
+    }
+    assert.fail(act + ' nunca pagó');
+  };
+  job('mafia', 'encargo');
+  job('politico', 'corrupcion');
+});
+
+test('lavar respeta límite, comisión y requisito', () => {
+  const MV = load({ seed: 91 });
+  const g = adult(MV, 91, 0); g.p.dirty = 300000; g.p.business = null; g.p.companies = [];
+  D(MV).launder(g, 'contador');
+  assert.equal(g.p.dirty, 100000); assert.equal(g.p.money, 160000);
+  const h = adult(MV, 92, 0); h.p.dirty = 300000;
+  D(MV).launder(h, 'casino');
+  assert.equal(h.p.dirty, 0); assert.equal(h.p.money, 225000);
+  const k = adult(MV, 93, 0); k.p.dirty = 300000; k.p.business = null; k.p.companies = [];
+  assert.equal(D(MV).limit(k, 'negocio'), 0);
+  const act = D(MV).actions(k).find((a) => a.id === 'lavar_negocio');
+  const r = MV.doAction(k, act);
+  assert.ok(r.blocked && /negocio|empresa/.test(r.msg), r.msg);
+  assert.equal(k.p.dirty, 300000);
+  k.p.money = 1e6; MV.sys.company.found(k, 'apps', 'Lavandería Digital'); k.p.money = 0;
+  assert.equal(D(MV).limit(k, 'negocio'), 50000);
+  assert.ok(!MV.doAction(k, act).blocked);
+  assert.equal(k.p.dirty, 250000); assert.equal(k.p.money, 45000);
+  assert.ok(MV.doAction(k, act).blocked, 'una vez por año');
+  Object.keys(D(MV).METHODS).forEach((m) => { const M = D(MV).METHODS[m]; assert.ok(M.icon && M.label && M.fee > 0 && M.risk > 0, m); });
+  const z = adult(MV, 94); z.p.dirty = 0;
+  assert.ok(MV.doAction(z, D(MV).actions(z).find((a) => a.id === 'lavar_casino')).blocked, 'sin sucio no hay nada que lavar');
+});
+
+test('la investigación se abre según el sucio', () => {
+  const MV = load({ seed: 95 });
+  const rate = (dirty, prison) => {
+    let n = 0;
+    for (let s = 0; s < 200; s++) {
+      MV.rng.seed(9500 + s);
+      const g = adult(MV, 9500 + s); g.p.dirty = dirty;
+      if (prison) g.p.prison = { left: 2, total: 2, crime: 'x', behavior: 50, since: 30 };
+      D(MV).yearly(g);
+      if (g.queue.some((q) => q.id === 'investigacion_lavado')) n++;
+    }
+    return n / 200;
+  };
+  assert.equal(rate(40000), 0);
+  const r = rate(1000000);
+  assert.ok(r > 0.25 && r < 0.45, 'con un millón ' + r);
+  assert.equal(rate(1000000, true), 0);
+});
+
+test('las tres salidas de la investigación', () => {
+  const MV = load({ seed: 96 });
+  const open = (seed) => { MV.rng.seed(seed); const g = adult(MV, seed, 100000); g.p.dirty = 200000; const v = pushView(MV, g, 'investigacion_lavado', {}); clean(v); return { g, v }; };
+  let archived = 0, seized = 0;
+  for (let s = 0; s < 60; s++) {
+    const { g, v } = open(9600 + s);
+    const r = MV.EV.choose(g, idx(v, /abogado/i));
+    assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+    if (g.p.dirty === 200000) { archived++; assert.equal(g.p.money, 80000); } else { seized++; assert.equal(g.p.dirty, 0); assert.equal(g.p.money, 64000); }
+  }
+  assert.ok(archived > 20 && seized > 10, `archivadas ${archived}, decomisos ${seized}`);
+  let { g, v } = open(9700);
+  let r = MV.EV.choose(g, idx(v, /Confesar/));
+  assert.ok(g.p.prison && g.p.dirty === 0); assert.ok(g.p.record.some((x) => x.crime === 'Lavado de dinero'));
+  assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  ({ g, v } = open(9701));
+  r = MV.EV.choose(g, idx(v, /Huir/));
+  assert.ok(g.p.wanted >= 3); assert.equal(g.p.dirty, 200000);
+  assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+});
+
+test('el dinero sucio no se hereda', () => {
+  const MV = load({ seed: 97 });
+  const g = adult(MV, 97, 50000); g.p.age = 70; g.p.loans = []; g.p.dirty = 80000;
+  const kid = MV.newNPC(g, { age: 40, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+  const w = MV.netWorth(g);
+  MV.sys.legacy.die(g, 'una prueba');
+  assert.equal(g.summary.worth, w);
+  const text = g.log.map((y) => y.items.map((i) => i.t).join(' ')).join(' ');
+  assert.match(text, /La policía encontró \$80\.000 escondidos/);
+  const ng = MV.sys.legacy.continueAs(g, kid.id);
+  assert.equal(ng.p.dirty, 0);
+});

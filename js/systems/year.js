@@ -29,6 +29,7 @@
     MV.sys.mythic.yearly(g);
     MV.sys.wellbeing.yearly(g);
     MV.sys.crime.yearly(g);
+    MV.sys.dirty.yearly(g);
     MV.sys.rels.yearly(g);
     MV.sys.legacy.yearly(g);
     MV.sys.challenge.yearly(g);

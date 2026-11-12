@@ -89,6 +89,7 @@
       g.queue = [];
       if (p.age < 30) MV.ach.unlock(g, 'joven');
       if (p.flags.muerteAbsurda) MV.ach.unlock(g, 'muerte_absurda');
+      MV.sys.dirty.seizeAtDeath(g);
       const J = p.job ? MV.sys.career.title(p) : (p.jobs.length ? p.jobs[p.jobs.length - 1].title : null);
       const best = p.edu.degrees.length ? p.edu.degrees[p.edu.degrees.length - 1] : null;
       const summary = {

@@ -148,4 +148,40 @@
       return '';
     }
   });
+
+  // ——— Investigación por lavado (la encolan dirty.launder y dirty.yearly) ———
+  ev({
+    id: 'investigacion_lavado', pushOnly: true, icon: '🕵️', scene: 'ciudad', title: 'Te investigan por lavado',
+    when: (g) => !g.p.prison && g.p.dirty > 0,
+    text: (g) => `Un fiscal pidió tus cuentas: no le cierran ${U.money(g.p.dirty)} que nadie sabe de dónde salieron. Tu teléfono suena demasiado.`,
+    choices: [
+      { t: 'Contratar un abogado', sub: '$20.000. Casi siempre se archiva',
+        eff: (g) => {
+          const p = g.p;
+          fx.money(g, -20000);
+          if (U.chance(0.6)) return `Tu abogado habló de "errores administrativos" durante tres horas. El fiscal archivó la causa por cansancio.`;
+          const seized = p.dirty, fine = Math.max(0, Math.round(p.money * 0.2));
+          p.dirty = 0;
+          fx.money(g, -fine);
+          return `Ni tu abogado pudo. Te decomisaron ${U.money(seized)} y te multaron con ${U.money(fine)}.`;
+        } },
+      { t: 'Confesar', sub: 'Pierdes el sucio y vas preso 2 años',
+        eff: (g) => {
+          const p = g.p, seized = p.dirty;
+          p.dirty = 0;
+          // Confesar evita el juicio: la condena es directa.
+          p.counters.arrestos = (p.counters.arrestos || 0) + 1;
+          p.record.push({ crime: 'Lavado de dinero', age: p.age, years: 2 });
+          MV.sys.crime.jail(g, 2, 'Lavado de dinero');
+          return `Confesaste todo. Te decomisaron ${U.money(seized)} y te dieron 2 años por lavado de dinero. Al menos dormiste tranquilo.`;
+        } },
+      { t: 'Huir', sub: 'Conservas el sucio, pero te buscan',
+        eff: (g) => {
+          const p = g.p;
+          p.wanted = Math.max(p.wanted || 0, 3);
+          fx.stat(g, 'stress', 10);
+          return `Te fuiste con lo puesto y ${U.money(p.dirty)} en una mochila. Ahora eres prófugo: cuidado con los controles.`;
+        } }
+    ]
+  });
 })(window.MV = window.MV || {});
