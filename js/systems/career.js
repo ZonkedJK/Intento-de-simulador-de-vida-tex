@@ -97,17 +97,17 @@
 
     retire(g) {
       const p = g.p;
-      if (!p.job || p.age < 60) return 'Aún no puedes jubilarte.';
-      const years = p.age - p.job.start + p.jobs.reduce((a, j) => a + Math.max(0, j.to - j.from), 0);
-      const rate = years >= 25 ? 0.65 : years >= 12 ? 0.45 : 0.25;
-      p.pension = Math.round(p.job.salary * rate);
+      if (!p.job || p.age < MV.sys.retirement.MIN_AGE) return 'Aún no puedes jubilarte.';
+      const P = MV.sys.retirement.pensionFor(g);
+      p.pension = P.total;
+      p.pensionFund = 0; // el fondo se vuelve renta
       const t = career.title(p);
       career.leave(g, 'jubilación');
       p.retired = true;
       MV.ach.unlock(g, 'jubilado');
       MV.fx.stat(g, 'happy', 12);
       MV.fx.stat(g, 'stress', -25);
-      return `Te jubilaste como ${t}. Pensión: ${U.money(p.pension)} al año. Ahora, a ver palomas.`;
+      return `Te jubilaste como ${t}. Pensión: ${U.money(p.pension)} al año${P.annuity > 0 ? ' (incluye la renta de tu ahorro previsional)' : ''}. Ahora, a ver palomas.`;
     },
 
     yearly(g) {
@@ -276,7 +276,7 @@
           const t = career.title(p); career.leave(g, 'renuncia'); MV.fx.stat(g, 'stress', -10);
           return `Renunciaste a tu puesto de ${t}. ${U.pick(['Saliste con la frente en alto y una abrochadora robada.', 'Le dijiste a tu jefe lo que pensabas. Todo.', 'Mandaste un correo de despedida a toda la empresa con un GIF.'])}`;
         } });
-      if (J.type === 'full' && p.age >= 60) list.push({ id: 'jubilarse', icon: '🏖️', label: 'Jubilarte', sub: 'Cobrar pensión', limit: 1, confirm: '¿Jubilarte?', run: (g) => career.retire(g) });
+      if (J.type === 'full' && p.age >= MV.sys.retirement.MIN_AGE) list.push({ id: 'jubilarse', icon: '🏖️', label: 'Jubilarte', sub: 'Cobrar pensión', limit: 1, confirm: '¿Jubilarte?', run: (g) => career.retire(g) });
       return list;
     },
 

@@ -459,3 +459,92 @@ test('income encola los eventos', () => {
   }
   assert.fail('ningún moroso dejó de pagar');
 });
+
+// ——— Tarea 5: jubilación ———
+const RT = (MV) => MV.sys.retirement;
+function worker(MV, seed, age, salary) {
+  const g = adult(MV, seed); g.p.age = age;
+  const J = MV.JOBS.find((j) => j.type === 'full');
+  MV.sys.career.hire(g, J, 0, salary);
+  g.p.job.start = age - 5; g.p.jobs = [];
+  return g;
+}
+
+test('factor por edad', () => {
+  const MV = load({ seed: 70 });
+  [[55, 0.7], [60, 0.85], [65, 1], [70, 1.2], [75, 1.2]].forEach(([age, f]) => assert.ok(Math.abs(RT(MV).ageFactor(age) - f) < 1e-9, `${age}: ${RT(MV).ageFactor(age)}`));
+  assert.deepEqual(RT(MV).RATES, [0, 0.05, 0.10, 0.15]);
+});
+
+test('aportes y crecimiento del fondo', () => {
+  const MV = load({ seed: 71 });
+  const g = worker(MV, 71, 40, 50000);
+  RT(MV).setRate(g, 0.10);
+  assert.equal(g.p.pensionRate, 0.10);
+  const m = g.p.money;
+  RT(MV).yearly(g);
+  assert.equal(g.p.money, m - 5000);
+  assert.ok(g.p.pensionFund >= 5000 * 1.01 - 1 && g.p.pensionFund <= 5000 * 1.06 + 1, 'fondo ' + g.p.pensionFund);
+  const h = worker(MV, 72, 40, 50000);
+  RT(MV).setRate(h, 0.10); h.p.money = 4000;
+  RT(MV).yearly(h);
+  assert.equal(h.p.money, 4000); assert.equal(h.p.pensionFund, 0);
+  assert.ok(!/undefined|NaN/.test(RT(MV).setRate(h, 0.33)));
+  assert.equal(h.p.pensionRate, 0.10, 'un aporte fuera del catálogo no cambia nada');
+});
+
+test('pensión con fondo y edad', () => {
+  const MV = load({ seed: 73 });
+  const g = worker(MV, 73, 60, 80000); g.p.pensionFund = 250000;
+  const P = RT(MV).pensionFor(g);
+  assert.equal(P.base, Math.round(80000 * 0.25));
+  assert.equal(P.total, Math.round(P.base * 0.85 + 250000 / 25));
+  const msg = MV.sys.career.retire(g);
+  assert.equal(g.p.pension, P.total); assert.equal(g.p.pensionFund, 0); assert.ok(g.p.retired);
+  assert.ok(!BAD_TEXT.test(msg), msg);
+});
+
+test('jubilarse desde los 55', () => {
+  const MV = load({ seed: 74 });
+  const g = worker(MV, 74, 54, 60000);
+  assert.equal(MV.sys.career.retire(g), 'Aún no puedes jubilarte.');
+  assert.ok(!MV.sys.career.actions(g).some((a) => a.id === 'jubilarse'));
+  g.p.age = 55;
+  const act = MV.sys.career.actions(g).find((a) => a.id === 'jubilarse');
+  assert.ok(act);
+  MV.doAction(g, act);
+  assert.ok(g.p.retired); assert.equal(g.p.pension, Math.round(Math.round(60000 * 0.25) * 0.7));
+});
+
+test('retirarte con tu ahorro y sacar el fondo', () => {
+  const MV = load({ seed: 75 });
+  const g = adult(MV, 75); g.p.age = 56; g.p.job = null; g.p.pensionFund = 290000;
+  const msg = RT(MV).retireWithSavings(g);
+  assert.equal(g.p.pension, Math.round(290000 / 29)); assert.ok(g.p.retired); assert.equal(g.p.pensionFund, 0);
+  assert.ok(!BAD_TEXT.test(msg), msg);
+  const y = adult(MV, 76); y.p.age = 50; y.p.job = null; y.p.pensionFund = 290000;
+  RT(MV).retireWithSavings(y); assert.ok(!y.p.retired, 'antes de los 55 no');
+  const w = worker(MV, 77, 56, 40000); w.p.pensionFund = 290000;
+  RT(MV).retireWithSavings(w); assert.ok(!w.p.retired, 'con trabajo se usa Jubilarte');
+  const h = adult(MV, 78); h.p.pensionFund = 100000;
+  const m = h.p.money;
+  RT(MV).withdraw(h);
+  assert.equal(h.p.money, m + 70000); assert.equal(h.p.pensionFund, 0);
+});
+
+test('el fondo suma al patrimonio', () => {
+  const MV = load({ seed: 79 });
+  const g = adult(MV, 79);
+  const w = MV.netWorth(g);
+  g.p.pensionFund = 123456;
+  assert.equal(MV.netWorth(g), w + 123456);
+});
+
+test('el heredero empieza sin fondo', () => {
+  const MV = load({ seed: 80 });
+  const g = adult(MV, 80); g.p.age = 70; g.p.pensionFund = 300000; g.p.pensionRate = 0.15; g.p.loans = [];
+  const kid = MV.newNPC(g, { age: 40, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+  MV.sys.legacy.die(g, 'una prueba');
+  const ng = MV.sys.legacy.continueAs(g, kid.id);
+  assert.equal(ng.p.pensionFund, 0); assert.equal(ng.p.pensionRate, 0);
+});

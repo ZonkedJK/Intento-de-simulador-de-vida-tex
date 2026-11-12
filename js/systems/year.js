@@ -20,6 +20,7 @@
     MV.sys.realty.yearly(g);
     MV.sys.money.yearly(g);
     MV.sys.insurance.yearly(g);
+    MV.sys.retirement.yearly(g);
     MV.sys.cars.yearly(g);
     MV.sys.company.yearly(g);
     MV.sys.market.yearly(g);

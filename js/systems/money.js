@@ -35,7 +35,7 @@
       const loans = U.sum(p.loans, (l) => l.left);
       const inv = U.sum(Object.values(p.inv));
       const firms = U.sum(p.companies || [], (c) => c.value * (c.public ? c.public.stake : 1)) + (MV.sys.market ? MV.sys.market.portfolioValue(g) : 0);
-      return Math.round(p.money + assets + inv - loans + (p.business ? p.business.value : 0) + firms);
+      return Math.round(p.money + assets + inv - loans + (p.business ? p.business.value : 0) + firms + (p.pensionFund || 0));
     },
 
     addLoan(g, name, amount, years, startAge, assetId) {
