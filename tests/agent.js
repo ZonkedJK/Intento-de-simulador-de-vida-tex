@@ -23,6 +23,7 @@ function possibleActions(MV, g) {
     MV.catsFor(g).forEach((c) => MV.actsFor(g, c.id).forEach((a) => add(a)));
     MV.sys.edu.actions(g).forEach((a) => add(a));
     MV.sys.career.actions(g).forEach((a) => add(a));
+    if (p.age >= 16) add(MV.sys.workplace.freelanceAction(g)); // encargos freelance (Parte C1)
   }
   MV.rels(g).forEach(({ r, n }) => {
     r.acts = r.acts || {};
