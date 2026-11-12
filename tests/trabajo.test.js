@@ -62,3 +62,86 @@ test('requisitos de los empleos nuevos', () => {
   g.p.edu.degrees.push({ kind: 'universidad', major: 'medicina' });
   assert.equal(MV.sys.career.meets(g, dent).ok, true);
 });
+
+// ——— Tarea 2: jefe y compañeros ———
+function worker(MV, seed, jobId) {
+  const g = MV.newGame({ seed }); g.p.age = 30; g.p.money = 100000; g.queue = [];
+  if (jobId) MV.sys.career.hire(g, MV.jobById(jobId));
+  return g;
+}
+const W = (MV) => MV.sys.workplace;
+
+test('contratar crea jefe y 2 compañeros de roles distintos', () => {
+  const MV = load({ seed: 21 });
+  const g = worker(MV, 21, 'cajero');
+  const b = W(MV).boss(g);
+  assert.ok(b, 'hay jefe');
+  assert.equal(b.r.type, 'jefe');
+  assert.ok(MV.BOSS_KINDS[b.kind], b.kind);
+  assert.ok(b.n.age >= 30 && b.n.age <= 65, 'edad del jefe ' + b.n.age);
+  assert.ok(b.r.rel >= 45 && b.r.rel <= 60, 'relación inicial ' + b.r.rel);
+  assert.equal(g.p.job.mates.length, 2);
+  assert.notEqual(g.p.job.mates[0].role, g.p.job.mates[1].role);
+  g.p.job.mates.forEach((m) => {
+    assert.ok(MV.MATE_ROLES[m.role], m.role);
+    assert.equal(MV.relOf(g, m.id).type, 'companero');
+    assert.ok(m.bossRel >= 30 && m.bossRel <= 70);
+    assert.ok(W(MV).mate(g, m.role), 'mate() encuentra ' + m.role);
+  });
+});
+
+test('dejar el trabajo limpia jefe y compañeros según la relación', () => {
+  const MV = load({ seed: 22 });
+  const g = worker(MV, 22, 'cajero');
+  const bossId = g.p.job.boss.id, [a, b] = g.p.job.mates.map((m) => m.id);
+  MV.relOf(g, bossId).rel = 85; MV.relOf(g, a).rel = 70; MV.relOf(g, b).rel = 30;
+  MV.sys.career.leave(g, 'renuncia');
+  assert.equal(MV.relOf(g, bossId).type, 'amigo');
+  assert.equal(MV.relOf(g, a).type, 'amigo');
+  assert.equal(MV.relOf(g, b), undefined);
+  assert.equal(g.p.job, null);
+});
+
+test('cambiar de trabajo trae gente nueva', () => {
+  const MV = load({ seed: 23 });
+  const g = worker(MV, 23, 'cajero');
+  const oldBoss = g.p.job.boss.id;
+  MV.relOf(g, oldBoss).rel = 50;
+  MV.sys.career.hire(g, MV.jobById('cartero'));
+  assert.equal(MV.relOf(g, oldBoss), undefined, 'el jefe viejo ya no es relación');
+  assert.ok(W(MV).boss(g));
+  assert.notEqual(W(MV).boss(g).n.id, oldBoss);
+  assert.equal(MV.rels(g, 'jefe').length, 1);
+});
+
+test('el sabático vuelve con gente nueva', () => {
+  const MV = load({ seed: 24 });
+  let back = 0;
+  for (let s = 0; s < 30 && back < 3; s++) {
+    MV.rng.seed(500 + s);
+    const g = worker(MV, 500 + s, 'cajero');
+    const job = g.p.job;
+    g.p.flags.sabbatical = { job: Object.assign({}, job), until: g.p.age + 1, perf: 100 };
+    MV.sys.career.leave(g, 'año sabático');
+    g.p.age++;
+    MV.sys.career.yearly(g);
+    if (!g.p.job) continue;
+    back++;
+    assert.ok(W(MV).boss(g), 'vuelve con jefe');
+    g.p.job.mates.forEach((m) => assert.ok(MV.relOf(g, m.id), 'cada compañero es relación'));
+    assert.equal(g.p.job.mates.length, 2);
+  }
+  assert.ok(back >= 1, 'algún regreso del sabático');
+});
+
+test('medio tiempo, fama y deporte no tienen jefe', () => {
+  const MV = load({ seed: 25 });
+  const sport = Object.keys(MV.SPORT_JOBS)[0];
+  [MV.jobById('repartidor'), MV.FAME.actor, MV.SPORT_JOBS[sport]].forEach((J) => {
+    const g = worker(MV, 25);
+    MV.sys.career.hire(g, J);
+    assert.ok(!g.p.job.boss, J.id + ' sin jefe');
+    assert.equal(MV.rels(g, 'jefe').length, 0, J.id);
+    assert.equal(W(MV).boss(g), null);
+  });
+});

@@ -56,6 +56,7 @@
       const lvl = U.clamp(Math.round(level || 0), 0, J.titles.length - 1); // defensa: nunca fuera de la escalera
       p.job = { id: J.id, level: lvl, salary: Math.round(J.pay[lvl] * U.float(0.9, 1.1)), perf: 55, years: 0, lvlYears: 0, type: J.type, start: p.age };
       p.retired = false;
+      MV.sys.workplace.staff(g);
       MV.ach.check(g);
       return p.job;
     },
@@ -64,6 +65,7 @@
       const p = g.p;
       if (!p.job) return;
       p.jobs.push({ id: p.job.id, title: career.title(p), from: p.job.start, to: p.age, why });
+      MV.sys.workplace.cleanup(g);
       p.job = null;
     },
 
@@ -119,8 +121,9 @@
         delete p.flags.sabbatical;
         const SJ = MV.jobById(sab.job.id);
         if (!p.job && !p.prison && SJ && U.chance(0.5 + sab.perf / 200)) {
-          p.job = Object.assign(sab.job, { lvlYears: 0, start: p.age });
+          p.job = Object.assign(sab.job, { lvlYears: 0, start: p.age, boss: null, mates: [] });
           p.retired = false;
+          MV.sys.workplace.staff(g);
           MV.log(g, `Volviste de tu año sabático y tu puesto de ${career.title(p)} te estaba esperando. Nadie notó que te habías ido.`, '🌍', 'good');
           return;
         }
