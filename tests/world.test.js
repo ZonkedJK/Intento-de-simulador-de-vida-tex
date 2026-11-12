@@ -66,7 +66,7 @@ function hireRate(MV, id) {
     g.world = id ? { age: g.p.age, id, past: [] } : null;
     g.queue = []; MV.EV.push(g, 'entrevista', { job: 'cajero', q: 0, order: [1, 0, 2] }, true);
     const v = MV.EV.view(g); MV.EV.choose(g, v.choices[0].i);
-    if (g.p.job) ok++;
+    if (g.p.job || g.queue.some((q) => q.id === 'oferta_trabajo')) ok++; // aprobar trae una oferta (Parte C1)
   }
   return ok / 300;
 }

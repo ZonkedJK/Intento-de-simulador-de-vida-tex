@@ -128,7 +128,7 @@ test('un tatuaje en la cara baja la chance de quedar en una entrevista', () => {
       if (face) g.p.flags.tatuajeCara = true;
       MV.EV.push(g, 'entrevista', { job: 'cajero', q: 0, order: [1, 0, 2] }, true);
       MV.EV.choose(g, 0);
-      if (g.p.job) hired++;
+      if (g.p.job || g.queue.some((q) => q.id === 'oferta_trabajo')) hired++; // aprobar trae una oferta (Parte C1)
     }
     return hired / 600;
   };
