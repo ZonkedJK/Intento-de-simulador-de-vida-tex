@@ -657,3 +657,21 @@ test('el dinero sucio no se hereda', () => {
   const ng = MV.sys.legacy.continueAs(g, kid.id);
   assert.equal(ng.p.dirty, 0);
 });
+
+// ——— Tarea 7: partidas versión 9 ———
+test('migración v8 → v9', () => {
+  const MV = load({ seed: 99 });
+  assert.equal(MV.VERSION, 9);
+  const g = adult(MV, 99);
+  const casa = own(MV, g, 'casa', 150000); casa.rented = true;
+  delete g.p.dirty; delete g.p.insurance; delete g.p.pensionFund; delete g.p.pensionRate; delete g.realty;
+  g.version = 8;
+  const back = MV.migrate(JSON.parse(JSON.stringify(g)));
+  assert.equal(back.version, 9);
+  assert.equal(back.p.dirty, 0); assert.equal(back.p.pensionFund, 0); assert.equal(back.p.pensionRate, 0);
+  assert.deepEqual(back.p.insurance, { vida: 0, salud: false, hogar: {} });
+  assert.equal(back.realty.phase, 'estable');
+  const c = back.p.assets.find((a) => a.id === casa.id);
+  assert.equal(c.rent.level, 'normal'); assert.ok(c.rent.tenant && c.rent.tenant.name && MV.TENANT_KINDS[c.rent.tenant.kind]);
+  assert.ok(MV.validGame(back));
+});

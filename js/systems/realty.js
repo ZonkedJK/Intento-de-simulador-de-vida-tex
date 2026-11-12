@@ -153,7 +153,7 @@
     /** "Veranear ahí": una vez por año en cada casa de vacaciones. */
     summerAction(g, id) {
       return {
-        id: 'veranear_' + id, icon: '🏖️', limit: 1,
+        id: 'veranear_' + id, icon: '🏖️', label: 'Veranear ahí', sub: '+6 de felicidad, −8 de estrés; ese año la temporada rinde la mitad', limit: 1,
         check: (gg) => (gg.p.assets.some((x) => x.id === id) ? null : 'Esa casa ya no es tuya.'),
         run: (gg) => {
           const a = gg.p.assets.find((x) => x.id === id);

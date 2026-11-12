@@ -503,6 +503,45 @@ const SHOTS = process.argv[2] || null;
     }
     await page.evaluate(() => MV.UI.closeAll());
   }
+  // Parte C2 — mercado, propiedades nuevas, seguros, inquilinos, dinero sucio y jubilación
+  {
+    const sheetText = () => page.evaluate(() => document.querySelector('#layer .layer-item:last-child .sheet-body').textContent);
+    await page.evaluate(() => { MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 30); g.p.money = Math.max(g.p.money, 1e7); g.p.dirty = 0; MV.UI.showAssets(); });
+    await page.waitForSelector('#realty-market');
+    if (!(await page.$('#insurance'))) errors.push('Bienes no muestra la sección de seguros');
+    if (await page.$('#dirty-money')) errors.push('Bienes muestra el dinero sucio sin tenerlo');
+    const buyTxt = await sheetText();
+    ['Locales comerciales', 'Terrenos', 'Edificios de departamentos', 'Casas de vacaciones'].forEach((t) => { if (!buyTxt.includes(t)) errors.push('"Comprar" no ofrece ' + t); });
+    if (/null|undefined|NaN/.test(buyTxt)) errors.push('Bienes muestra texto roto: ' + buyTxt.match(/.{0,40}(null|undefined|NaN).{0,20}/)[0]);
+    await page.evaluate(() => { MV.UI.closeAll(); MV.UI.g.p.dirty = 120000; MV.UI.showAssets(); });
+    await page.waitForSelector('#dirty-money');
+    const methods = await page.$$('#dirty-money .row');
+    if (methods.length !== 4) errors.push('El dinero sucio no lista 4 métodos: ' + methods.length);
+    const houseId = await page.evaluate(() => {
+      MV.UI.closeAll(); const g = MV.UI.g;
+      const it = MV.sys.money.listings(g, 'casa')[0];
+      MV.sys.money.buy(g, it, false);
+      const a = g.p.assets[g.p.assets.length - 1];
+      if (g.p.home === a.id) { g.p.home = null; g.p.housing = 'alquiler'; g.p.rent = MV.RENTALS[1]; }
+      MV.sys.realty.rentOut(g, a.id, 'caro');
+      MV.UI.showAsset(a.id);
+      return a.id;
+    });
+    await page.waitForSelector('#rent-panel');
+    const rentTxt = await page.$eval('#rent-panel', (e) => e.textContent);
+    const tenant = await page.evaluate((id) => { const a = MV.UI.g.p.assets.find((x) => x.id === id); return { name: a.rent.tenant.name, icon: MV.TENANT_KINDS[a.rent.tenant.kind].icon }; }, houseId);
+    if (!/caro/.test(rentTxt) || !rentTxt.includes(tenant.name) || !rentTxt.includes(tenant.icon)) errors.push('La ficha no muestra el alquiler y su inquilino: ' + rentTxt);
+    const assetTxt = await sheetText();
+    if (/null|undefined|NaN/.test(assetTxt)) errors.push('La ficha de la propiedad muestra texto roto');
+    if (!/Asegurar/.test(assetTxt)) errors.push('La ficha no ofrece el seguro de hogar');
+    await page.evaluate(() => { MV.UI.closeAll(); const g = MV.UI.g; g.p.retired = false; g.p.pension = 0; MV.sys.career.hire(g, MV.jobById('cajero')); MV.UI.showWork(); });
+    await page.waitForSelector('#pension-box');
+    const rates = await page.$$eval('#pension-box .row', (els) => els.map((e) => e.textContent).filter((t) => /aportar/i.test(t)));
+    if (rates.length !== 4) errors.push('La caja de jubilación no ofrece 4 aportes: ' + rates.join(' | '));
+    const workTxt = await sheetText();
+    if (/null|undefined|NaN/.test(workTxt)) errors.push('Ocupación muestra texto roto con la jubilación');
+    await page.evaluate(() => { MV.UI.closeAll(); MV.UI.g.p.dirty = 0; });
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {

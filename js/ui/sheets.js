@@ -32,6 +32,23 @@
     UI.sheet({ title: 'Ocupación', icon: '💼', render: renderWork });
   };
 
+  /** Caja "Jubilación": fondo, aporte, pensión estimada y retiro con tu ahorro. */
+  function pensionBox(g) {
+    const p = g.p, RT = MV.sys.retirement;
+    const fund = p.pensionFund || 0, rate = p.pensionRate || 0;
+    const P = RT.pensionFor(g);
+    const box = h('div', { class: 'box' }, kv('Ahorro previsional', U.money(fund)),
+      kv('Aporte', rate ? `${Math.round(rate * 100)} % del sueldo` : 'No aportas'),
+      kv('Pensión si te jubilas hoy', p.age >= RT.MIN_AGE ? `${U.money(P.total)} al año` : `desde los ${RT.MIN_AGE} años`),
+      h('p', { class: 'note' }, 'El fondo crece cada año. Jubilarte a los 55 paga el 70 %; esperar hasta los 70, el 120 %.'));
+    const l = h('div', { class: 'list' });
+    RT.RATES.forEach((r) => l.append(UI.row('🐷', r ? `Aportar ${Math.round(r * 100)} %` : 'No aportar', r ? (p.job ? `${U.money(Math.round((p.job.salary || 0) * r))} al año` : 'Se aporta cuando tienes trabajo') : 'Nada se descuenta del sueldo',
+      rate === r ? '✓' : null, () => UI.runSystem('🐷', () => RT.setRate(g, r)), rate === r)));
+    if (!p.job && p.age >= RT.MIN_AGE && fund > 0) l.append(UI.row('🏖️', 'Retirarte con tu ahorro', `Pensión de ${U.money(P.total)} al año`, null, () => UI.confirm('¿Retirarte con tu ahorro?', () => UI.runSystem('🏖️', () => RT.retireWithSavings(g)), 'Retirarme')));
+    if (fund > 0) l.append(UI.row('💸', 'Sacar el fondo (−30 %)', `Cobras ${U.money(Math.round(fund * 0.7))} ahora`, null, () => UI.confirm('¿Sacar el fondo? Pierdes el 30 %.', () => UI.runSystem('💸', () => RT.withdraw(g)), 'Sacar')));
+    return h('div', null, title('Jubilación'), h('div', { id: 'pension-box' }, box, l));
+  }
+
   function renderWork(body) {
     const g = UI.g, p = g.p;
     if (p.prison) {
@@ -91,6 +108,7 @@
       body.append(list);
     }
     UI.companiesSection(body);
+    if (p.age >= 18 && !p.retired) body.append(pensionBox(g));
     if (p.age < 14) return;
     body.append(title('Buscar'));
     const opts = h('div', { class: 'list' });
@@ -242,6 +260,9 @@
       }
       return;
     }
+    const mk = MV.sys.realty.market(g);
+    const MK = { auge: ['📈', 'en auge', 'Las propiedades suben un 6 % extra al año.'], estable: ['🏘️', 'estable', 'Las propiedades se mueven con la economía, sin sorpresas.'], caida: ['📉', 'en caída', 'Las propiedades pierden un 6 % al año. Buen momento para comprar barato.'] }[mk.phase];
+    body.append(h('div', { class: 'box', id: 'realty-market' }, h('b', null, `${MK[0]} Mercado inmobiliario ${MK[1]}`), h('p', { class: 'note', style: { margin: '4px 0 0' } }, MK[2])));
     // Vivienda
     body.append(title('Vivienda'));
     const home = p.home && p.assets.find((a) => a.id === p.home);
@@ -260,17 +281,45 @@
     if (!p.assets.length) body.append(note('No tienes bienes. Lo bueno: nadie te los puede robar.'));
     else {
       const l = h('div', { class: 'list' });
-      p.assets.forEach((a) => l.append(UI.row(a.icon, a.name, [`Valor ${U.money(a.value)}${a.rented ? ', alquilada' : ''}${p.home === a.id ? ', tu hogar' : ''}`, UI.condBar(a.cond)], '›', () => showAsset(a.id))));
+      p.assets.forEach((a) => l.append(UI.row(a.icon, a.name, [`Valor ${U.money(a.value)}${a.rent ? `, alquiler ${a.rent.level}` : ''}${p.home === a.id ? ', tu hogar' : ''}${MV.sys.insurance.covered(g, 'hogar', a.id) ? ', asegurada' : ''}`, UI.condBar(a.cond)], '›', () => showAsset(a.id))));
       body.append(l);
     }
     // Comprar
     body.append(title('Comprar'));
     const buy = h('div', { class: 'list' });
-    [['casa', '🏡', 'Casas y departamentos'], ['lujo', '💎', 'Lujos y caprichos']].forEach(([k, i, t]) => buy.append(UI.row(i, t, 'El mercado cambia cada año', '›', () => showMarket(k))));
+    [['casa', '🏡', 'Casas y departamentos', 'Para vivir o alquilar'], ['local', '🏪', MV.REALTY_NAMES.local, 'Se alquilan a negocios: rinden un 50 % más'],
+      ['terreno', '🌾', MV.REALTY_NAMES.terreno, 'Se valorizan más y puedes construir'], ['edificio', '🏢', MV.REALTY_NAMES.edificio, '6 departamentos para alquilar'],
+      ['vacaciones', '🏖️', MV.REALTY_NAMES.vacaciones, 'Rinden por temporada y puedes veranear'], ['lujo', '💎', 'Lujos y caprichos', 'El mercado cambia cada año']]
+      .forEach(([k, i, t, sub]) => buy.append(UI.row(i, t, sub, '›', () => showMarket(k))));
     buy.append(UI.row('🚗', 'Concesionaria', `${MV.CAR_CATALOG.length} modelos 0 km en 9 categorías, en el color que quieras`, '›', () => UI.showDealer()));
     buy.append(UI.row('📈', 'Bolsa de valores', '12 empresas que suben y bajan con las noticias del mundo', '›', () => UI.showStocks()));
     buy.append(UI.row('🎸', 'Tienda de música', 'Instrumentos para practicar, tocar y hacer carrera', '›', () => UI.showMusicShop()));
     body.append(buy);
+    // Seguros
+    const INS = MV.sys.insurance, ins = p.insurance || { vida: 0, salud: false, hogar: {} };
+    body.append(title('Seguros'));
+    const il = h('div', { class: 'list', id: 'insurance' });
+    il.append(UI.row('💀', ins.vida ? `Seguro de vida: ${U.money(ins.vida)}` : 'Seguro de vida',
+      ins.vida ? `${U.money(INS.premium(g, 'vida'))} al año · lo cobran tus herederos` : 'Una suma para tus herederos cuando mueras', '›', () => UI.sheet({
+        title: 'Seguro de vida', icon: '💀',
+        render: (b2) => {
+          b2.append(note('La suma se reparte entre tus herederos, además de la herencia. La prima sube con la edad y se duplica con mala salud.'));
+          const l2 = h('div', { class: 'list' });
+          INS.SUMS.forEach((s) => l2.append(UI.row('💀', `Asegurar ${U.money(s)}`, `${U.money(INS.premium(g, 'vida', s))} al año`, ins.vida === s ? '✓' : null,
+            () => { UI.popSheet(); UI.runSystem('💀', () => INS.buy(g, 'vida', s)); }, ins.vida === s)));
+          if (ins.vida) l2.append(UI.row('✖️', 'Cancelar el seguro de vida', 'Dejas de pagar la prima', null, () => { UI.popSheet(); UI.runSystem('💀', () => INS.cancel(g, 'vida')); }));
+          b2.append(l2);
+        }
+      })));
+    il.append(UI.row('🏥', ins.salud ? 'Seguro de salud (activo)' : 'Seguro de salud', `${U.money(INS.premium(g, 'salud'))} al año · pagas el 20 % de los tratamientos`, ins.salud ? 'Cancelar' : 'Contratar',
+      () => UI.runSystem('🏥', () => (ins.salud ? INS.cancel(g, 'salud') : INS.buy(g, 'salud')))));
+    body.append(il, note('El seguro de hogar se contrata desde la ficha de cada propiedad.'));
+    // Dinero sucio
+    if (p.dirty > 0) {
+      body.append(title('Dinero sucio'), h('div', { id: 'dirty-money' },
+        h('div', { class: 'box' }, kv('🧺 Dinero sucio', U.money(p.dirty)), h('p', { class: 'note' }, 'No se puede gastar ni suma a tu patrimonio. Lávalo antes de que alguien haga preguntas.')),
+        UI.actionList(MV.sys.dirty.actions(g))));
+    }
     // Inversiones
     body.append(title('Inversiones'));
     const inv = h('div', { class: 'list' });
@@ -339,6 +388,7 @@
           })));
           body.append(ul);
         }
+        if (MV.sys.realty.isRealty(a)) realtySection(body, g, a);
         if (MV.sys.island.isIsland(a)) UI.islandSection(body, a);
         if (a.type === 'instrumento') {
           const ma = MV.sys.music.actions(g, a);
@@ -383,12 +433,60 @@
         const l = h('div', { class: 'list' });
         l.append(UI.row('🏷️', 'Vender', `Valor estimado ${U.money(M.estimate(a))}. Elige cuánto pedir`, '›', () => showSell(a.id)));
         if (a.cond < 100) l.append(UI.row('🛠️', 'Reparar', 'Dejarlo como nuevo', null, () => UI.runSystem('🛠️', () => M.repair(g, a.id))));
-        if (a.type === 'casa' && p.home !== a.id) l.append(UI.row('📦', 'Mudarte aquí', 'Dejar de pagar alquiler', null, () => UI.runSystem('📦', () => { p.housing = 'propia'; p.home = a.id; p.rent = null; a.rented = false; MV.fx.stat(g, 'happy', 5); return `Te mudaste a ${a.name}.`; })));
-        if (a.type === 'casa' && p.home !== a.id) l.append(UI.row('🧾', a.rented ? 'Dejar de alquilarla' : 'Alquilarla a inquilinos', a.rented ? '' : `Unos ${U.money(Math.round(a.value * 0.045))} al año (las mejoras suben el alquiler)`, null, () => UI.runSystem('🧾', () => { a.rented = !a.rented; return a.rented ? `Alquilaste ${a.name}. Tus inquilinos ya preguntan por la humedad.` : 'Echaste a tus inquilinos. Te dejaron una planta muerta.'; })));
+        if (a.type === 'casa' && p.home !== a.id) l.append(UI.row('📦', 'Mudarte aquí', a.rent ? 'El inquilino tendrá que irse' : 'Dejar de pagar alquiler', null, () => UI.runSystem('📦', () => MV.sys.realty.moveIn(g, a.id))));
         body.append(l);
       }
     });
   }
+
+  /** Renta anual de un inmueble con ese nivel (en el edificio, si pagan los 6). */
+  function rentFor(a, level) {
+    const L = MV.RENT_LEVELS[level];
+    if (a.type === 'edificio') return Math.round(a.value * 0.05 * L.factor);
+    return Math.round(a.value * L.pct * (a.type === 'local' ? 1.5 : 1));
+  }
+  const LEVEL_SUB = { barato: 'Nunca queda vacío; inquilinos tranquilos', normal: 'A veces queda vacío; de todo un poco', caro: 'Rinde más, pero queda vacío y llegan morosos' };
+
+  function realtySection(body, g, a) {
+    const R = MV.sys.realty, INS = MV.sys.insurance, p = g.p;
+    if (R.rentable(g, a) || a.rent) {
+      body.append(h('h3', { class: 'section-title' }, 'Alquiler'));
+      const t = a.rent && a.rent.tenant;
+      body.append(h('div', { class: 'box', id: 'rent-panel' },
+        a.rent ? kv('Precio', `${a.rent.level} · ${U.money(rentFor(a, a.rent.level))} al año`) : kv('Estado', 'Sin alquilar'),
+        a.rent ? kv('Inquilino', t ? `${MV.TENANT_KINDS[t.kind].icon} ${t.name} (${R.kindName(t)})` : a.type === 'edificio' ? '6 departamentos' : 'Vacía') : null));
+      const rl = h('div', { class: 'list' });
+      if (!a.rent) {
+        Object.keys(MV.RENT_LEVELS).forEach((k) => rl.append(UI.row('🧾', `Alquilar ${k}`, `${U.money(rentFor(a, k))} al año · ${LEVEL_SUB[k]}`, null, () => UI.runSystem('🧾', () => R.rentOut(g, a.id, k)))));
+      } else {
+        const changed = a.rent.changed === p.age;
+        Object.keys(MV.RENT_LEVELS).filter((k) => k !== a.rent.level).forEach((k) => rl.append(UI.row('🔁', `Cambiar a ${k}`, changed ? 'Ya cambiaste el precio este año' : `${U.money(rentFor(a, k))} al año · el inquilino se queda`, null,
+          () => UI.runSystem('🔁', () => R.setLevel(g, a.id, k)), changed)));
+        rl.append(UI.row('🚪', 'Dejar de alquilar', t ? `${t.name} se va` : 'Quedan vacíos', null, () => UI.runSystem('🚪', () => R.stopRent(g, a.id))));
+      }
+      body.append(rl);
+    }
+    if (a.type === 'terreno') {
+      body.append(h('h3', { class: 'section-title' }, 'Construir'));
+      const bl = h('div', { class: 'list' });
+      const casa = a.value, local = Math.round(a.value * 1.2);
+      bl.append(UI.row('🏡', 'Construir una casa', `${U.money(casa)} · pasa a valer ${U.money(Math.round(a.value * 2.2))}`, null, () => UI.runSystem('🏡', () => R.build(g, a.id, 'casa')), p.money < casa));
+      bl.append(UI.row('🏪', 'Construir un local', `${U.money(local)} · pasa a valer ${U.money(Math.round(a.value * 2.5))}`, null, () => UI.runSystem('🏪', () => R.build(g, a.id, 'local')), p.money < local));
+      body.append(bl);
+    }
+    if (a.type === 'vacaciones') {
+      body.append(h('h3', { class: 'section-title' }, 'Temporada'), note(`Cada año rinde hasta el 12 % de su valor alquilándola por temporada.`), UI.actionList([R.summerAction(g, a.id)]));
+    }
+    if (a.type !== 'terreno') {
+      body.append(h('h3', { class: 'section-title' }, 'Seguro de hogar'));
+      const sl = h('div', { class: 'list' });
+      const on = INS.covered(g, 'hogar', a.id), prem = INS.premium(g, 'hogar', a.id);
+      sl.append(on ? UI.row('🛡️', 'Asegurada', `${U.money(prem)} al año · cubre robos, desastres y destrozos de inquilinos`, 'Cancelar', () => UI.runSystem('🛡️', () => INS.cancel(g, 'hogar', a.id)))
+        : UI.row('🛡️', 'Asegurar', `${U.money(prem)} al año (0,3 % del valor) · cubre robos, desastres y destrozos de inquilinos`, null, () => UI.runSystem('🛡️', () => INS.buy(g, 'hogar', a.id))));
+      body.append(sl);
+    }
+  }
+  UI.showAsset = showAsset;
 
   function showSell(id) {
     UI.sheet({
@@ -411,11 +509,13 @@
 
   function showMarket(kind) {
     UI.sheet({
-      title: { casa: 'Casas en venta', auto: 'Autos en venta', lujo: 'Lujos' }[kind], icon: { casa: '🏡', auto: '🚗', lujo: '💎' }[kind],
+      title: { casa: 'Casas en venta', local: 'Locales en venta', terreno: 'Terrenos en venta', edificio: 'Edificios en venta', vacaciones: 'Casas de vacaciones', auto: 'Autos en venta', lujo: 'Lujos' }[kind],
+      icon: { casa: '🏡', local: '🏪', terreno: '🌾', edificio: '🏢', vacaciones: '🏖️', auto: '🚗', lujo: '💎' }[kind],
       render: (body) => {
         const g = UI.g, p = g.p;
         const items = MV.sys.money.listings(g, kind);
-        body.append(note(`Tienes ${U.money(p.money)}.${kind === 'casa' ? ' Con hipoteca pagas solo el 20% al contado.' : ''}`));
+        const realty = MV.sys.realty.TYPES.includes(kind);
+        body.append(note(`Tienes ${U.money(p.money)}.${realty ? ' Con hipoteca pagas solo el 20% al contado.' : ''}`));
         if (!items.length) { body.append(note('No queda nada a la venta este año.')); return; }
         const l = h('div', { class: 'list' });
         items.forEach((it) => l.append(UI.row(it.icon, it.name, [U.money(it.value), UI.condBar(it.cond)], '›', () => UI.sheet({
@@ -424,7 +524,7 @@
             b2.append(h('div', { class: 'box' }, h('p', null, h('b', null, it.name)), kv('Precio', U.money(it.value)), kv('Estado', UI.condBar(it.cond))));
             const ll = h('div', { class: 'list' });
             ll.append(UI.row('💵', 'Pagar al contado', U.money(it.value), null, () => { UI.popSheet(); UI.popSheet(); UI.runSystem(it.icon, () => MV.sys.money.buy(g, it, false)); }, p.money < it.value));
-            if (kind === 'casa') ll.append(UI.row('🏦', 'Hipoteca a 25 años', `Entrada ${U.money(Math.round(it.value * 0.2))}`, null, () => { UI.popSheet(); UI.popSheet(); UI.runSystem(it.icon, () => MV.sys.money.buy(g, it, true)); }, p.money < it.value * 0.2));
+            if (realty) ll.append(UI.row('🏦', 'Hipoteca a 25 años', `Entrada ${U.money(Math.round(it.value * 0.2))}`, null, () => { UI.popSheet(); UI.popSheet(); UI.runSystem(it.icon, () => MV.sys.money.buy(g, it, true)); }, p.money < it.value * 0.2));
             b2.append(ll);
           }
         }))));

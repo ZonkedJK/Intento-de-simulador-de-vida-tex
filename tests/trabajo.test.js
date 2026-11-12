@@ -621,13 +621,13 @@ test('migración v7 → v8: los trabajos de tiempo completo reciben jefe y compa
   MV.rels(g, ['jefe', 'companero']).forEach((x) => MV.removeRel(g, x.n.id));
   delete g.p.job.boss; delete g.p.job.mates; g.version = 7;
   const back = MV.migrate(JSON.parse(JSON.stringify(g)));
-  assert.equal(back.version, 8);
-  assert.equal(MV.VERSION, 8);
+  assert.equal(back.version, MV.VERSION);
+  assert.ok(MV.VERSION >= 8);
   assert.ok(back.p.job.boss && MV.relOf(back, back.p.job.boss.id).type === 'jefe');
   assert.equal(back.p.job.mates.length, 2);
   const free = worker(MV, 82); free.version = 7;
   const b2 = MV.migrate(JSON.parse(JSON.stringify(free)));
-  assert.equal(b2.version, 8);
+  assert.equal(b2.version, MV.VERSION);
   assert.equal(b2.p.rels.filter((r) => r.type === 'jefe').length, 0);
 });
 
