@@ -40,12 +40,15 @@
       { t: 'Vengarte con música peor', eff: { happy: 3, karma: -2, msg: 'Pusiste polka a todo volumen a las 7 a.m. Victoria total.' } },
       { t: 'Negociar: fiesta solo hasta las 12', eff: { p: (g) => 0.4 + g.p.skills.carisma / 200, ok: { stress: -5, karma: 1, msg: 'Negociaste como diplomático: fiestas hasta las 12 y te invita a todas. Paz en el edificio.' }, ko: { stress: 2, msg: 'Te dijo que sí. Esa misma noche puso reguetón a las 4.' } } }
     ] });
+  // Si tu hogar está asegurado, el seguro devuelve lo robado.
+  const homeInsured = (g) => g.p.housing === 'propia' && !!g.p.home && MV.sys.insurance.covered(g, 'hogar', g.p.home);
+  const rob = (g, lost) => { if (homeInsured(g)) return ' El seguro de hogar te devolvió todo.'; fx.money(g, -lost); return ''; };
   ev({ id: 'robo_casa', age: [18, 95], w: 0.6, when: (g) => g.p.housing !== 'padres' && g.p.housing !== 'calle', icon: '🦹', title: '¡Ladrones!',
     text: 'Escuchas ruidos en tu casa a medianoche. Alguien está robando.',
     choices: [
-      { t: 'Enfrentar al ladrón', eff: (g) => { if (U.chance(0.4 + g.p.skills.deporte / 200)) { fx.stat(g, 'happy', 8); fx.stat(g, 'fame', 2); return 'Atrapaste al ladrón con un paraguas. Saliste en las noticias locales.'; } fx.stat(g, 'health', -U.int(8, 20)); const lost = Math.round(Math.max(100, g.p.money * 0.05)); fx.money(g, -lost); return `El ladrón te empujó y escapó con ${U.money(lost)}.`; } },
-      { t: 'Llamar a la policía en silencio', eff: (g) => { const lost = Math.round(Math.max(50, g.p.money * 0.03)); fx.money(g, -lost); return `La policía llegó 40 minutos tarde. Se llevaron ${U.money(lost)} y tu tostadora.`; } },
-      { t: 'Esconderte en el armario', eff: (g) => { const lost = Math.round(Math.max(100, g.p.money * 0.06)); fx.money(g, -lost); fx.stat(g, 'happy', -4); return `Te escondiste en el armario hasta el amanecer. Se llevaron ${U.money(lost)}.`; } }
+      { t: 'Enfrentar al ladrón', eff: (g) => { if (U.chance(0.4 + g.p.skills.deporte / 200)) { fx.stat(g, 'happy', 8); fx.stat(g, 'fame', 2); return 'Atrapaste al ladrón con un paraguas. Saliste en las noticias locales.'; } fx.stat(g, 'health', -U.int(8, 20)); const lost = Math.round(Math.max(100, g.p.money * 0.05)); return `El ladrón te empujó y escapó con ${U.money(lost)}.${rob(g, lost)}`; } },
+      { t: 'Llamar a la policía en silencio', eff: (g) => { const lost = Math.round(Math.max(50, g.p.money * 0.03)); return `La policía llegó 40 minutos tarde. Se llevaron ${U.money(lost)} y tu tostadora.${rob(g, lost)}`; } },
+      { t: 'Esconderte en el armario', eff: (g) => { const lost = Math.round(Math.max(100, g.p.money * 0.06)); fx.stat(g, 'happy', -4); return `Te escondiste en el armario hasta el amanecer. Se llevaron ${U.money(lost)}.${rob(g, lost)}`; } }
     ] });
   ev({ id: 'inversion_amigo', age: [22, 65], when: (g) => g.p.money >= 5000 && MV.rels(g, 'amigo').length > 0, target: H.rel('amigo'), icon: '💡', title: 'Una idea brillante',
     text: (g) => `{t} te ofrece invertir $5.000 en su negocio de ${U.pick(['comida para perros veganos', 'paraguas inteligentes', 'cursos de cómo hacer cursos', 'una app para encontrar el control remoto', 'cerveza artesanal de pepino'])}.`,
@@ -250,7 +253,7 @@
   ev({ id: 'encargo_mafia', age: [16, 80], when: (g) => !!g.p.job && g.p.job.id === 'mafia', icon: '🔫', scene: 'ciudad', title: 'Un encargo especial',
     text: 'La familia te pide "convencer" a un comerciante que no quiere pagar protección.',
     choices: [
-      { t: 'Hacerlo a la manera de la familia', eff: (g) => { fx.stat(g, 'karma', -12); fx.skill(g, 'crimen', 4); g.p.job.perf = U.clamp(g.p.job.perf + 15, 0, 100); if (U.chance(0.15)) { MV.sys.crime.arrest(g, 'Extorsión agravada', 3); return 'El comerciante tenía cámaras. Ups.'; } fx.money(g, U.int(5000, 20000)); return 'El comerciante ahora paga puntualmente. El jefe está orgulloso.'; } },
+      { t: 'Hacerlo a la manera de la familia', eff: (g) => { fx.stat(g, 'karma', -12); fx.skill(g, 'crimen', 4); g.p.job.perf = U.clamp(g.p.job.perf + 15, 0, 100); if (U.chance(0.15)) { MV.sys.crime.arrest(g, 'Extorsión agravada', 3); return 'El comerciante tenía cámaras. Ups.'; } const pay = U.int(5000, 20000); MV.sys.dirty.add(g, pay); return `El comerciante ahora paga puntualmente. El jefe está orgulloso y te dio ${U.money(pay)} (dinero sucio).`; } },
       { t: 'Negarte', eff: (g) => { if (U.chance(0.5)) { fx.stat(g, 'health', -U.int(10, 25)); return 'Te negaste. La familia te recordó, a golpes, que no se negocia.'; } g.p.job.perf = U.clamp(g.p.job.perf - 15, 0, 100); return 'Te negaste. El jefe te miró largo rato. Muy largo.'; } },
       { t: 'Avisarle al comerciante', eff: { karma: 8, p: 0.6, ok: { msg: 'Le avisaste al comerciante, que huyó a tiempo. Nadie sabe que fuiste tú.' }, ko: { health: -20, msg: 'La familia se enteró de que avisaste. Despertaste en un hospital.' } } }
     ] });

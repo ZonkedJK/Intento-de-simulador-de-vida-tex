@@ -13,7 +13,8 @@
      *  prison (true=solo en cárcel, 'any'=siempre), when(g), target(g)->id,
      *  icon, scene, title, text (string con {claves} o función(g,ctx)),
      *  ctx(g)->{datos extra del contexto}, choices:[{t, eff, when}]  ó  auto: efecto,
-     *  modal (mostrar ventana aunque sea automático).
+     *  modal (mostrar ventana aunque sea automático),
+     *  pushOnly (nunca sale al azar: solo lo encolan los sistemas, pero se revalida con when).
      */
     def(d) {
       if (!d || !d.id) throw new Error('Evento sin id');
@@ -85,7 +86,7 @@
       if (p.age === 0) return;
       const pool = [];
       EV.list.forEach((d) => {
-        if (d.manual) return;
+        if (d.manual || d.pushOnly) return;
         const ctx = EV.eligible(g, d);
         if (ctx) pool.push({ d, ctx, w: EV.weight(g, d) });
       });
@@ -103,7 +104,11 @@
         return out;
       };
       pickFrom(pool.filter((x) => x.d.choices), nChoice).forEach((x) => EV.fire(g, x.d, x.ctx));
-      pickFrom(pool.filter((x) => !x.d.choices), nAuto).forEach((x) => EV.fire(g, x.d, x.ctx));
+      // Los automáticos se aplican en orden: uno anterior puede dejar sin sentido al siguiente (p. ej. te despidieron).
+      pickFrom(pool.filter((x) => !x.d.choices), nAuto).forEach((x) => {
+        try { if (x.d.when && !x.d.when(g)) return; } catch (e) { return; }
+        EV.fire(g, x.d, x.ctx);
+      });
     },
 
     /** Dispara un evento ya elegido: a la cola si tiene decisiones, aplicado si es automático. */

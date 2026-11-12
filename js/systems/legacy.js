@@ -89,6 +89,7 @@
       g.queue = [];
       if (p.age < 30) MV.ach.unlock(g, 'joven');
       if (p.flags.muerteAbsurda) MV.ach.unlock(g, 'muerte_absurda');
+      MV.sys.dirty.seizeAtDeath(g);
       const J = p.job ? MV.sys.career.title(p) : (p.jobs.length ? p.jobs[p.jobs.length - 1].title : null);
       const best = p.edu.degrees.length ? p.edu.degrees[p.edu.degrees.length - 1] : null;
       const summary = {
@@ -101,7 +102,8 @@
         generation: g.generation, dynasty: g.dynasty, country: p.country, city: p.city,
         grandkids: MV.rels(g, 'nieto', true).length,
         works: (p.works || []).filter((w) => w.hit).map((w) => w.title).slice(-3),
-        challenge: MV.sys.challenge.label(g)
+        challenge: MV.sys.challenge.label(g),
+        lifeIns: (p.insurance && p.insurance.vida) || 0
       };
       g.summary = summary;
       MV.log(g, `Moriste a los ${p.age} años por ${cause}.`, '🪦', 'bad');
@@ -146,7 +148,9 @@
       let share = named ? (named === heirId ? 0.85 : 0.15 / Math.max(1, n - 1)) : 1 / n;
       if (n === 1) share = 1;
       const worth = Math.max(0, g.summary ? g.summary.worth : MV.netWorth(g));
-      const total = Math.round(worth * 0.9 * share);
+      // El seguro de vida se cobra aparte: no paga impuesto de herencia.
+      const life = g.summary ? (g.summary.lifeIns || 0) : ((old.insurance && old.insurance.vida) || 0);
+      const total = Math.round(worth * 0.9 * share) + Math.round(life * share);
       const houses = old.assets.filter((a) => a.type === 'casa');
       const home = houses.find((a) => a.id === old.home) || houses.slice().sort((a, b) => b.value - a.value)[0] || null;
       // Un menor no puede administrar ni vender bienes: recibe la casa y el resto en dinero.
@@ -211,10 +215,12 @@
       // Herencia: la casa familiar siempre; todos los bienes si es el único o el nombrado.
       const est = legacy.estateFor(g, kidId);
       const copies = est.assets.map((a) => Object.assign(U.deepClone(a), { id: U.uid('a'), bought: c.age }));
+      // Las marcas de edad (veraneo, desalojo, cambio de precio…) eran del padre: con otra edad no significan nada.
+      copies.forEach((a) => { delete a.summer; delete a.market; if (a.rent) ['vacant', 'changed', 'unpaid', 'broke'].forEach((k) => delete a.rent[k]); });
       copies.forEach((a) => p.assets.push(a));
       const cash = est.cash;
       const homeCopy = est.home ? copies[est.assets.indexOf(est.home)] : null;
-      if (homeCopy && c.age >= 18) { p.housing = 'propia'; p.home = homeCopy.id; p.rent = null; homeCopy.rented = false; }
+      if (homeCopy && c.age >= 18) { p.housing = 'propia'; p.home = homeCopy.id; p.rent = null; homeCopy.rented = false; delete homeCopy.rent; }
       const houseTxt = copies.length ? ` y ${copies.length === 1 ? copies[0].name.toLowerCase() : `${copies.length} bienes (entre ellos ${(homeCopy || copies[0]).name.toLowerCase()})`}` : '';
       p.money = cash;
 

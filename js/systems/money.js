@@ -35,7 +35,7 @@
       const loans = U.sum(p.loans, (l) => l.left);
       const inv = U.sum(Object.values(p.inv));
       const firms = U.sum(p.companies || [], (c) => c.value * (c.public ? c.public.stake : 1)) + (MV.sys.market ? MV.sys.market.portfolioValue(g) : 0);
-      return Math.round(p.money + assets + inv - loans + (p.business ? p.business.value : 0) + firms);
+      return Math.round(p.money + assets + inv - loans + (p.business ? p.business.value : 0) + firms + (p.pensionFund || 0));
     },
 
     addLoan(g, name, amount, years, startAge, assetId) {
@@ -125,10 +125,15 @@
       let maint = 0;
       p.assets.forEach((a) => {
         maint += money.upkeep(g, a);
-        if (a.type === 'casa') {
-          a.value = Math.round(a.value * (1 + U.float(-0.04, 0.08) + MV.sys.world.mods(g).house));
-          a.cond = U.clamp(a.cond - U.int(1, 4), 0, 100);
-          if (a.rented) { income += Math.round(a.value * 0.045); }
+        if (MV.sys.realty.isRealty(a)) {
+          // Inmuebles: noticia del mundo + mercado inmobiliario; los terrenos se valorizan más y no se desgastan.
+          a.value = Math.round(a.value * (1 + U.float(-0.04, 0.08) + MV.sys.world.mods(g).house + MV.sys.realty.marketMod(g) + (a.type === 'terreno' ? U.float(0.02, 0.06) : 0)));
+          if (a.type !== 'terreno') {
+            // Un inquilino cuidadoso desgasta la mitad (en promedio, sin decimales).
+            let wear = U.int(1, 4);
+            if (a.rent && a.rent.tenant && a.rent.tenant.kind === 'cuidadoso') wear = Math.floor((wear + U.int(0, 1)) / 2);
+            a.cond = U.clamp(a.cond - wear, 0, 100);
+          }
         } else if (a.type === 'auto') {
           a.value = Math.round(a.value * (a.classic ? U.float(0.98, 1.08) : U.float(0.82, 0.92)));
           a.cond = U.clamp(a.cond - U.int(3, 9), 0, 100);
@@ -141,6 +146,9 @@
         }
       });
       out += maint;
+      const rent = MV.sys.realty.income(g);
+      income += rent.amount;
+      lines.push(...rent.lines);
       const mgrFee = MV.sys.agency ? MV.sys.agency.managerFee(g) : 0;
       if (mgrFee) { out += mgrFee; lines.push(`mánager −${U.money(mgrFee)}`); }
       if (money.carPrestige(p) >= 70) { MV.fx.stat(g, 'looks', 1); MV.fx.stat(g, 'fame', 1); }
@@ -197,11 +205,12 @@
       const key = 'mkt_' + kind;
       // El mercado cambia una vez por año.
       if (g._mkt && g._mkt[key] && g._mkt[key].age === g.p.age) return g._mkt[key].items;
-      const src = kind === 'casa' ? MV.HOUSES : kind === 'auto' ? MV.CARS : MV.LUXURY;
+      const src = kind === 'casa' ? MV.HOUSES : kind === 'auto' ? MV.CARS : (MV.REALTY && MV.REALTY[kind]) || MV.LUXURY;
       const items = U.shuffle(src).slice(0, 6).map((t) => {
         const price = Math.round(U.int(t.price[0], t.price[1]) / 100) * 100;
         const it = { id: U.uid('a'), type: kind, kind: t.kind, icon: t.icon, value: price, cond: U.int(35, 100) };
         if (kind === 'casa') { it.name = `${t.kind} en ${U.pick(MV.STREETS)}`; it.haunted = !!t.haunted; }
+        else if (MV.REALTY && MV.REALTY[kind]) it.name = `${t.kind} en ${U.pick(MV.STREETS)}`;
         else if (kind === 'auto') { it.name = `${U.pick(MV.CAR_BRANDS)} ${U.pick(MV.CAR_MODELS)} (${t.kind.toLowerCase()})`; it.classic = /Clásico/.test(t.kind); }
         else it.name = t.kind;
         return it;
@@ -300,6 +309,7 @@
       if (loan) { net -= loan.left; p.loans = p.loans.filter((l) => l !== loan); }
       MV.fx.money(g, net);
       p.assets = p.assets.filter((x) => x !== a);
+      MV.sys.insurance.forget(g, a.id);
       g.queue = g.queue.filter((q) => !(q.ctx && q.ctx.asset === a.id));
       if (p.home === a.id) {
         p.home = null;
@@ -313,6 +323,8 @@
     upkeep(g, a) {
       if (a.type === 'casa') return Math.max(0, Math.round(a.value * 0.01 + U.sum(a.upgrades || [], (u) => (MV.HOUSE_UPGRADES.find((x) => x.id === u.id) || {}).upkeep || 0)));
       if (a.type === 'auto') return Math.round(a.value * 0.05) + 400;
+      const RU = { local: 0.01, vacaciones: 0.01, terreno: 0.002, edificio: 0.015 }[a.type];
+      if (RU) return Math.round(a.value * RU);
       const L = MV.LUXURY.find((x) => x.kind === a.kind) || {};
       return Math.round(a.value * (L.upkeep || 0));
     },

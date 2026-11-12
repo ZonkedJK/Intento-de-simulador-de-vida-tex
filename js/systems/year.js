@@ -17,7 +17,10 @@
     if (!p.prison) MV.sys.edu.yearly(g);
     MV.sys.career.yearly(g);
     MV.sys.sports.yearly(g);
+    MV.sys.realty.yearly(g);
     MV.sys.money.yearly(g);
+    MV.sys.insurance.yearly(g);
+    MV.sys.retirement.yearly(g);
     MV.sys.cars.yearly(g);
     MV.sys.company.yearly(g);
     MV.sys.market.yearly(g);
@@ -26,6 +29,7 @@
     MV.sys.mythic.yearly(g);
     MV.sys.wellbeing.yearly(g);
     MV.sys.crime.yearly(g);
+    MV.sys.dirty.yearly(g);
     MV.sys.rels.yearly(g);
     MV.sys.legacy.yearly(g);
     MV.sys.challenge.yearly(g);

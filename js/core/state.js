@@ -3,7 +3,7 @@
   'use strict';
   const U = MV.U;
 
-  MV.VERSION = 8;
+  MV.VERSION = 9;
 
   MV.LOOK = {
     SKIN: ['#f7dcc8', '#efc6a4', '#dfab84', '#c48b62', '#9c6644', '#6e4529', '#4a2e1c'],
@@ -205,6 +205,7 @@
       business: null,
       inv: { plazo: 0, indice: 0, acciones: 0, cripto: 0 },
       assets: [], housing: 'padres', rent: null, loans: [],
+      insurance: { vida: 0, salud: false, hogar: {} }, pensionFund: 0, pensionRate: 0, dirty: 0,
       conds: [], addic: { alcohol: 0, drogas: 0, apuestas: 0, tabaco: 0 },
       record: [], prison: null, wanted: 0,
       license: false, aspiration: null,

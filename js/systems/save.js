@@ -105,6 +105,24 @@
       if (g.p && g.p.job && g.p.job.type === 'full' && !g.p.job.boss && MV.sys.workplace) MV.sys.workplace.staff(g);
       g.version = 8;
     }
+    if (g.version === 8) {
+      // v9: inmuebles con inquilinos, seguros, ahorro previsional y dinero sucio.
+      const p = g.p;
+      if (p) {
+        p.dirty = p.dirty > 0 ? p.dirty : 0;
+        p.insurance = p.insurance && typeof p.insurance === 'object' ? p.insurance : { vida: 0, salud: false, hogar: {} };
+        p.insurance.hogar = p.insurance.hogar || {};
+        p.pensionFund = p.pensionFund > 0 ? p.pensionFund : 0;
+        p.pensionRate = p.pensionRate || 0;
+        (p.assets || []).forEach((a) => {
+          if (a.type !== 'casa' || !a.rented || a.rent) return;
+          if (p.home === a.id) { a.rented = false; return; }
+          a.rent = { level: 'normal', tenant: MV.sys.realty.newTenant(g, a, 'normal'), since: p.age };
+        });
+      }
+      g.realty = g.realty && g.realty.phase ? g.realty : { phase: 'estable', left: 3 };
+      g.version = 9;
+    }
     return g;
   };
 
