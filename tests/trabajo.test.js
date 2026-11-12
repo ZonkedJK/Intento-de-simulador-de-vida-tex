@@ -281,3 +281,124 @@ test('jefe gritón: esforzarse rinde 3 más; controlador: el año pesa más', ()
   };
   assert.ok(avg('controlador') < avg('ausente') - 4, 'con controlador el rendimiento cae más rápido');
 });
+
+// ——— Tarea 4: negociar el sueldo ———
+function interview(MV, g, jobId) {
+  g.queue = [];
+  MV.EV.push(g, 'entrevista', { job: jobId, q: 0, order: [0, 1, 2] }, true);
+  return MV.EV.choose(g, 0); // la respuesta 0 es la de mejor calidad
+}
+function offer(MV, g, jobId, salary) {
+  g.queue = [];
+  MV.EV.push(g, 'oferta_trabajo', { job: jobId, level: 0, salary }, true);
+  return MV.EV.view(g);
+}
+
+test('pasar la entrevista de tiempo completo trae una oferta', () => {
+  const MV = load({ seed: 41 });
+  let offers = 0;
+  for (let s = 0; s < 20 && !offers; s++) {
+    MV.rng.seed(1500 + s);
+    const g = worker(MV, 1500 + s); Object.assign(g.p.stats, { smarts: 100, looks: 100 }); g.p.skills.carisma = 100;
+    interview(MV, g, 'barrendero');
+    if (!g.queue.length) continue;
+    offers++;
+    assert.equal(g.queue[0].id, 'oferta_trabajo');
+    assert.equal(g.p.job, null, 'todavía no te contrataron');
+    const sal = g.queue[0].ctx.salary, J = MV.jobById('barrendero');
+    assert.ok(sal >= J.pay[0] * 0.9 - 1 && sal <= J.pay[0] * 1.1 + 1, 'sueldo ofrecido ' + sal);
+  }
+  assert.ok(offers, 'alguna entrevista aprobada');
+});
+
+test('medio tiempo se contrata directo', () => {
+  const MV = load({ seed: 42 });
+  let hired = 0;
+  for (let s = 0; s < 20 && !hired; s++) {
+    MV.rng.seed(1600 + s);
+    const g = worker(MV, 1600 + s); Object.assign(g.p.stats, { smarts: 100, looks: 100, health: 100 });
+    interview(MV, g, 'repartidor');
+    if (g.p.job) { hired++; assert.equal(g.p.job.id, 'repartidor'); assert.ok(!g.queue.some((q) => q.id === 'oferta_trabajo')); }
+  }
+  assert.ok(hired);
+});
+
+test('oferta: aceptar, pedir 10 % y pedir 25 %', () => {
+  const MV = load({ seed: 43 });
+  const g = worker(MV, 43);
+  const v = offer(MV, g, 'cajero', 20000);
+  assert.equal(v.choices.length, 3);
+  v.choices.forEach((c) => { assert.ok(c.sub, 'subtítulo con el riesgo'); assert.ok(!BAD_TEXT.test(c.label + c.sub), c.label); });
+  assert.match(v.choices[1].label, /22\.000/);
+  assert.match(v.choices[2].label, /25\.000/);
+  MV.EV.choose(g, 0);
+  assert.equal(g.p.job.id, 'cajero'); assert.equal(g.p.job.salary, 20000); assert.ok(W(MV).boss(g));
+  const ten = new Set();
+  for (let s = 0; s < 200; s++) {
+    MV.rng.seed(2000 + s);
+    const h = worker(MV, 2000 + s); h.p.skills.carisma = 0;
+    offer(MV, h, 'cajero', 20000);
+    const r = MV.EV.choose(h, 1);
+    assert.ok(h.p.job, 'pedir 10 % nunca deja sin trabajo');
+    ten.add(h.p.job.salary);
+    assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  }
+  assert.deepEqual([...ten].sort(), [20000, 22000]);
+  let up = 0; const seen = new Set();
+  for (let s = 0; s < 200; s++) {
+    MV.rng.seed(3000 + s);
+    const h = worker(MV, 3000 + s, 'cartero'); h.p.skills.carisma = 0;
+    const oldBoss = h.p.job.boss.id;
+    offer(MV, h, 'cajero', 20000);
+    const r = MV.EV.choose(h, 2);
+    assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+    if (h.p.job.id === 'cartero') { seen.add('retirada'); assert.equal(h.p.job.boss.id, oldBoss, 'el trabajo anterior sigue intacto'); continue; }
+    if (h.p.job.salary === 25000) { up++; seen.add('25'); } else { assert.equal(h.p.job.salary, 20000); seen.add('igual'); }
+  }
+  assert.deepEqual([...seen].sort(), ['25', 'igual', 'retirada']);
+  assert.ok(up / 200 >= 0.3 && up / 200 <= 0.5, 'tasa de éxito ' + up / 200);
+});
+
+test('aceptar una oferta con trabajo previo cambia la gente', () => {
+  const MV = load({ seed: 44 });
+  const g = worker(MV, 44, 'cajero');
+  const oldBoss = g.p.job.boss.id; MV.relOf(g, oldBoss).rel = 50;
+  offer(MV, g, 'cartero', 21000);
+  MV.EV.choose(g, 0);
+  assert.equal(g.p.job.id, 'cartero');
+  assert.equal(MV.relOf(g, oldBoss), undefined);
+  assert.ok(W(MV).boss(g) && W(MV).boss(g).n.id !== oldBoss);
+});
+
+test('pedir aumento: tres opciones', () => {
+  const MV = load({ seed: 45 });
+  const g = withBoss(MV, 45, 'ausente', 50);
+  const res = MV.doAction(g, act(MV, g, 'aumento'));
+  assert.equal(res.msg, '');
+  assert.equal(g.queue[0].id, 'pedir_aumento');
+  const v = MV.EV.view(g);
+  assert.equal(v.choices.length, 3);
+  v.choices.forEach((c) => assert.ok(c.sub && !BAD_TEXT.test(c.label + c.sub + v.text), c.label));
+  const ask = (seed, kind, rel, perf, i) => {
+    MV.rng.seed(seed);
+    const h = withBoss(MV, seed, kind, rel); h.p.job.perf = perf; h.p.job.salary = 100000; h.queue = [];
+    MV.EV.push(h, 'pedir_aumento', {}, true);
+    const r = MV.EV.choose(h, i);
+    assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+    return h;
+  };
+  let ok5 = 0;
+  for (let s = 0; s < 100; s++) if (ask(4000 + s, 'buenazo', 100, 100, 0).p.job.salary === 105000) ok5++;
+  assert.ok(ok5 >= 90, 'el 5 % casi siempre sale con todo a favor: ' + ok5);
+  let ok15 = 0;
+  for (let s = 0; s < 100; s++) if (ask(5000 + s, 'trepador', 0, 0, 1).p.job.salary === 115000) ok15++;
+  assert.ok(ok15 <= 10, 'el 15 % casi nunca sale con todo en contra: ' + ok15);
+  const seen = new Set();
+  for (let s = 0; s < 200; s++) {
+    const h = ask(6000 + s, 'ausente', 50, 50, 2);
+    if (!h.p.job) { seen.add('afuera'); assert.equal(MV.rels(h, 'jefe').length, 0, 'se limpió el jefe'); }
+    else if (h.p.job.salary === 120000) seen.add('20');
+    else { assert.equal(MV.relOf(h, h.p.job.boss.id).rel, 35); seen.add('-15'); }
+  }
+  assert.deepEqual([...seen].sort(), ['-15', '20', 'afuera']);
+});

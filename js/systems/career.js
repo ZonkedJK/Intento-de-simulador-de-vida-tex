@@ -50,11 +50,11 @@
       return '';
     },
 
-    hire(g, J, level) {
+    hire(g, J, level, salary) {
       const p = g.p;
       if (p.job) career.leave(g, 'cambio');
       const lvl = U.clamp(Math.round(level || 0), 0, J.titles.length - 1); // defensa: nunca fuera de la escalera
-      p.job = { id: J.id, level: lvl, salary: Math.round(J.pay[lvl] * U.float(0.9, 1.1)), perf: 55, years: 0, lvlYears: 0, type: J.type, start: p.age };
+      p.job = { id: J.id, level: lvl, salary: salary != null ? Math.round(salary) : Math.round(J.pay[lvl] * U.float(0.9, 1.1)), perf: 55, years: 0, lvlYears: 0, type: J.type, start: p.age };
       p.retired = false;
       MV.sys.workplace.staff(g);
       MV.ach.check(g);
@@ -204,12 +204,8 @@
           } }
       ];
       if (J.type === 'full') {
-        list.push({ id: 'aumento', icon: '💰', label: 'Pedir un aumento', sub: 'Depende de tu rendimiento', limit: 1,
-          run: (g) => {
-            if (U.chance(job.perf / 130 + p.skills.carisma / 300)) { const inc = Math.round(job.salary * U.float(0.05, 0.15)); job.salary += inc; MV.fx.stat(g, 'happy', 6); return `¡Te dieron un aumento de ${U.money(inc)} al año!`; }
-            job.perf = U.clamp(job.perf - 5, 0, 100); MV.fx.stat(g, 'happy', -4);
-            return U.pick(['Tu jefe se rió. Mucho. Demasiado.', 'Te dijeron que "no es buen momento para la empresa". Hace 10 años que no lo es.']);
-          } });
+        list.push({ id: 'aumento', icon: '💰', label: 'Pedir un aumento', sub: 'Cuánto pides y cómo, lo decides tú', limit: 1,
+          run: (g) => { MV.EV.push(g, 'pedir_aumento', {}, true); return ''; } });
         list.push({ id: 'companeros', icon: '☕', label: 'Socializar con compañeros', sub: 'Haz amigos (o enemigos)', limit: 2,
           run: (g) => {
             const c = MV.newNPC(g, { age: U.clamp(p.age + U.int(-8, 8), 18, 70), country: p.country, job: career.title(p) });
@@ -317,6 +313,11 @@
         chance += MV.sys.world.mods(g).hire;
         if (quality === 2 && U.chance(0.1)) chance = 1;
         if (U.chance(U.clamp(chance, 0.05, 0.95))) {
+          if (J.type === 'full') { // tiempo completo: primero llega la oferta para negociar
+            MV.EV.push(g, 'oferta_trabajo', { job: J.id, level: 0, salary: Math.round(J.pay[0] * U.float(0.9, 1.1)) }, true);
+            MV.fx.stat(g, 'happy', 5);
+            return '¡Pasaste la entrevista! Recursos Humanos te va a hacer una oferta.';
+          }
           career.hire(g, J);
           MV.fx.stat(g, 'happy', 10);
           return `¡Te contrataron como ${career.title(p)}! Sueldo: ${U.money(p.job.salary)} al año.`;
