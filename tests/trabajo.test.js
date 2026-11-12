@@ -458,3 +458,158 @@ test('freelance con o sin trabajo', () => {
   const h = worker(MV, 57, 'cajero'); h.p.skills.cocina = 25;
   assert.ok(!MV.doAction(h, W(MV).freelanceAction(h), 'cocina').blocked);
 });
+
+// ——— Tarea 6: decisiones laborales y traslado ———
+const WORK_EVENTS = ['trabajo_maquillar', 'trabajo_huelga', 'trabajo_traslado', 'trabajo_romance', 'trabajo_credito', 'trabajo_fiesta',
+  'trabajo_reestructuracion', 'trabajo_competencia', 'trabajo_ascenso_trampa', 'trabajo_error', 'trabajo_jefe_nuevo', 'trabajo_aliado'];
+/** Oficina completa: cajero nivel 1 de 3 (no máximo), un aliado, un rival y un chismoso. */
+function office(MV, seed) {
+  MV.rng.seed(seed);
+  const g = worker(MV, seed, 'cajero');
+  g.p.job.level = 1; g.p.money = 100000; g.p.job.salary = 50000;
+  g.p.job.mates[0].role = 'aliado'; g.p.job.mates[1].role = 'rival';
+  const n = MV.newNPC(g, { age: 30 }); MV.addRel(g, n, 'companero', 60);
+  g.p.job.mates.push({ id: n.id, role: 'chismoso', bossRel: 50 });
+  return g;
+}
+const copy = (g) => JSON.parse(JSON.stringify(g));
+function decide(MV, g, id, i) {
+  g.queue = []; MV.EV.push(g, id, {}, true);
+  const v = MV.EV.view(g);
+  const c = v.choices.find((x) => x.i === i) || v.choices[i];
+  return MV.EV.choose(g, c.i);
+}
+
+test('los 12 eventos se disparan con textos limpios', () => {
+  const MV = load({ seed: 61 });
+  WORK_EVENTS.forEach((id) => {
+    assert.ok(MV.EV.byId[id], id);
+    const g = office(MV, 61);
+    if (id === 'trabajo_reestructuracion') g.p.job.level = 2; // pide nivel 2 o más
+    g.queue = []; MV.EV.push(g, id, {}, true);
+    if (!MV.EV.byId[id].choices) { // automático: va directo al diario
+      const it = g.log[g.log.length - 1].items.slice(-1)[0];
+      assert.ok(it && !BAD_TEXT.test(it.t), id + ': ' + (it && it.t));
+      return;
+    }
+    const v = MV.EV.view(g);
+    assert.ok(v, id + ' se puede ver');
+    assert.ok(!BAD_TEXT.test(v.title + v.text), id + ': ' + v.title + ' ' + v.text);
+    v.choices.forEach((c) => {
+      assert.ok(!BAD_TEXT.test(c.label + (c.sub || '')), id + ': ' + c.label);
+      const h = copy(g);
+      const res = MV.EV.choose(h, c.i);
+      assert.ok(res && !BAD_TEXT.test(res.msg), id + ' / ' + c.label + ': ' + (res && res.msg));
+    });
+  });
+});
+
+test('efectos principales de las decisiones', () => {
+  const MV = load({ seed: 62 });
+  // Maquillar: hacerlo deja la marca; al año siguiente, a veces sale a la luz
+  let g = office(MV, 62); const m0 = g.p.money;
+  decide(MV, g, 'trabajo_maquillar', 0);
+  assert.equal(g.p.job.cooked, g.p.age); assert.equal(g.p.money, m0 + 5000);
+  let caught = 0;
+  for (let s = 0; s < 200; s++) {
+    const h = office(MV, 9000 + s); h.p.job.cooked = h.p.age - 1;
+    W(MV).yearly(h);
+    if (!h.p.job) { caught++; assert.ok(h.p.record.some((r) => r.crime === 'Fraude contable')); }
+  }
+  assert.ok(caught / 200 > 0.2 && caught / 200 < 0.5, 'sale a la luz ~35 %: ' + caught / 200);
+  // Huelga: sumarte cuesta el 10 % del sueldo
+  g = office(MV, 63); const m1 = g.p.money; decide(MV, g, 'trabajo_huelga', 0);
+  assert.equal(g.p.money, m1 - 5000);
+  // Traslado: otro país, ciudad de ese país y +30 %
+  g = office(MV, 64); const c0 = g.p.country; decide(MV, g, 'trabajo_traslado', 0);
+  assert.notEqual(g.p.country, c0);
+  assert.ok(MV.COUNTRIES[g.p.country].cities.includes(g.p.city), g.p.city);
+  assert.equal(g.p.job.salary, 65000);
+  // Romance: sin pareja → pareja; con cónyuge → amante
+  g = office(MV, 65); decide(MV, g, 'trabajo_romance', 0);
+  assert.equal(MV.rels(g, 'pareja').length, 1);
+  g = office(MV, 66); const sp = MV.newNPC(g, { age: 30 }); MV.addRel(g, sp, 'conyuge', 70);
+  decide(MV, g, 'trabajo_romance', 0);
+  assert.equal(MV.rels(g, 'amante').length, 1);
+  // Crédito: vengarte deja al rival como enemigo
+  g = office(MV, 67); const rival = W(MV).mate(g, 'rival').n.id; decide(MV, g, 'trabajo_credito', 2);
+  assert.equal(MV.relOf(g, rival).type, 'enemigo');
+  // Fiesta: irte temprano baja 3 de estrés
+  g = office(MV, 68); g.p.stress = 40; decide(MV, g, 'trabajo_fiesta', 2);
+  assert.equal(g.p.stress, 37);
+  // Reestructuración: despedir al rival / renunciar en protesta
+  g = office(MV, 69); g.p.job.level = 2; const rv = W(MV).mate(g, 'rival').n.id;
+  decide(MV, g, 'trabajo_reestructuracion', 0);
+  assert.equal(MV.relOf(g, rv).type, 'enemigo'); assert.ok(!g.p.job.mates.some((m) => m.id === rv));
+  g = office(MV, 70); g.p.job.level = 2; decide(MV, g, 'trabajo_reestructuracion', 2);
+  assert.equal(g.p.job, null);
+  // Competencia: aceptar da +20 %, jefe nuevo y lvlYears 0
+  g = office(MV, 71); const b0 = g.p.job.boss.id; MV.relOf(g, b0).rel = 50; g.p.job.lvlYears = 3;
+  decide(MV, g, 'trabajo_competencia', 0);
+  assert.equal(g.p.job.salary, 60000); assert.notEqual(W(MV).boss(g).n.id, b0); assert.equal(g.p.job.lvlYears, 0);
+  // Ascenso con trampa: sube de nivel y fija los fines de semana
+  g = office(MV, 72); decide(MV, g, 'trabajo_ascenso_trampa', 0);
+  assert.equal(g.p.job.level, 2); assert.equal(g.p.job.weekends, true);
+  // Error: culpar con éxito deja al compañero como enemigo
+  let blamed = 0;
+  for (let s = 0; s < 40 && !blamed; s++) {
+    g = office(MV, 9500 + s); const before = g.p.job.mates.map((m) => m.id);
+    decide(MV, g, 'trabajo_error', 1);
+    if (before.some((id) => (MV.relOf(g, id) || {}).type === 'enemigo')) blamed++;
+  }
+  assert.ok(blamed, 'culpar a veces funciona');
+  // Esconderlo: al año siguiente, a veces se descubre
+  let found = 0;
+  for (let s = 0; s < 100; s++) { const h = office(MV, 9600 + s); h.p.job.perf = 60; h.p.job.hidden = h.p.age - 1; W(MV).yearly(h); if (h.p.job.perf === 35) found++; }
+  assert.ok(found > 25 && found < 75, 'esconderlo sale a la luz ~50 %: ' + found);
+  // Jefe nuevo y aliado (automáticos)
+  g = office(MV, 73); const b1 = g.p.job.boss.id; MV.EV.push(g, 'trabajo_jefe_nuevo', {}, true);
+  assert.notEqual(W(MV).boss(g).n.id, b1);
+  g = office(MV, 74); g.p.job.perf = 50; MV.EV.push(g, 'trabajo_aliado', {}, true);
+  assert.equal(g.p.job.perf, 56);
+});
+
+test('traslado con casa, pareja e hijos', () => {
+  const MV = load({ seed: 75 });
+  const g = office(MV, 75);
+  g.p.housing = 'propia'; g.p.assets.push({ id: 'casa1', type: 'casa', kind: 'Casa pequeña', value: 100000, cond: 80, bought: 25 }); g.p.home = 'casa1';
+  const sp = MV.newNPC(g, { age: 30 }); MV.addRel(g, sp, 'conyuge', 70);
+  const kid = MV.newNPC(g, { age: 5 }); MV.addRel(g, kid, 'hijo', 80);
+  decide(MV, g, 'trabajo_traslado', 0);
+  assert.equal(MV.relOf(g, sp.id).type, 'conyuge');
+  assert.equal(MV.relOf(g, kid.id).type, 'hijo');
+  assert.ok(g.p.assets.some((a) => a.id === 'casa1'));
+  assert.ok(MV.COUNTRIES[g.p.country].cities.includes(g.p.city));
+  g.queue = [];
+  assert.doesNotThrow(() => MV.ageUp(g));
+});
+
+test('los eventos no salen sin trabajo de tiempo completo', () => {
+  const MV = load({ seed: 76 });
+  const none = worker(MV, 76); const part = worker(MV, 77, 'repartidor');
+  WORK_EVENTS.forEach((id) => {
+    assert.equal(MV.EV.eligible(none, MV.EV.byId[id]), null, id + ' sin trabajo');
+    assert.equal(MV.EV.eligible(part, MV.EV.byId[id]), null, id + ' con medio tiempo');
+  });
+});
+
+test('la pareja de la oficina no se vuelve "amiga" al dejar el trabajo', () => {
+  const MV = load({ seed: 78 });
+  const g = office(MV, 78);
+  decide(MV, g, 'trabajo_romance', 0);
+  const lover = MV.rels(g, 'pareja')[0].n.id;
+  MV.relOf(g, lover).rel = 90;
+  MV.sys.career.leave(g, 'renuncia');
+  assert.equal(MV.relOf(g, lover).type, 'pareja');
+});
+
+test('un despido por la auditoría corta el año laboral sin errores', () => {
+  const MV = load({ seed: 79 });
+  let fired = 0;
+  for (let s = 0; s < 60; s++) {
+    const g = office(MV, 9700 + s); g.p.job.cooked = g.p.age - 1; g.p.job.perf = 90; g.p.job.lvlYears = 5;
+    assert.doesNotThrow(() => MV.sys.career.yearly(g));
+    if (!g.p.job) fired++;
+  }
+  assert.ok(fired, 'algún despido por la auditoría');
+});

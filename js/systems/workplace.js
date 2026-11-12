@@ -37,11 +37,11 @@
       if (!job) return;
       if (job.boss) {
         const r = MV.relOf(g, job.boss.id);
-        if (r) { if (r.rel >= 80) r.type = 'amigo'; else MV.removeRel(g, job.boss.id); }
+        if (r && r.type === 'jefe') { if (r.rel >= 80) r.type = 'amigo'; else MV.removeRel(g, job.boss.id); }
       }
-      (job.mates || []).forEach((m) => {
+      (job.mates || []).forEach((m) => { // la pareja o el enemigo de la oficina siguen siéndolo
         const r = MV.relOf(g, m.id);
-        if (r) { if (r.rel > 60) r.type = 'amigo'; else MV.removeRel(g, m.id); }
+        if (r && r.type === 'companero') { if (r.rel > 60) r.type = 'amigo'; else MV.removeRel(g, m.id); }
       });
       job.boss = null;
       job.mates = [];
@@ -121,12 +121,39 @@
     yearly(g) {
       const p = g.p, job = p.job;
       if (!isFull(p)) return;
+      // Seguimientos de decisiones del año pasado
+      if (job.cooked === p.age - 1) {
+        delete job.cooked;
+        if (U.chance(0.35)) {
+          p.record.push({ crime: 'Fraude contable', age: p.age, years: 0 });
+          MV.fx.stat(g, 'karma', -2);
+          MV.sys.career.fire(g, 'La auditoría encontró los números que "ajustaste". Te llevaste un antecedente de regalo.');
+          return;
+        }
+      }
+      if (job.hidden === p.age - 1) {
+        delete job.hidden;
+        if (U.chance(0.5)) { job.perf = U.clamp(job.perf - 25, 0, 100); MV.log(g, 'Salió a la luz el error que escondiste el año pasado. Ahora todos te revisan dos veces el trabajo.', '💥', 'bad'); }
+      }
       if (!workplace.boss(g)) workplace.newBoss(g, true);
       workplace.staff(g);
       const B = workplace.boss(g);
       const extra = (B ? B.K.stress : 0) + (job.weekends ? 4 : 0);
       if (extra) MV.fx.stat(g, 'stress', extra);
       workplace.bonus(g);
+    },
+
+    /** Traslado a otro país con +30 %: país y ciudad nuevos, jefe y compañeros nuevos. Pareja, hijos y bienes no cambian. */
+    move(g) {
+      const p = g.p;
+      const k = U.pick(Object.keys(MV.COUNTRIES).filter((c) => c !== p.country)), C = MV.COUNTRIES[k];
+      p.country = k;
+      p.city = U.pick(C.cities);
+      p.job.salary = Math.round(p.job.salary * 1.3);
+      workplace.restaff(g);
+      MV.fx.stat(g, 'happy', 5);
+      MV.fx.stat(g, 'stress', 5);
+      return `Te mudaste a ${p.city}, ${C.name} ${C.flag}. Nuevo sueldo: ${U.money(p.job.salary)} al año, jefe nuevo y una máquina de café que no entiendes.`;
     },
 
     // ——— Encargos freelance (con o sin trabajo) ———

@@ -148,6 +148,7 @@
       if (J.type === 'fame' || J.type === 'crime') { career.yearlySpecial(g, J); return; }
       job.salary = Math.round(job.salary * U.float(1.01, 1.05));
       WP.yearly(g);
+      if (!p.job) return; // la auditoría del año pasado pudo terminar en despido
       const FR = WP.fireRule(g);
       if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45 + (job.trained === p.age - 1 ? 0.2 : 0) + WP.promoMod(g))) career.promote(g);
       else if (job.perf <= FR.perf && U.chance(FR.chance)) career.fire(g, 'Tu rendimiento fue "decepcionante", según el correo de Recursos Humanos.');
