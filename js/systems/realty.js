@@ -122,13 +122,13 @@
         let r = Math.round(a.value * L.pct * (a.type === 'local' ? 1.5 : 1));
         // Desalojado: queda vacía el año del desalojo (se cobra al cumplir años, de ahí el −1).
         if (a.rent.vacant != null && a.rent.vacant >= p.age - 1) {
-          lines.push(`${a.name} estuvo vacío`);
+          lines.push(`${a.name} estuvo sin inquilinos`);
           return;
         }
         if (U.chance(L.vacancy)) {
           a.rent.tenant = realty.newTenant(g, a, a.rent.level);
           delete a.rent.owed;
-          lines.push(`${a.name} estuvo vacío`);
+          lines.push(`${a.name} estuvo sin inquilinos`);
           return;
         }
         const t = a.rent.tenant || (a.rent.tenant = realty.newTenant(g, a, a.rent.level));
@@ -154,7 +154,7 @@
     summerAction(g, id) {
       return {
         id: 'veranear_' + id, icon: '🏖️', label: 'Veranear ahí', sub: '+6 de felicidad, −8 de estrés; ese año la temporada rinde la mitad', limit: 1,
-        check: (gg) => (gg.p.assets.some((x) => x.id === id) ? null : 'Esa casa ya no es tuya.'),
+        check: (gg) => (gg.p.prison ? 'Desde la cárcel no se veranea: el patio no cuenta como playa.' : gg.p.assets.some((x) => x.id === id) ? null : 'Esa casa ya no es tuya.'),
         run: (gg) => {
           const a = gg.p.assets.find((x) => x.id === id);
           a.summer = gg.p.age;

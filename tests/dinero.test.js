@@ -697,3 +697,114 @@ test('el jugador automático vive 20 vidas con inmuebles, seguros, jubilación y
   assert.ok(done.has('investigacion_lavado'), 'ninguna investigación');
   assert.ok(rented && insured && funds, `alquiló ${rented}, aseguró ${insured}, aportó ${funds}`);
 });
+
+// ——— Revisión final ———
+test('un lavado riesgoso que vacía la bolsa sí abre la investigación', () => {
+  const MV = load({ seed: 110 });
+  let shown = 0;
+  for (let s = 0; s < 200; s++) {
+    MV.rng.seed(11000 + s);
+    const g = adult(MV, 11000 + s, 0); g.p.dirty = 100000;
+    D(MV).launder(g, 'casino');
+    if (!g.queue.some((q) => q.id === 'investigacion_lavado')) continue;
+    const v = MV.EV.view(g);
+    assert.ok(v && v.id === 'investigacion_lavado', 'la investigación encolada desapareció');
+    clean(v); assert.ok(!/\$0\b/.test(v.text), v.text);
+    shown++;
+    const r = MV.EV.choose(g, idx(v, /abogado/i));
+    assert.ok(!BAD_TEXT.test(r.msg) && !/\$0\b/.test(r.msg), r.msg);
+  }
+  assert.ok(shown > 5, 'investigaciones vistas ' + shown);
+});
+
+test('el heredero no hereda las marcas de edad ni el inquilino de su hogar', () => {
+  const MV = load({ seed: 111 });
+  const g = adult(MV, 111, 50000); g.p.age = 80; g.p.loans = [];
+  const home = own(MV, g, 'casa', 300000); g.p.home = home.id; g.p.housing = 'propia';
+  home.rent = { level: 'normal', tenant: { name: 'Ana Pérez', kind: 'puntual', gender: 'f' }, since: 70 }; // estado viejo
+  const casa = rented(MV, g, 'casa', 100000, 'barato', 'puntual'); casa.rent.vacant = 78; casa.rent.changed = 80;
+  const vac = own(MV, g, 'vacaciones', 500000); vac.summer = 79;
+  const kid = MV.newNPC(g, { age: 45, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+  MV.sys.legacy.die(g, 'una prueba');
+  const ng = MV.sys.legacy.continueAs(g, kid.id);
+  const h = ng.p.assets.find((a) => a.id === ng.p.home);
+  assert.ok(h && !h.rent && !h.rented, 'el hogar del heredero quedó alquilado');
+  const c = ng.p.assets.find((a) => a.type === 'casa' && a.rent);
+  assert.ok(c && c.rent.vacant == null && c.rent.changed == null, JSON.stringify(c && c.rent));
+  const v = ng.p.assets.find((a) => a.type === 'vacaciones');
+  assert.equal(v.summer, undefined);
+  c.rent.tenant.kind = 'puntual';
+  assert.ok(R(MV).income(ng).lines.some((l) => /alquiler de/.test(l)), 'la casa heredada no rinde');
+});
+
+test('las opciones pagas no dejan el dinero en negativo', () => {
+  const MV = load({ seed: 112 });
+  const labels = (v) => v.choices.map((c) => c.label).join(' | ');
+  const g = adult(MV, 112, 0); g.p.dirty = 300000;
+  let v = pushView(MV, g, 'investigacion_lavado', {});
+  assert.ok(!/abogado/i.test(labels(v)), labels(v));
+  g.p.money = 20000; v = pushView(MV, g, 'investigacion_lavado', {});
+  assert.ok(/abogado/i.test(labels(v)));
+  const h = adult(MV, 113, 0); const a = rented(MV, h, 'casa', 200000, 'normal', 'moroso');
+  v = pushView(MV, h, 'inquilino_no_paga', { asset: a.id });
+  assert.ok(!/Desalojar/.test(labels(v)), labels(v));
+  v = pushView(MV, h, 'inquilino_rompe', { asset: a.id });
+  assert.ok(!/Pagarlo/.test(labels(v)), labels(v));
+  h.p.money = 10000; v = pushView(MV, h, 'inquilino_rompe', { asset: a.id });
+  assert.ok(/Pagarlo/.test(labels(v)));
+});
+
+test('el encargo especial de la mafia da dinero sucio', () => {
+  const MV = load({ seed: 114 });
+  for (let s = 0; s < 40; s++) {
+    MV.rng.seed(11400 + s);
+    const g = adult(MV, 11400 + s); g.p.dirty = 0;
+    MV.sys.career.hire(g, MV.jobById('mafia'));
+    const m = g.p.money;
+    const v = pushView(MV, g, 'encargo_mafia', {});
+    const r = MV.EV.choose(g, idx(v, /manera de la familia/));
+    if (g.p.dirty > 0) { assert.equal(g.p.money, m); assert.match(r.msg, /dinero sucio/); return; }
+  }
+  assert.fail('el encargo nunca pagó');
+});
+
+test('el precio del tratamiento muestra el descuento del seguro', () => {
+  const MV = load({ seed: 115 });
+  const id = Object.keys(MV.CONDITIONS).find((k) => MV.CONDITIONS[k].cost > 1000);
+  const g = adult(MV, 115); g.p.conds = []; MV.sys.health.add(g, id);
+  I(MV).buy(g, 'salud');
+  const act = MV.ACTS.find((a) => a.id === 'medico');
+  const o = act.opts(g).find((x) => x.id === id + '|hospital');
+  assert.match(o.sub, new RegExp(MV.U.money(Math.round(MV.CONDITIONS[id].cost * MV.sys.health.TIERS.hospital.cost * 0.2)).replace(/[$.]/g, '\\$&')));
+});
+
+test('veranear no se puede desde la cárcel', () => {
+  const MV = load({ seed: 116 });
+  const g = adult(MV, 116); const a = own(MV, g, 'vacaciones', 500000);
+  g.p.prison = { left: 2, total: 2, crime: 'x', behavior: 50, since: 34 };
+  const r = MV.doAction(g, R(MV).summerAction(g, a.id));
+  assert.ok(r.blocked, r.msg); assert.equal(a.summer, undefined);
+});
+
+test('los textos nuevos concuerdan con el género', () => {
+  const MV = load({ seed: 117 });
+  const woman = (seed) => { const g = adult(MV, seed, 100000); g.p.gender = 'f'; g.p.dirty = 200000; return g; };
+  let g = woman(117); let v = pushView(MV, g, 'investigacion_lavado', {});
+  assert.match(MV.EV.choose(g, idx(v, /Huir/)).msg, /prófuga/);
+  g = woman(118); v = pushView(MV, g, 'investigacion_lavado', {});
+  assert.match(MV.EV.choose(g, idx(v, /Confesar/)).msg, /tranquila/);
+  for (let s = 0; s < 80; s++) {
+    MV.rng.seed(11900 + s);
+    const h = adult(MV, 11900 + s); const a = rented(MV, h, 'casa', 200000, 'normal', 'fiestero');
+    a.rent.tenant.gender = 'f'; const t = a.rent.tenant;
+    v = pushView(MV, h, 'inquilino_rompe', { asset: a.id });
+    const r = MV.EV.choose(h, idx(v, /Cobrar/));
+    if (a.rent.tenant !== t) { assert.ok(!/ofendidísimo/.test(r.msg), r.msg); break; }
+  }
+  const k = adult(MV, 120); k.p.gender = 'f'; k.p.retired = true;
+  assert.ok(!/jubilado\b/.test(R(MV) && MV.sys.retirement.retireWithSavings(k)));
+  const e = adult(MV, 121); const c = rented(MV, e, 'casa', 100000, 'caro', 'puntual');
+  for (let s = 0; s < 30; s++) { MV.rng.seed(12100 + s); const ls = R(MV).income(e).lines.join(' '); assert.ok(!/vací[oa]/.test(ls), ls); }
+  v = pushView(MV, e, 'inquilino_no_paga', { asset: c.id });
+  assert.ok(!v.choices.some((x) => /vací[oa]/.test(x.label + ' ' + (x.sub || ''))));
+});

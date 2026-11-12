@@ -128,9 +128,14 @@ function special(MV, g) {
     const unrented = props.filter((a) => !a.rent && R.rentable(g, a));
     const k = U.rand();
     if (k < 0.15 || (k < 0.35 && !props.length)) {
+      if (p.money < 300000 && U.chance(0.5)) p.money += 400000; // como con las empresas: plata para probar
       const kind = U.pick(R.TYPES);
       const it = U.pick(MV.sys.money.listings(g, kind).filter((x) => x.value * 0.2 <= p.money));
-      if (it) check(MV.sys.money.buy(g, it, U.chance(0.5)));
+      if (it) {
+        check(MV.sys.money.buy(g, it, p.money < it.value || U.chance(0.2)));
+        const nw = p.assets[p.assets.length - 1];
+        if (nw && R.rentable(g, nw) && !nw.rent && U.chance(0.7)) check(R.rentOut(g, nw.id, U.pick(Object.keys(MV.RENT_LEVELS))));
+      }
     } else if (k < 0.35) {
       const a = unrented.length ? U.pick(unrented) : U.pick(props), j = U.rand();
       if (a.type === 'terreno') check(R.build(g, a.id, U.pick(['casa', 'local'])));

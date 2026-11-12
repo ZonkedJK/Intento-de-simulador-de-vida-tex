@@ -95,8 +95,9 @@
         const C = MV.CONDITIONS[c.id];
         Object.keys(MV.sys.health.TIERS).forEach((t) => {
           const T = MV.sys.health.TIERS[t];
-          const cost = g.p.age < 18 ? 0 : Math.round(C.cost * T.cost);
-          out.push({ id: c.id + '|' + t, icon: C.icon, label: `${C.name}: ${T.name}`, sub: g.p.age < 18 ? 'Pagan tus padres' : U.money(cost) });
+          const ins = MV.sys.insurance.healthFactor(g) < 1;
+          const cost = g.p.age < 18 ? 0 : Math.round(C.cost * T.cost * MV.sys.insurance.healthFactor(g));
+          out.push({ id: c.id + '|' + t, icon: C.icon, label: `${C.name}: ${T.name}`, sub: g.p.age < 18 ? 'Pagan tus padres' : `${U.money(cost)}${ins ? ' (con seguro)' : ''}` });
         });
       });
       return out;

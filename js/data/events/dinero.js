@@ -32,14 +32,14 @@
           const n = swap(g, a);
           return `Esperaste… y un día encontraste las llaves en el buzón: ${t.name || 'tu inquilino'} se fue sin pagar. Ya llegó ${arrival(n)}.`;
         } },
-      { t: 'Desalojarlo', sub: 'Abogado: $3.000. La propiedad queda vacía este año',
+      { t: 'Desalojarlo', sub: 'Abogado: $3.000. Este año no cobras alquiler', when: (g) => g.p.money >= 3000,
         eff: (g, ctx) => {
           const a = rentedOf(g, ctx); if (!a) return GONE;
           const t = a.rent.tenant || {};
           fx.money(g, -3000);
           const n = swap(g, a);
           a.rent.vacant = g.p.age;
-          return `Pagaste ${U.money(3000)} de abogado y ${t.name || 'tu inquilino'} tuvo que irse. ${a.name} queda vacía este año; el próximo llega ${arrival(n)}.`;
+          return `Pagaste ${U.money(3000)} de abogado y ${t.name || 'tu inquilino'} tuvo que irse. Este año ${a.name} no tendrá inquilinos; el próximo llega ${arrival(n)}.`;
         } },
       { t: 'Perdonarlo', sub: '+3 de karma',
         eff: (g, ctx) => {
@@ -69,9 +69,10 @@
           if (U.chance(0.7)) return `${t.name || 'Tu inquilino'} pagó la reparación de mala gana.`;
           a.cond = U.clamp(a.cond - 15, 0, 100);
           const n = swap(g, a);
-          return `${t.name || 'Tu inquilino'} se fue ofendidísimo sin pagar. Nadie arregló nada y ${a.name} quedó peor. Ya llegó ${arrival(n)}.`;
+          return `${t.name || 'Tu inquilino'} se fue dando un portazo y sin pagar. Nadie arregló nada y ${a.name} quedó peor. Ya llegó ${arrival(n)}.`;
         } },
       { t: (g, ctx) => { const a = rentedOf(g, ctx); return a ? `Pagarlo tú (${U.money(repair(a))})` : 'Pagarlo tú'; }, sub: 'Para no pelear',
+        when: (g, ctx) => { const a = rentedOf(g, ctx); return !!a && g.p.money >= repair(a); },
         eff: (g, ctx) => {
           const a = rentedOf(g, ctx); if (!a) return GONE;
           fx.money(g, -repair(a));
@@ -152,10 +153,15 @@
   // ——— Investigación por lavado (la encolan dirty.launder y dirty.yearly) ———
   ev({
     id: 'investigacion_lavado', pushOnly: true, icon: '🕵️', scene: 'ciudad', title: 'Te investigan por lavado',
-    when: (g) => !g.p.prison && g.p.dirty > 0,
-    text: (g) => `Un fiscal pidió tus cuentas: no le cierran ${U.money(g.p.dirty)} que nadie sabe de dónde salieron. Tu teléfono suena demasiado.`,
+    // Sigue en pie aunque ya hayas lavado todo: lo que se investiga es el lavado.
+    when: (g) => !g.p.prison,
+    text: (g, ctx) => {
+      if (g.p.dirty > 0) return `Un fiscal pidió tus cuentas: no le cierran ${U.money(g.p.dirty)} que nadie sabe de dónde salieron. Tu teléfono suena demasiado.`;
+      return ctx.laundered ? `Un fiscal pidió tus cuentas: quiere saber de dónde salieron los ${U.money(ctx.laundered)} que lavaste. Tu teléfono suena demasiado.`
+        : 'Un fiscal pidió tus cuentas: hay movimientos que no le cierran. Tu teléfono suena demasiado.';
+    },
     choices: [
-      { t: 'Contratar un abogado', sub: '$20.000. Casi siempre se archiva',
+      { t: 'Contratar un abogado', sub: '$20.000. Casi siempre se archiva', when: (g) => g.p.money >= 20000,
         eff: (g) => {
           const p = g.p;
           fx.money(g, -20000);
@@ -163,7 +169,8 @@
           const seized = p.dirty, fine = Math.max(0, Math.round(p.money * 0.2));
           p.dirty = 0;
           fx.money(g, -fine);
-          return `Ni tu abogado pudo. Te decomisaron ${U.money(seized)} y te multaron con ${U.money(fine)}.`;
+          const lost = seized > 0 ? `Te decomisaron ${U.money(seized)}` : 'No había nada que decomisar';
+          return `Ni tu abogado pudo. ${lost}${fine > 0 ? ` y te multaron con ${U.money(fine)}` : ', y la multa no encontró de dónde cobrar'}.`;
         } },
       { t: 'Confesar', sub: 'Pierdes el sucio y vas preso 2 años',
         eff: (g) => {
@@ -173,14 +180,14 @@
           p.counters.arrestos = (p.counters.arrestos || 0) + 1;
           p.record.push({ crime: 'Lavado de dinero', age: p.age, years: 2 });
           MV.sys.crime.jail(g, 2, 'Lavado de dinero');
-          return `Confesaste todo. Te decomisaron ${U.money(seized)} y te dieron 2 años por lavado de dinero. Al menos dormiste tranquilo.`;
+          return `Confesaste todo. ${seized > 0 ? `Te decomisaron ${U.money(seized)} y te dieron` : 'Te dieron'} 2 años por lavado de dinero. Al menos dormiste ${U.gw(p.gender, 'tranquilo', 'tranquila')}.`;
         } },
       { t: 'Huir', sub: 'Conservas el sucio, pero te buscan',
         eff: (g) => {
           const p = g.p;
           p.wanted = Math.max(p.wanted || 0, 3);
           fx.stat(g, 'stress', 10);
-          return `Te fuiste con lo puesto y ${U.money(p.dirty)} en una mochila. Ahora eres prófugo: cuidado con los controles.`;
+          return `Te fuiste con lo puesto${p.dirty > 0 ? ` y ${U.money(p.dirty)} en una mochila` : ''}. Ahora eres ${U.gw(p.gender, 'prófugo', 'prófuga')}: cuidado con los controles.`;
         } }
     ]
   });

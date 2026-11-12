@@ -48,7 +48,7 @@
       MV.fx.money(g, clean);
       let msg = `${M.icon} Lavaste ${U.money(amt)}: te quedaron ${U.money(clean)} limpios (comisión ${U.money(fee)}).`;
       if (U.chance(M.risk) && !dirty.pending(g)) {
-        MV.EV.push(g, 'investigacion_lavado', {});
+        MV.EV.push(g, 'investigacion_lavado', { laundered: amt });
         msg += ' Un empleado del banco te miró raro y anotó algo.';
       }
       return msg;

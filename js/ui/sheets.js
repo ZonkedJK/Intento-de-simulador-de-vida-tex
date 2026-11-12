@@ -445,7 +445,7 @@
     if (a.type === 'edificio') return Math.round(a.value * 0.05 * L.factor);
     return Math.round(a.value * L.pct * (a.type === 'local' ? 1.5 : 1));
   }
-  const LEVEL_SUB = { barato: 'Nunca queda vacío; inquilinos tranquilos', normal: 'A veces queda vacío; de todo un poco', caro: 'Rinde más, pero queda vacío y llegan morosos' };
+  const LEVEL_SUB = { barato: 'Nunca faltan inquilinos, y son tranquilos', normal: 'A veces no hay inquilinos; de todo un poco', caro: 'Rinde más, pero a veces no hay inquilinos y llegan morosos' };
 
   function realtySection(body, g, a) {
     const R = MV.sys.realty, INS = MV.sys.insurance, p = g.p;

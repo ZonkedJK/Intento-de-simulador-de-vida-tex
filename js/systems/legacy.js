@@ -215,10 +215,12 @@
       // Herencia: la casa familiar siempre; todos los bienes si es el único o el nombrado.
       const est = legacy.estateFor(g, kidId);
       const copies = est.assets.map((a) => Object.assign(U.deepClone(a), { id: U.uid('a'), bought: c.age }));
+      // Las marcas de edad (veraneo, desalojo, cambio de precio…) eran del padre: con otra edad no significan nada.
+      copies.forEach((a) => { delete a.summer; delete a.market; if (a.rent) ['vacant', 'changed', 'unpaid', 'broke'].forEach((k) => delete a.rent[k]); });
       copies.forEach((a) => p.assets.push(a));
       const cash = est.cash;
       const homeCopy = est.home ? copies[est.assets.indexOf(est.home)] : null;
-      if (homeCopy && c.age >= 18) { p.housing = 'propia'; p.home = homeCopy.id; p.rent = null; homeCopy.rented = false; }
+      if (homeCopy && c.age >= 18) { p.housing = 'propia'; p.home = homeCopy.id; p.rent = null; homeCopy.rented = false; delete homeCopy.rent; }
       const houseTxt = copies.length ? ` y ${copies.length === 1 ? copies[0].name.toLowerCase() : `${copies.length} bienes (entre ellos ${(homeCopy || copies[0]).name.toLowerCase()})`}` : '';
       p.money = cash;
 

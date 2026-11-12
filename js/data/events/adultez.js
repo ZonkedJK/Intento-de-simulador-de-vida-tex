@@ -253,7 +253,7 @@
   ev({ id: 'encargo_mafia', age: [16, 80], when: (g) => !!g.p.job && g.p.job.id === 'mafia', icon: '🔫', scene: 'ciudad', title: 'Un encargo especial',
     text: 'La familia te pide "convencer" a un comerciante que no quiere pagar protección.',
     choices: [
-      { t: 'Hacerlo a la manera de la familia', eff: (g) => { fx.stat(g, 'karma', -12); fx.skill(g, 'crimen', 4); g.p.job.perf = U.clamp(g.p.job.perf + 15, 0, 100); if (U.chance(0.15)) { MV.sys.crime.arrest(g, 'Extorsión agravada', 3); return 'El comerciante tenía cámaras. Ups.'; } fx.money(g, U.int(5000, 20000)); return 'El comerciante ahora paga puntualmente. El jefe está orgulloso.'; } },
+      { t: 'Hacerlo a la manera de la familia', eff: (g) => { fx.stat(g, 'karma', -12); fx.skill(g, 'crimen', 4); g.p.job.perf = U.clamp(g.p.job.perf + 15, 0, 100); if (U.chance(0.15)) { MV.sys.crime.arrest(g, 'Extorsión agravada', 3); return 'El comerciante tenía cámaras. Ups.'; } const pay = U.int(5000, 20000); MV.sys.dirty.add(g, pay); return `El comerciante ahora paga puntualmente. El jefe está orgulloso y te dio ${U.money(pay)} (dinero sucio).`; } },
       { t: 'Negarte', eff: (g) => { if (U.chance(0.5)) { fx.stat(g, 'health', -U.int(10, 25)); return 'Te negaste. La familia te recordó, a golpes, que no se negocia.'; } g.p.job.perf = U.clamp(g.p.job.perf - 15, 0, 100); return 'Te negaste. El jefe te miró largo rato. Muy largo.'; } },
       { t: 'Avisarle al comerciante', eff: { karma: 8, p: 0.6, ok: { msg: 'Le avisaste al comerciante, que huyó a tiempo. Nadie sabe que fuiste tú.' }, ko: { health: -20, msg: 'La familia se enteró de que avisaste. Despertaste en un hospital.' } } }
     ] });

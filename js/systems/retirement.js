@@ -50,7 +50,7 @@
     /** Sin trabajo, desde los 55 y con fondo: te jubilas con la renta del fondo. */
     retireWithSavings(g) {
       const p = g.p;
-      if (p.retired) return 'Ya estás jubilado.';
+      if (p.retired) return `Ya estás ${U.gw(p.gender, 'jubilado', 'jubilada')}.`;
       if (p.job) return 'Con trabajo, la jubilación se pide desde Ocupación: "Jubilarte".';
       if (p.age < retirement.MIN_AGE) return 'Aún no puedes jubilarte.';
       if (!(p.pensionFund > 0)) return 'No tienes ahorro previsional.';
