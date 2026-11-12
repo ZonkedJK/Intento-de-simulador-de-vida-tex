@@ -128,8 +128,12 @@
         if (MV.sys.realty.isRealty(a)) {
           // Inmuebles: noticia del mundo + mercado inmobiliario; los terrenos se valorizan más y no se desgastan.
           a.value = Math.round(a.value * (1 + U.float(-0.04, 0.08) + MV.sys.world.mods(g).house + MV.sys.realty.marketMod(g) + (a.type === 'terreno' ? U.float(0.02, 0.06) : 0)));
-          if (a.type !== 'terreno') a.cond = U.clamp(a.cond - U.int(1, 4), 0, 100);
-          if (a.type === 'casa' && a.rented) { income += Math.round(a.value * 0.045); }
+          if (a.type !== 'terreno') {
+            // Un inquilino cuidadoso desgasta la mitad (en promedio, sin decimales).
+            let wear = U.int(1, 4);
+            if (a.rent && a.rent.tenant && a.rent.tenant.kind === 'cuidadoso') wear = Math.floor((wear + U.int(0, 1)) / 2);
+            a.cond = U.clamp(a.cond - wear, 0, 100);
+          }
         } else if (a.type === 'auto') {
           a.value = Math.round(a.value * (a.classic ? U.float(0.98, 1.08) : U.float(0.82, 0.92)));
           a.cond = U.clamp(a.cond - U.int(3, 9), 0, 100);
@@ -142,6 +146,9 @@
         }
       });
       out += maint;
+      const rent = MV.sys.realty.income(g);
+      income += rent.amount;
+      lines.push(...rent.lines);
       const mgrFee = MV.sys.agency ? MV.sys.agency.managerFee(g) : 0;
       if (mgrFee) { out += mgrFee; lines.push(`mánager −${U.money(mgrFee)}`); }
       if (money.carPrestige(p) >= 70) { MV.fx.stat(g, 'looks', 1); MV.fx.stat(g, 'fame', 1); }
