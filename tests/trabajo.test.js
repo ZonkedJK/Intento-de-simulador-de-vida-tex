@@ -145,3 +145,139 @@ test('medio tiempo, fama y deporte no tienen jefe', () => {
     assert.equal(W(MV).boss(g), null);
   });
 });
+
+// ——— Tarea 3: el jefe en el año laboral ———
+function withBoss(MV, seed, kind, rel) {
+  const g = worker(MV, seed, 'cajero');
+  g.p.job.boss.kind = kind;
+  MV.relOf(g, g.p.job.boss.id).rel = rel;
+  g.p.job.mates.forEach((m) => { m.bossRel = 50; });
+  return g;
+}
+const act = (MV, g, id) => MV.sys.career.actions(g).find((a) => a.id === id);
+
+test('la relación con el jefe mueve el ascenso', () => {
+  const MV = load({ seed: 31 });
+  const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, a + ' ≈ ' + b);
+  near(W(MV).promoMod(withBoss(MV, 31, 'ausente', 100)), 0.25);
+  near(W(MV).promoMod(withBoss(MV, 31, 'ausente', 0)), -0.25);
+  near(W(MV).promoMod(withBoss(MV, 31, 'trepador', 40)), -0.25);
+  near(W(MV).promoMod(withBoss(MV, 31, 'buenazo', 50)), 0.1);
+  const g = withBoss(MV, 31, 'ausente', 50);
+  g.p.job.mates[0].role = 'rival'; g.p.job.mates[0].bossRel = 70;
+  near(W(MV).promoMod(g), -0.1);
+});
+
+test('regla de despido', () => {
+  const MV = load({ seed: 32 });
+  assert.deepEqual(W(MV).fireRule(withBoss(MV, 32, 'ausente', 20)), { perf: 30, chance: 0.55 });
+  assert.deepEqual(W(MV).fireRule(withBoss(MV, 32, 'ausente', 50)), { perf: 22, chance: 0.4 });
+});
+
+test('estrés por carácter y fines de semana', () => {
+  const MV = load({ seed: 33 });
+  const delta = (kind, weekends) => {
+    const g = withBoss(MV, 33, kind, 50); g.p.job.perf = 50; g.p.stress = 40;
+    if (weekends) g.p.job.weekends = true;
+    W(MV).yearly(g);
+    return g.p.stress - 40;
+  };
+  const base = delta('ausente');
+  assert.equal(delta('controlador') - base, 2);
+  assert.equal(delta('griton') - base, 3);
+  assert.equal(delta('ausente', true) - base, 4);
+});
+
+test('bono: solo con buen rendimiento y sin crisis', () => {
+  const MV = load({ seed: 34 });
+  let paid = 0;
+  for (let s = 0; s < 50; s++) {
+    MV.rng.seed(700 + s);
+    const g = withBoss(MV, 700 + s, 'ausente', 50); g.p.job.perf = 90;
+    const m0 = g.p.money, amt = W(MV).bonus(g);
+    if (amt) { paid++; assert.equal(g.p.money, m0 + amt); assert.ok(amt >= g.p.job.salary * 0.05 - 1 && amt <= g.p.job.salary * 0.15 + 1, 'bono ' + amt); }
+  }
+  assert.ok(paid >= 1, 'algún bono');
+  const crisis = MV.WORLD_NEWS.find((n) => n.mods && n.mods.hire < 0);
+  for (let s = 0; s < 30; s++) {
+    MV.rng.seed(800 + s);
+    const g = withBoss(MV, 800 + s, 'ausente', 50); g.p.job.perf = 70;
+    assert.equal(W(MV).bonus(g), 0, 'sin bono con rendimiento 70');
+    const h = withBoss(MV, 800 + s, 'ausente', 50); h.p.job.perf = 95; h.world = { id: crisis.id, age: h.p.age };
+    assert.equal(W(MV).bonus(h), 0, 'sin bono en crisis');
+  }
+});
+
+test('sin jefe el trabajo sigue y llega otro', () => {
+  const MV = load({ seed: 35 });
+  const g = withBoss(MV, 35, 'buenazo', 90);
+  const old = g.p.job.boss.id;
+  MV.removeRel(g, old);
+  assert.equal(W(MV).boss(g), null);
+  assert.equal(W(MV).promoMod(g), 0, 'sin jefe cuenta como relación 50 y Ausente');
+  assert.doesNotThrow(() => MV.sys.career.actions(g));
+  W(MV).yearly(g);
+  assert.ok(W(MV).boss(g), 'llegó un jefe nuevo');
+  assert.notEqual(W(MV).boss(g).n.id, old);
+  const h = withBoss(MV, 36, 'ausente', 50);
+  MV.person(h, h.p.job.boss.id).alive = false;
+  W(MV).yearly(h);
+  assert.ok(W(MV).boss(h) && W(MV).boss(h).n.alive, 'si el jefe muere, llega otro');
+});
+
+test('hablar con el jefe según su carácter', () => {
+  const MV = load({ seed: 37 });
+  const talk = (kind, seed) => {
+    MV.rng.seed(seed);
+    const g = withBoss(MV, seed, kind, 50); g.p.job.perf = 50; g.p.stats.happy = 50;
+    const r = MV.relOf(g, g.p.job.boss.id);
+    const res = MV.doAction(g, act(MV, g, 'jefe'));
+    assert.ok(!BAD_TEXT.test(res.msg), res.msg);
+    return { rel: r.rel - 50, perf: g.p.job.perf - 50, happy: g.p.stats.happy - 50, msg: res.msg };
+  };
+  assert.equal(talk('buenazo', 1).rel, 5);
+  assert.equal(talk('controlador', 2).perf, 4);
+  const a = talk('ausente', 3); assert.equal(a.rel, 0); assert.equal(a.perf, 0);
+  const t = talk('trepador', 4); assert.equal(t.rel, 3); assert.equal(t.perf, -3);
+  const seen = new Set();
+  for (let s = 0; s < 40; s++) seen.add(talk('griton', 100 + s).happy);
+  assert.ok(seen.has(-4) && seen.has(0), [...seen].join(','));
+});
+
+test('caerle bien al jefe', () => {
+  const MV = load({ seed: 38 });
+  const g = withBoss(MV, 38, 'ausente', 50); g.p.karma = 10;
+  const mates0 = g.p.job.mates.map((m) => MV.relOf(g, m.id).rel);
+  const a = act(MV, g, 'adular');
+  assert.ok(a, 'existe la acción');
+  assert.equal(a.limit, 1);
+  MV.doAction(g, a);
+  const rel = MV.relOf(g, g.p.job.boss.id).rel;
+  assert.ok(rel >= 54 && rel <= 60, 'relación ' + rel);
+  assert.equal(g.p.karma, 9);
+  g.p.job.mates.forEach((m, i) => assert.equal(MV.relOf(g, m.id).rel, mates0[i] - 2));
+  assert.ok(MV.doAction(g, a).blocked, 'límite 1 por año');
+  const h = worker(MV, 39, 'repartidor');
+  assert.ok(!act(MV, h, 'adular'), 'medio tiempo no tiene adular');
+});
+
+test('jefe gritón: esforzarse rinde 3 más; controlador: el año pesa más', () => {
+  const MV = load({ seed: 40 });
+  for (let s = 0; s < 20; s++) {
+    MV.rng.seed(900 + s);
+    const g = withBoss(MV, 900 + s, 'griton', 50); g.p.job.perf = 50;
+    MV.doAction(g, act(MV, g, 'esforzarse'));
+    assert.ok(g.p.job.perf - 50 >= 7 && g.p.job.perf - 50 <= 13, 'gritón ' + (g.p.job.perf - 50));
+  }
+  const avg = (kind) => {
+    let sum = 0, n = 0;
+    for (let s = 0; s < 60; s++) {
+      MV.rng.seed(1200 + s);
+      const g = withBoss(MV, 1200 + s, kind, 50); g.p.job.perf = 100; g.p.stats.smarts = 0; g.p.job.lvlYears = 0;
+      MV.sys.career.yearly(g);
+      if (g.p.job) { sum += g.p.job.perf; n++; }
+    }
+    return sum / n;
+  };
+  assert.ok(avg('controlador') < avg('ausente') - 4, 'con controlador el rendimiento cae más rápido');
+});

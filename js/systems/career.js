@@ -135,7 +135,8 @@
       const job = p.job;
       job.years++; job.lvlYears++;
       const acts = p.yearActs;
-      job.perf = U.clamp(Math.round(job.perf * 0.6 + (p.stats.smarts * 0.4 + 30 + U.int(-12, 12)) * 0.4 +
+      const WP = MV.sys.workplace, B = WP.boss(g), w = B && B.kind === 'controlador' ? 0.5 : 0.6; // el controlador mira más el año
+      job.perf = U.clamp(Math.round(job.perf * w + (p.stats.smarts * 0.4 + 30 + U.int(-12, 12)) * (1 - w) +
         (acts.esforzarse || 0) * 4 - (acts.holgazanear || 0) * 6 - (p.addic.alcohol > 50 ? 6 : 0) - (p.addic.drogas > 50 ? 10 : 0)), 0, 100);
       MV.fx.stat(g, 'stress', J.stress || 3);
       if (J.skillUp) MV.fx.skill(g, J.skillUp, U.int(1, 3));
@@ -146,8 +147,10 @@
       if (J.type === 'sport') { MV.sys.sports.careerYearly(g, J); return; }
       if (J.type === 'fame' || J.type === 'crime') { career.yearlySpecial(g, J); return; }
       job.salary = Math.round(job.salary * U.float(1.01, 1.05));
-      if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45 + (job.trained === p.age - 1 ? 0.2 : 0))) career.promote(g);
-      else if (job.perf <= 22 && U.chance(0.4)) career.fire(g, 'Tu rendimiento fue "decepcionante", según el correo de Recursos Humanos.');
+      WP.yearly(g);
+      const FR = WP.fireRule(g);
+      if (job.perf >= 72 && job.lvlYears >= 2 && job.level < J.titles.length - 1 && U.chance(0.45 + (job.trained === p.age - 1 ? 0.2 : 0) + WP.promoMod(g))) career.promote(g);
+      else if (job.perf <= FR.perf && U.chance(FR.chance)) career.fire(g, 'Tu rendimiento fue "decepcionante", según el correo de Recursos Humanos.');
       else if (U.chance(MV.sys.world.mods(g).layoff * (job.perf < 60 ? 1.5 : 0.6))) career.fire(g, `Recorte de personal por la crisis: "${MV.sys.world.current(g).title.toLowerCase()}", decía el correo.`);
       if (p.job && p.age >= 72 && U.chance(0.3)) MV.log(g, 'En el trabajo te preguntan "sutilmente" cuándo piensas jubilarte.', '👴');
     },
@@ -192,7 +195,7 @@
       const job = p.job;
       const list = [
         { id: 'esforzarse', icon: '💪', label: 'Esforzarte más', sub: '+rendimiento, +estrés', limit: 3,
-          run: (g) => { job.perf = U.clamp(job.perf + U.int(4, 10), 0, 100); MV.fx.stat(g, 'stress', 4); if (J.skillUp) MV.fx.skill(g, J.skillUp, 1); return U.pick(['Trabajaste horas extra. Tu jefe lo notó (o eso crees).', 'Te quedaste hasta tarde. El guardia ya te saluda por tu nombre.', 'Entregaste todo antes de tiempo. Sospechoso.']); } },
+          run: (g) => { const Bo = MV.sys.workplace.boss(g); job.perf = U.clamp(job.perf + U.int(4, 10) + (Bo && Bo.kind === 'griton' ? 3 : 0), 0, 100); MV.fx.stat(g, 'stress', 4); if (J.skillUp) MV.fx.skill(g, J.skillUp, 1); return U.pick(['Trabajaste horas extra. Tu jefe lo notó (o eso crees).', 'Te quedaste hasta tarde. El guardia ya te saluda por tu nombre.', 'Entregaste todo antes de tiempo. Sospechoso.']); } },
         { id: 'holgazanear', icon: '🛋️', label: 'Holgazanear', sub: '+felicidad, -rendimiento', limit: 3,
           run: (g) => {
             job.perf = U.clamp(job.perf - U.int(5, 10), 0, 100); MV.fx.stat(g, 'happy', 4); MV.fx.stat(g, 'stress', -5);
@@ -228,12 +231,30 @@
             MV.fx.stat(g, 'stress', -25); MV.fx.stat(g, 'happy', 10);
             return `Te tomaste un año sabático de tu puesto de ${t}. ${U.pick(['Vas a "encontrarte a ti mism' + U.gw(p.gender, 'o', 'a') + '". O por lo menos dormir.', 'Vendiste la computadora del trabajo mentalmente.', 'Tu primer día libre dormiste 14 horas.'])}`;
           } });
-        list.push({ id: 'jefe', icon: '👔', label: 'Hablar con tu jefe', sub: 'Lotería emocional', limit: 1,
-          run: (g) => U.pick([
-            () => { job.perf = U.clamp(job.perf + 5, 0, 100); return 'Tu jefe te felicitó. Estás en su radar (en el bueno).'; },
-            () => { MV.fx.stat(g, 'stress', 5); return 'Tu jefe te dio tres proyectos nuevos "porque eres de confianza".'; },
-            () => { MV.fx.stat(g, 'happy', -3); return 'Tu jefe te mostró 200 fotos de su viaje a la playa.'; }
-          ])() });
+        list.push({ id: 'jefe', icon: '👔', label: 'Hablar con tu jefe', sub: 'Depende de su carácter', limit: 1,
+          run: (g) => {
+            const Bo = MV.sys.workplace.boss(g);
+            if (!Bo) return 'El puesto de jefe está vacante. Nadie te da órdenes (por ahora).';
+            const n = Bo.n, r = Bo.r, el = U.gw(n.gender, 'Tu jefe', 'Tu jefa');
+            const bump = (d) => { r.rel = U.clamp(r.rel + d, 0, 100); };
+            if (Bo.kind === 'buenazo') { bump(5); return `${el} ${n.first} te invitó un café y te preguntó por tu familia. Lo raro es que escuchó la respuesta.`; }
+            if (Bo.kind === 'controlador') { MV.fx.stat(g, 'stress', 6); job.perf = U.clamp(job.perf + 4, 0, 100); return `${el} ${n.first} revisó tu trabajo línea por línea. Encontró tres comas mal puestas y una idea buena (la tuya, por suerte).`; }
+            if (Bo.kind === 'griton') {
+              if (U.chance(0.5)) { MV.fx.stat(g, 'happy', -4); return `${el} ${n.first} te gritó por un informe que todavía no te había pedido.`; }
+              return `${el} ${n.first} estaba de buen humor. Solo gritó una vez, y fue de alegría.`;
+            }
+            if (Bo.kind === 'trepador') { bump(3); job.perf = U.clamp(job.perf - 3, 0, 100); return `${el} ${n.first} te escuchó con atención… y presentó tu idea en la reunión de directorio como propia.`; }
+            return `Fuiste a hablar con ${U.gw(n.gender, 'tu jefe', 'tu jefa')} ${n.first}. No estaba. Nadie sabe dónde está. Nunca nadie lo sabe.`;
+          } });
+        list.push({ id: 'adular', icon: '🍎', label: U.gw((MV.sys.workplace.boss(g) || { n: {} }).n.gender, 'Caerle bien al jefe', 'Caerle bien a la jefa'), sub: '+relación con tu jefe, −karma, tus compañeros te miran feo', limit: 1,
+          run: (g) => {
+            const Bo = MV.sys.workplace.boss(g);
+            if (!Bo) return 'No hay a quién hacerle la pelota: el puesto de jefe está vacante.';
+            Bo.r.rel = U.clamp(Bo.r.rel + U.int(4, 10), 0, 100);
+            MV.fx.stat(g, 'karma', -1);
+            (job.mates || []).forEach((m) => { const r = MV.relOf(g, m.id); if (r) r.rel = U.clamp(r.rel - 2, 0, 100); });
+            return U.pick([`Le llevaste medialunas a ${Bo.n.first} y te reíste de su chiste. Dos veces.`, `Elogiaste la corbata de ${Bo.n.first}. Era horrible. Te salió muy natural.`, `Le diste "me gusta" a todas las fotos de vacaciones de ${Bo.n.first}. Desde 2015.`]);
+          } });
       }
       if (J.type === 'fame') MV.sys.agency.careerActions(g).forEach((a) => list.push(a));
       if (J.type === 'fame' && J.id !== 'politico') list.push({ id: 'promo', icon: '📣', label: 'Promocionarte', sub: '+fama', limit: 2,
