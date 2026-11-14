@@ -210,7 +210,9 @@
       }
       const siblings = grand ? MV.rels(g, 'nieto').filter((x) => x.n.id !== kidId && x.n.parentId === c.parentId) : MV.rels(g, 'hijo').filter((x) => x.n.id !== kidId);
       siblings.forEach(({ n }) => { copy(n); p.rels.push({ id: n.id, type: 'hermano', rel: U.int(35, 85), since: 0 }); });
-      MV.rels(g, 'mascota').forEach(({ n, r }) => { if (c.age < 30) { copy(n); p.rels.push({ id: n.id, type: 'mascota', rel: r.rel, since: c.age }); } });
+      // El gato que habla era de quien murió: no pasa al heredero.
+      const talker = c.age < 30 ? MV.rels(g, 'mascota').map((x) => x.n).find((n) => n.talk) : null;
+      MV.rels(g, 'mascota').forEach(({ n, r }) => { if (c.age < 30 && !n.talk) { copy(n); p.rels.push({ id: n.id, type: 'mascota', rel: r.rel, since: c.age }); } });
 
       // Herencia: la casa familiar siempre; todos los bienes si es el único o el nombrado.
       const est = legacy.estateFor(g, kidId);
@@ -275,6 +277,7 @@
       MV.log(ng, `Ahora eres ${MV.fullName(p)}, ${grand ? U.gw(p.gender, 'nieto', 'nieta') : U.gw(p.gender, 'hijo', 'hija')} de ${MV.fullName(old)}. Generación ${ng.generation} de la dinastía ${ng.dynasty.name}.`, '🌳');
       MV.log(ng, cash > 0 || houseTxt ? `Heredaste ${U.money(cash)}${houseTxt}.` : 'No heredaste nada. Ni el reloj del abuelo.', '📜');
       if (p.job) MV.log(ng, `Trabajas como ${MV.sys.career.title(p)}.`, '💼');
+      if (talker) MV.log(ng, `${talker.first}, ${U.gw(talker.gender, 'el gato', 'la gata')} de tu ${grand ? U.gw(old.gender, 'abuelo', 'abuela') : U.gw(old.gender, 'padre', 'madre')}, se fue el día del funeral. Los vecinos juran que ${U.gw(talker.gender, 'lo', 'la')} oyeron despedirse.`, '🐈');
       MV.ach.unlock(ng, 'heredero');
       MV.ach.check(ng);
       ng.rng = MV.rng.getState();

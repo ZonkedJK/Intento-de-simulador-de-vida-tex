@@ -14,6 +14,8 @@
     filosofo: {
       name: 'filósofo gruñón|filósofa gruñona',
       intro: (c) => `Sí, hablo. Llevo años oyéndote decir tonterías y alguien tenía que contestar. Como dice el refrán: ${gn(c, 'gato', 'gata')} que calla, piensa peor de ti.`,
+      farewell: (c) => `Me voy ${gn(c, 'tranquilo', 'tranquila')}. Fuiste mejor compañía de lo que dije, y dije bastante. Recuerda el último refrán: ${gn(c, 'gato que se va querido', 'gata que se va querida')}, no se va del todo.`,
+      adopted: (c) => `Así que me regalas. Está bien. Pero escucha el último refrán: quien suelta a su ${gn(c, 'gato', 'gata')}, se queda hablando ${gp(c, 'solo', 'sola')}.`,
       advice: {
         preso: (c) => `Te faltan ${yrs(c)} ahí adentro. Pórtate bien, lee en la biblioteca y no te metas en motines: preso que hace buena letra sale antes de la cena.`,
         profugo: (c) => `Te buscan y tú paseando. Tienes ${yrs(c)} pendientes y cada año afuera es una moneda al aire. No llames la atención: gato escondido no sale en la foto.`,
@@ -55,6 +57,8 @@
     diva: {
       name: 'divo dramático|diva dramática',
       intro: (c) => `¡Por fin! ¿Sabes lo que es pasar años sin poder decirte que ese sillón es MÍO? Siéntate, que tenemos mucho de qué hablar. Sobre mí, principalmente.`,
+      farewell: (c) => `No llores... Bueno, sí, llora, y bastante, que me lo merezco. Fuiste mi mejor público. Que nadie ocupe mi sillón.`,
+      adopted: (c) => `¿Me entregas? ¿A MÍ? Voy a contar esta historia en cada casa donde viva, y tú no quedas nada bien.`,
       advice: {
         preso: (c) => `¡${yrs(c)} más ahí adentro! ¿Y a mí quién me abre las latas? Pórtate como un ángel y apela si puedes, que este drama ya duró demasiados capítulos.`,
         profugo: (c) => `¡Vivo con ${gp(c, 'un prófugo', 'una prófuga')}! Te buscan por ${yrs(c)} y yo sin arreglar para la foto del diario. No llames la atención, te lo ruego.`,
@@ -96,6 +100,8 @@
     aristocrata: {
       name: 'aristócrata venido a menos|aristócrata venida a menos',
       intro: (c) => `No te asustes. En mi otra vida fui ${gn(c, 'conde', 'condesa')} y me atendían mejor, pero contigo me conformo. Sigue sirviendo el atún: desde hoy te diré si está a la altura.`,
+      farewell: (c) => `Ha sido un honor, aunque no lo dije nunca. En mi próxima vida volveré a ser ${gn(c, 'conde', 'condesa')}; te guardaré un lugar en la corte.`,
+      adopted: (c) => `Me retiro. No es la primera vez que pierdo un palacio. De ti esperaba un poco más de clase.`,
       advice: {
         preso: (c) => `Te quedan ${yrs(c)} de condena. En mi familia también hubo presos, pero en torres con vista. Compórtate y saldrás antes; yo te espero, aunque no lo diré en público.`,
         profugo: (c) => `Te buscan y tienes ${yrs(c)} por cumplir. Un noble no huye: se retira con elegancia. Tú huyes, así que al menos no llames la atención.`,

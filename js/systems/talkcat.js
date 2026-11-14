@@ -215,6 +215,16 @@
       if (line) MV.log(g, talkcat.say(n, line), '🐈');
     },
 
+    /** Sus últimas palabras, en lugar del aviso común de las mascotas. */
+    farewell(g, n) {
+      MV.EV.info(g, { title: 'Últimas palabras', icon: '🕯️', scene: 'cementerio',
+        text: talkcat.say(n, talkcat.voice(n).farewell(talkcat.ctx(g, n))) });
+      MV.ach.unlock(g, 'ultimas_palabras');
+    },
+
+    /** Lo que dice cuando lo das en adopción. */
+    adopted(g, n) { return talkcat.say(n, talkcat.voice(n).adopted(talkcat.ctx(g, n))); },
+
     /** Cierre del año: cuenta la lealtad de cada gato y revisa si alguno empieza a hablar. */
     yearly(g) {
       const p = g.p;

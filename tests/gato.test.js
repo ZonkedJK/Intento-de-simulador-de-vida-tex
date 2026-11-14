@@ -765,3 +765,101 @@ test('aparece alguno cada pocos años', () => {
   }
   assert.ok(total >= 80 && total <= 400, `eventos del gato en 800 años: ${total}`);
 });
+
+// ——— Tarea 6: su final ———
+test('se despide al morir', () => {
+  const MV = load({ seed: 60 });
+  const lines = KINDS.map((kind, i) => {
+    const { g, n } = calm(MV, 600 + i, kind); g.p.stats.happy = 80;
+    MV.sys.people.die(g, n, 'vejez');
+    const info = g.queue.find((q) => q.info);
+    assert.equal(info.info.title, 'Últimas palabras');
+    assert.equal(info.info.text, T(MV).say(n, MV.CAT_VOICES[kind].farewell(T(MV).ctx(g, n))));
+    assert.ok(info.info.text.includes(n.first) && !BAD_TEXT.test(info.info.text));
+    assert.ok(!g.queue.some((q) => q.info && /Adiós, compañero/.test(q.info.title)), 'no repite el aviso común');
+    assert.ok(g.achLife.includes('ultimas_palabras'));
+    // Duele igual que perder a cualquier mascota con esa relación.
+    const h = calm(MV, 600 + i, kind); h.g.p.stats.happy = 80;
+    const common = cat(MV, h.g, 90);
+    MV.sys.people.die(h.g, common.n, 'vejez');
+    assert.equal(g.p.stats.happy, h.g.p.stats.happy);
+    assert.ok(h.g.queue.some((q) => q.info && /Adiós, compañero/.test(q.info.title)));
+    assert.ok(!(h.g.achLife || []).includes('ultimas_palabras'), 'un gato común no da el logro');
+    return info.info.text.replace(n.first, 'X');
+  });
+  assert.equal(new Set(lines).size, 3, 'cada voz se despide a su manera');
+});
+
+test('darlo en adopción', () => {
+  const MV = load({ seed: 61 });
+  KINDS.forEach((kind, i) => {
+    const { g, n, r } = calm(MV, 610 + i, kind); r.acts = {};
+    const common = cat(MV, g, 90);
+    const act = MV.sys.rels.actions(g, r, n).find((a) => a.id === 'regalar_mascota');
+    assert.equal(act.confirm, `¿Dar en adopción a ${n.first}? Ningún otro gato volverá a hablarte.`);
+    assert.equal(MV.sys.rels.actions(g, common.r, common.n).find((a) => a.id === 'regalar_mascota').confirm, `¿Dar en adopción a ${common.n.first}?`);
+    const expected = T(MV).say(n, MV.CAT_VOICES[kind].adopted(T(MV).ctx(g, n)));
+    const karma = g.p.karma;
+    const res = MV.doAction(g, act, undefined, r.acts);
+    assert.equal(res.msg, expected);
+    assert.equal(MV.relOf(g, n.id), undefined); assert.equal(T(MV).cat(g), null);
+    assert.equal(g.p.karma, karma - 5, 'mismos efectos que con cualquier mascota');
+    assert.ok(!(g.achLife || []).includes('ultimas_palabras'));
+  });
+});
+
+test('después de la adopción nadie más habla', () => {
+  const MV = load({ seed: 62 });
+  const { g, n, r } = calm(MV, 62); r.acts = {};
+  MV.doAction(g, MV.sys.rels.actions(g, r, n).find((a) => a.id === 'regalar_mascota'), undefined, r.acts);
+  MV.gcPeople(g);
+  assert.equal(g.people[n.id], undefined, 'el juego ya limpió a ese personaje');
+  const other = cat(MV, g, 95); other.r.loyal = 10; g.p.karma = 80;
+  for (let i = 0; i < 3; i++) T(MV).yearly(g);
+  assert.equal(other.n.talk, undefined);
+  assert.equal(T(MV).cat(g), null);
+  assert.ok(!BAD_TEXT.test(T(MV).advise(g)));
+  assert.deepEqual(T(MV).actions(g, other.r, other.n), []);
+});
+
+/** Jugador de 70 con gato que habla y un perro, que muere y deja un heredero de esa edad. */
+function heir(MV, seed, kidAge) {
+  const { g, n } = calm(MV, seed); g.p.age = 70; g.p.loans = [];
+  const dog = MV.newPet(g, 'perro', { age: 4 }); MV.addRel(g, dog, 'mascota', 80);
+  const kid = MV.newNPC(g, { age: kidAge, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+  MV.sys.legacy.die(g, 'una prueba');
+  return { g, n, dog, ng: MV.sys.legacy.continueAs(g, kid.id) };
+}
+const diary = (g) => g.log.map((y) => y.items.map((i) => i.t).join(' | ')).join(' | ');
+
+test('el heredero no lo recibe', () => {
+  const MV = load({ seed: 63 });
+  const { n, dog, ng } = heir(MV, 63, 25);
+  const pets = MV.rels(ng, 'mascota').map((x) => x.n);
+  assert.ok(pets.some((x) => x.species === 'perro' && x.first === dog.first), 'recibe al perro');
+  assert.ok(!pets.some((x) => x.talk || x.first === n.first && x.species === 'gato'), 'no recibe al gato que habla');
+  assert.ok(!Object.values(ng.people).some((x) => x.talk), 'el gato no viaja a la partida nueva');
+  const line = ng.log[ng.log.length - 1].items.map((i) => i.t).find((t) => t.includes(n.first) && /funeral/.test(t));
+  assert.ok(line && !BAD_TEXT.test(line), diary(ng));
+  assert.equal(ng.p.flags.gatoHabla, undefined);
+  // Un heredero que no recibe mascotas no tiene esa línea.
+  const old = heir(MV, 64, 40);
+  assert.equal(MV.rels(old.ng, 'mascota').length, 0);
+  assert.ok(!/funeral/.test(diary(old.ng)), diary(old.ng));
+  // Si el gato ya había muerto, tampoco.
+  const t = calm(MV, 65); t.g.p.age = 70; t.g.p.loans = [];
+  const kid = MV.newNPC(t.g, { age: 25, last: t.g.p.last }); MV.addRel(t.g, kid, 'hijo', 80);
+  MV.sys.people.die(t.g, t.n, 'vejez'); t.g.queue = [];
+  MV.sys.legacy.die(t.g, 'una prueba');
+  assert.ok(!/funeral/.test(diary(MV.sys.legacy.continueAs(t.g, kid.id))));
+});
+
+test('el heredero puede tener su propio gato que habla', () => {
+  const MV = load({ seed: 66 });
+  const { ng } = heir(MV, 66, 25);
+  ng.p.karma = 0;
+  const c = cat(MV, ng, 85); c.r.loyal = 4;
+  T(MV).yearly(ng);
+  assert.equal(c.n.talk.how, 'lealtad');
+  assert.equal(T(MV).cat(ng), c.n);
+});

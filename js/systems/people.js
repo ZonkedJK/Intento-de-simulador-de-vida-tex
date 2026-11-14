@@ -102,6 +102,7 @@
       const love = r.rel / 100;
       if (r.type === 'mascota') {
         MV.fx.stat(g, 'happy', -Math.round(4 + 10 * love));
+        if (n.talk) { MV.sys.talkcat.farewell(g, n); return; }
         MV.EV.info(g, { title: 'Adiós, compañero', text: `Tu ${label} ${n.first} murió a los ${n.age} años. ${U.pick(['Era el mejor.', 'Se fue a la granja de verdad.', 'Te dejó pelos en todos los sillones para que lo recuerdes.'])}`, icon: '🌈', scene: 'cementerio' });
         return;
       }
