@@ -452,3 +452,142 @@ test('un gato de una partida vieja no rompe el cierre del año', () => {
   T(MV).yearly(h);
   assert.equal(T(MV).rescued(h), 0);
 });
+
+// ——— Tarea 4: travesuras ———
+/** Gato que habla listo para travesuras: valores fijos para medir los cambios. */
+function mischief(MV, seed, opts) {
+  opts = opts || {};
+  MV.rng.seed(seed);
+  const t = calm(MV, seed); const p = t.g.p;
+  p.stats.happy = 50; p.karma = 0; p.money = opts.money == null ? 1000 : opts.money; t.r.rel = 50;
+  if (opts.age) p.age = opts.age;
+  if (opts.pg) p.gender = opts.pg;
+  if (opts.cg) t.n.gender = opts.cg;
+  t.g.queue = [];
+  return t;
+}
+const friend = (MV, g, rel) => { const n = MV.newNPC(g, { age: 30 }); return { n, r: MV.addRel(g, n, 'amigo', rel == null ? 50 : rel) }; };
+
+test('asaltar la pescadería', () => {
+  const MV = load({ seed: 40 });
+  let ok = 0;
+  for (let s = 0; s < 300; s++) {
+    const { g, n, r } = mischief(MV, 4000 + s);
+    const crimes = g.p.counters.delitos || 0;
+    const msg = T(MV).prank(g, 'pescaderia');
+    assert.ok(msg.includes(n.first) && !BAD_TEXT.test(msg), msg);
+    if (g.p.stats.happy === 56) { ok++; assert.equal(r.rel, 53); assert.equal(g.p.karma, 0); assert.equal(g.p.money, 1000); }
+    else { assert.equal(g.p.karma, -1); assert.equal(g.p.money, 700); assert.equal(g.p.stats.happy, 50); assert.equal(r.rel, 50); }
+    assert.equal(g.p.counters.delitos || 0, crimes, 'no cuenta como delito');
+    assert.ok(!g.queue.some((q) => q.id === 'juicio'), 'no termina en juicio');
+  }
+  assert.ok(ok / 300 > 0.55 && ok / 300 < 0.75, 'éxitos ' + ok / 300);
+});
+
+test('la multa nunca deja el dinero en negativo', () => {
+  const MV = load({ seed: 41 });
+  let fails = 0;
+  [{ money: 100 }, { money: 1000, age: 15 }].forEach((o) => {
+    for (let s = 0; s < 120; s++) {
+      const { g } = mischief(MV, 4100 + s, o);
+      T(MV).prank(g, 'pescaderia');
+      if (g.p.stats.happy === 56) continue;
+      fails++;
+      assert.equal(g.p.money, o.money, 'sin multa'); assert.equal(g.p.stats.happy, 47); assert.equal(g.p.karma, -1);
+    }
+  });
+  assert.ok(fails > 40, 'fallos vistos ' + fails);
+});
+
+test('desordenarle la casa al vecino', () => {
+  const MV = load({ seed: 42 });
+  let enemies = 0;
+  for (let s = 0; s < 300; s++) {
+    const { g, n } = mischief(MV, 4200 + s);
+    const before = MV.rels(g, 'enemigo').length;
+    const msg = T(MV).prank(g, 'vecino');
+    assert.ok(msg.includes(n.first) && !BAD_TEXT.test(msg), msg);
+    assert.equal(g.p.stats.happy, 55); assert.equal(g.p.karma, -3);
+    const now = MV.rels(g, 'enemigo');
+    if (now.length > before) { enemies++; assert.equal(now.length, before + 1); assert.equal(now[now.length - 1].r.rel, 15); assert.ok(msg.includes(now[now.length - 1].n.first)); }
+  }
+  assert.ok(enemies / 300 > 0.2 && enemies / 300 < 0.4, 'enemigos ' + enemies / 300);
+});
+
+test('espiar a alguien', () => {
+  const MV = load({ seed: 43 });
+  const seen = { good: 0, bad: 0, caught: 0 };
+  for (let s = 0; s < 400; s++) {
+    const { g, n } = mischief(MV, 4300 + s);
+    const f = friend(MV, g, 50);
+    const msg = T(MV).prank(g, 'espiar', f.n.id);
+    assert.ok(msg.includes(n.first) && msg.includes(f.n.first) && !BAD_TEXT.test(msg), msg);
+    if (f.r.rel === 58) { seen.good++; assert.equal(g.p.stats.happy, 50); }
+    else if (f.r.rel === 42) { seen.bad++; assert.equal(g.p.stats.happy, 50); }
+    else { seen.caught++; assert.equal(f.r.rel, 38); assert.equal(g.p.stats.happy, 48); }
+    assert.equal(g.p.karma, 0);
+  }
+  assert.ok(seen.good / 400 > 0.4 && seen.good / 400 < 0.6, JSON.stringify(seen));
+  assert.ok(seen.bad / 400 > 0.2 && seen.bad / 400 < 0.4, JSON.stringify(seen));
+  assert.ok(seen.caught / 400 > 0.12 && seen.caught / 400 < 0.28, JSON.stringify(seen));
+});
+
+test('espiar a quien ya no está no hace nada', () => {
+  const MV = load({ seed: 44 });
+  const { g, n } = mischief(MV, 44);
+  const dead = friend(MV, g, 50); dead.n.alive = false;
+  const stranger = MV.newNPC(g, { age: 30 });
+  const state = () => JSON.stringify([g.p.rels, g.p.stats.happy, g.p.karma, g.p.money]);
+  const before = state();
+  ['no-existe', dead.n.id, n.id, stranger.id, undefined].forEach((id) => {
+    const msg = T(MV).prank(g, 'espiar', id);
+    assert.ok(typeof msg === 'string' && msg.length > 10 && !BAD_TEXT.test(msg), `${id}: ${msg}`);
+    assert.equal(state(), before, 'nada cambia con ' + id);
+  });
+  assert.ok(!BAD_TEXT.test(T(MV).prank(g, 'otra-cosa')));
+  assert.equal(state(), before);
+});
+
+test('la acción de travesuras', () => {
+  const MV = load({ seed: 45 });
+  const { g, n, r } = mischief(MV, 45); r.acts = {};
+  const find = () => MV.sys.rels.actions(g, r, n).find((a) => a.id === 'gato_travesura');
+  assert.ok(find(), 'está en su ficha');
+  g.p.age = 11; assert.equal(find(), undefined, 'antes de los 12 no');
+  g.p.age = 30; g.p.prison = { left: 2, total: 2, crime: 'Robo', behavior: 50, since: 30 };
+  assert.equal(find(), undefined, 'en prisión no');
+  g.p.prison = null;
+  n.gender = 'f'; assert.equal(find().label, 'Planear algo con tu gata');
+  n.gender = 'm'; assert.equal(find().label, 'Planear algo con tu gato');
+  assert.equal(find().limit, 1);
+  // Sin personas en tus relaciones no se puede espiar.
+  const people = g.p.rels; g.p.rels = g.p.rels.filter((x) => x.id === n.id);
+  assert.deepEqual(find().opts(g).map((o) => o.id), ['pescaderia', 'vecino']);
+  g.p.rels = people;
+  const f = friend(MV, g, 50);
+  const spy = find().opts(g).find((o) => o.id === 'espiar:' + f.n.id);
+  assert.ok(spy && spy.label === `Espiar a ${f.n.first}`, JSON.stringify(spy));
+  assert.ok(!find().opts(g).some((o) => o.id === 'espiar:' + n.id), 'a las mascotas no se las espía');
+  find().opts(g).forEach((o) => assert.ok(o.label && !BAD_TEXT.test(o.label + ' ' + (o.sub || '')), JSON.stringify(o)));
+  // Espiar desde la acción cambia la relación con esa persona.
+  const res = MV.doAction(g, find(), spy.id, r.acts);
+  assert.ok(!res.blocked && f.r.rel !== 50, res.msg);
+  assert.ok(MV.doAction(g, find(), 'vecino', r.acts).blocked, 'una vez por año');
+  g.p.yearActs = {}; r.acts = {};
+  assert.ok(!MV.doAction(g, find(), 'vecino', r.acts).blocked);
+  assert.equal(g.p.karma, -3);
+});
+
+test('los textos de las travesuras nombran al gato con ambos géneros', () => {
+  const MV = load({ seed: 46 });
+  ['m', 'f'].forEach((pg) => ['m', 'f'].forEach((cg) => {
+    for (let s = 0; s < 40; s++) {
+      ['pescaderia', 'vecino', 'espiar'].forEach((kind) => {
+        const { g, n } = mischief(MV, 4600 + s, { pg, cg, money: s % 2 ? 1000 : 0 });
+        const f = friend(MV, g, 50);
+        const msg = T(MV).prank(g, kind, f.n.id);
+        assert.ok(msg.includes(n.first), msg); assert.ok(!BAD_TEXT.test(msg), msg);
+      });
+    }
+  }));
+});

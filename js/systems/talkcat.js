@@ -103,11 +103,69 @@
       return talkcat.say(n, line);
     },
 
+    /** Personas (no mascotas) vivas de tus relaciones: a ellas se las puede espiar. */
+    spyable(g) { return MV.rels(g).filter(({ n }) => n.species === 'humano'); },
+
+    /** Una travesura con tu gato: 'pescaderia', 'vecino' o 'espiar' (con el id de la persona). No es un delito. */
+    prank(g, kind, targetId) {
+      const p = g.p, n = talkcat.cat(g);
+      if (!n) return 'Tu gato te mira en silencio. Hoy no hay travesuras.';
+      const r = MV.relOf(g, n.id), who = n.first;
+      if (kind === 'pescaderia') {
+        if (U.chance(0.65)) {
+          MV.fx.stat(g, 'happy', 6); r.rel = U.clamp(r.rel + 3, 0, 100);
+          return U.pick([`${who} distrajo al pescadero con un maullido lastimero mientras tú te llevabas dos merluzas. Cenaron como reyes.`,
+            `Entraron, salieron y nadie vio nada. ${who} dice que fue un trabajo limpio; el olor a pescado de tu mochila dice otra cosa.`]);
+        }
+        MV.fx.stat(g, 'karma', -1);
+        if (p.age >= 18 && p.money >= 300) {
+          MV.fx.money(g, -300);
+          return `El pescadero los atrapó con las manos en la merluza. ${who} huyó por la ventana y a ti te tocó pagar una multa de ${U.money(300)}.`;
+        }
+        MV.fx.stat(g, 'happy', -3);
+        return `El pescadero los corrió con una escoba durante tres cuadras. ${who} llegó ${U.gw(n.gender, 'primero', 'primera')} a casa y no piensa hablar del tema.`;
+      }
+      if (kind === 'vecino') {
+        MV.fx.stat(g, 'happy', 5); MV.fx.stat(g, 'karma', -3);
+        let msg = U.pick([`Mientras ${who} tiraba uno por uno los adornos de la repisa, tú le cambiaste los muebles de lugar al vecino. Tardó una semana en encontrar el control remoto.`,
+          `${who} dejó huellas de barro por toda la cama del vecino y tú le pusiste sal en el azucarero. Arte puro.`]);
+        if (U.chance(0.3)) {
+          const nb = MV.newNPC(g, { age: U.int(25, 70) });
+          MV.addRel(g, nb, 'enemigo', 15);
+          msg += ` ${nb.first}, ${U.gw(nb.gender, 'el dueño', 'la dueña')} de casa, los vio salir por la ventana y juró venganza.`;
+        }
+        return msg;
+      }
+      if (kind === 'espiar') {
+        const x = talkcat.spyable(g).find((y) => y.n.id === targetId);
+        if (!x) return `${who} buscó por todo el barrio y no encontró a quién espiar. Volvió ${U.gw(n.gender, 'ofendido', 'ofendida')} y con hambre.`;
+        const t = x.n.first, k = U.rand();
+        if (k < 0.5) {
+          x.r.rel = U.clamp(x.r.rel + 8, 0, 100);
+          return `${who} siguió a ${t} toda la tarde y volvió con el informe: habla maravillas de ti cuando no estás. Ahora ${U.gw(x.n.gender, 'lo', 'la')} quieres un poco más.`;
+        }
+        if (k < 0.8) {
+          x.r.rel = U.clamp(x.r.rel - 8, 0, 100);
+          return `${who} escuchó a ${t} desde atrás de una maceta: dice que no te soporta y que cocinas peor. Ahora lo sabes.`;
+        }
+        x.r.rel = U.clamp(x.r.rel - 12, 0, 100); MV.fx.stat(g, 'happy', -2);
+        return `${t} encontró a ${who} adentro de su bolso y a ti detrás de la cortina. No hubo forma de explicarlo.`;
+      }
+      return `${who} no entendió el plan. Tú tampoco.`;
+    },
+
     /** Acciones propias del gato que habla, para su ficha. */
     actions(g, r, n) {
       if (!n || talkcat.cat(g) !== n) return [];
       return [
-        { id: 'gato_consejo', icon: '🗨️', label: 'Pedirle consejo', sub: 'Te dice qué anda mal en tu vida', limit: 1, run: (gg) => talkcat.advise(gg) }
+        { id: 'gato_consejo', icon: '🗨️', label: 'Pedirle consejo', sub: 'Te dice qué anda mal en tu vida', limit: 1, run: (gg) => talkcat.advise(gg) },
+        { id: 'gato_travesura', icon: '😼', label: U.gw(n.gender, 'Planear algo con tu gato', 'Planear algo con tu gata'), sub: 'Una vez por año. Puede salir mal', limit: 1,
+          when: (gg) => gg.p.age >= 12 && !gg.p.prison,
+          opts: (gg) => [
+            { id: 'pescaderia', icon: '🐟', label: 'Asaltar la pescadería', sub: `Pescado gratis… o una multa de ${U.money(300)}` },
+            { id: 'vecino', icon: '🏚️', label: 'Desordenarle la casa al vecino', sub: 'Muy divertido, pero baja tu karma' }
+          ].concat(talkcat.spyable(gg).map((x) => ({ id: 'espiar:' + x.n.id, icon: '🕵️', label: `Espiar a ${x.n.first}`, sub: `${MV.relLabel(x.r.type, x.n)}. Puedes enterarte de algo bueno, de algo feo, o que te descubran` }))),
+          run: (gg, o) => { const [kind, id] = String(o).split(':'); return talkcat.prank(gg, kind, id); } }
       ];
     },
 
