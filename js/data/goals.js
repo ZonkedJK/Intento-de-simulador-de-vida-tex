@@ -54,6 +54,7 @@
     { id: 'familia_numerosa', name: 'Familia numerosa', icon: '👨‍👩‍👧‍👦', desc: 'Ten 5 hijos o más.', check: (g) => kids(g) >= 5 },
     { id: 'gemelos', name: 'Doble problema', icon: '👯', desc: 'Ten gemelos.' },
     { id: 'mascota_campeona', name: 'Mascota campeona', icon: '🏅', desc: 'Gana el primer puesto en un concurso de mascotas.' },
+    { id: 'gato_habla', name: 'Me lo dijo el gato', icon: '🗨️', desc: 'Tu gato empezó a hablarte.' },
     { id: 'mascotas', name: 'Arca de Noé', icon: '🐾', desc: 'Ten 5 mascotas a la vez.', check: (g) => MV.rels(g, 'mascota').length >= 5 },
     { id: 'viajero', name: 'Trotamundos', icon: '✈️', desc: 'Haz 10 viajes.', check: (g) => (g.p.counters.viajes || 0) >= 10 },
     { id: 'astronauta', name: 'Más allá', icon: '🚀', desc: 'Viaja al espacio.' },
