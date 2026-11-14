@@ -863,3 +863,21 @@ test('el heredero puede tener su propio gato que habla', () => {
   assert.equal(c.n.talk.how, 'lealtad');
   assert.equal(T(MV).cat(ng), c.n);
 });
+
+// ——— Tarea 7: el jugador automático ———
+test('el jugador automático vive 30 vidas con gatos que hablan', () => {
+  const { live } = require('./agent');
+  const MV = load({ seed: 500 });
+  let talkers = 0, events = 0;
+  for (let s = 500; s < 530; s++) {
+    const g = MV.newGame({ seed: s });
+    live(MV, g, { acts: 4, check: (gg) => {
+      const n = T(MV).cat(gg);
+      if (n) assert.ok(KINDS.includes(n.talk.kind) && Number.isFinite(n.lifespan), 'gato que habla con datos rotos');
+    } });
+    if (g.p.flags.gatoHabla) talkers++;
+    if (Object.keys(g.evDone).some((k) => CAT_EVENTS.includes(k))) events++;
+  }
+  assert.ok(talkers >= 1, 'ninguna vida tuvo un gato que habla');
+  assert.ok(events >= 1, 'ninguna vida vio una decisión del gato');
+});

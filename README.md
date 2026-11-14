@@ -42,6 +42,7 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Citas y ligues | Después de un match o de una noche decides qué son (pareja, aventura en secreto, amigos o nada); antes de la intimidad eliges con protección (0 % de embarazo) o sin protección (60 %) |
 | Familia | Los hijos adultos se casan (con boda incluida), cambian de trabajo y te dan nietos de verdad; si no quedan hijos, heredan los nietos |
 | Mascotas | Trucos propios de cada especie y concursos con premios, trofeos y logro; gatos callejeros para recoger de cualquier edad (gatito, joven, adulto o anciano) |
+| El gato que habla | Uno de tus gatos empieza a hablar si lo cuidas 5 años seguidos, si rescatas 3 gatos callejeros o si tienes buen karma. Le toca una de tres personalidades (filósofo gruñón, diva dramática o aristócrata venido a menos) y desde entonces te da un consejo por año sobre el mayor riesgo de tu vida, comenta tu año en el diario, planea travesuras contigo, protagoniza 7 decisiones y se despide con sus últimas palabras. Uno por vida; no pasa al heredero |
 | Mascotas míticas | Un guardián del bosque cascarrabias (al plantar árboles), un dragoncito de bolsillo (lo vende un mercader en tus viajes), un unicornio gruñón (con buen karma) y un fantasma doméstico (en casas embrujadas), cada uno con dibujo, trucos y manías propias |
 | Vivir mejor | Bienestar de 0 a 100 en la tarjeta, 6 hobbies con racha, retiro de descanso y rutina anual de ejercicio y dieta |
 | Obras | Escribe libros, compone canciones, pinta cuadros y programa juegos y apps con título y género propios; la crítica da estrellas, y los éxitos pagan regalías |
@@ -51,8 +52,8 @@ Toca **+1 año** para cumplir años. Cada año pasan cosas, aparecen decisiones 
 | Crimen | 11 delitos, juicio con elección de abogado (o soborno), cárcel con pandillas, motines, fuga, apelación y libertad condicional; el botín es dinero sucio que hay que lavar (negocio, casino, contador o inmuebles) antes de que te investiguen |
 | Actividades | 78: gimnasio, médico, cirugía estética, viajes a 10 destinos, citas, discoteca, casino, lotería, karaoke, escape room, clases, maratón, refugio de animales, demandas, emigrar a 28 países y más; con buscador y favoritas |
 | Países | 28 países de Latinoamérica, Norteamérica, Europa y Asia, cada uno con sus nombres, ciudades y un deporte popular |
-| Eventos | 185 eventos al azar (132 con decisiones), más 42 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
-| Metas | 16 aspiraciones de vida, 67 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
+| Eventos | 205 eventos al azar (149 con decisiones), más 51 encadenados o especiales (como ofertas, juicios y consecuencias que vuelven años después) |
+| Metas | 16 aspiraciones de vida, 69 logros que se conservan entre vidas y 12 desafíos opcionales al nacer (millonario sin universidad, presidente antes de los 50, dinastía…) |
 | Legado | Muerte con epitafio y veredicto, resumen para copiar o compartir, testamento, herencia (el heredero recibe la casa familiar; si es el único o el nombrado, todos los bienes), árbol genealógico y cementerio de todas tus vidas |
 | Imágenes | Avatares SVG con 9 peinados, barbas, 5 expresiones, ropa según tu ocupación y accesorios; 16 escenas ilustradas; interfaz de cuaderno mejorado (tarjetas flotantes con sombra dura, resaltadores y barras en semáforo) diseñada en Figma; tema claro (cuaderno) y oscuro (pizarrón) |
 | Animaciones | Números que flotan al cambiar una estadística, avatar que salta o tiembla y dinero que cuenta (se apagan en Ajustes o con "reducir movimiento") |
