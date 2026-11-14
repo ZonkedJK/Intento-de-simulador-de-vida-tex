@@ -41,6 +41,15 @@
         despido: (c) => `Te echaron. No es el fin del mundo, es el fin de ese sueldo. Busca otro antes de que se termine el atún.`,
         ascenso: (c) => `Así que ahora eres ${c.d.title}. Te felicito a mi manera: no te voy a morder en toda la semana.`,
         casa: (c) => `Casa nueva. Ya elegí la mejor ventana. Techo propio, siesta segura.`
+      },
+      events: {
+        gato_celos: (c) => `Esa persona ocupa mi lado de la cama. Donde duermen tres, alguien duerme mal, y no pienso ser yo.`,
+        gato_regalo: (c) => `Es un regalo. No preguntes de dónde salió: a obsequio regalado no se le mira el dueño.`,
+        gato_desaparece: (c) => `Salí a pensar. No me busques: quien se va sin que lo echen, vuelve sin que lo llamen.`,
+        gato_amigo: (c) => `Es un colega del techo de enfrente. No habla, y aun así dice más que mucha gente.`,
+        gato_famoso: (c) => `Ese animal no sabe ni afinar. Yo tengo cosas que decirle al mundo. Ábreme una cuenta.`,
+        gato_madrugada: (c) => `Si un árbol cae y nadie lo oye, ¿hace ruido? ¿Y si mi plato está vacío y nadie lo ve? Piénsalo.`,
+        gato_veterinario: (c) => `No voy. ${gn(c, 'Gato sano', 'Gata sana')} no visita al matasanos, y con fiebre tampoco si puede evitarlo.`
       }
     },
     diva: {
@@ -73,6 +82,15 @@
         despido: (c) => `¡Te despidieron! ¡Qué injusticia, qué atropello! Un momento... ¿esto afecta mi comida? Dime que no afecta mi comida.`,
         ascenso: (c) => `¡${c.d.title}! Siempre supe que llegarías lejos, sobre todo porque yo te inspiré. De nada.`,
         casa: (c) => `¡Casa nueva! Necesito recorrerla entera, criticar cada ambiente y reclamar el dormitorio principal.`
+      },
+      events: {
+        gato_celos: (c) => `¡O esa persona o yo! Bueno, no. Pero quiero que conste mi sufrimiento y que alguien me compense.`,
+        gato_regalo: (c) => `¡Lo cacé para ti! Arriesgué la vida, las uñas y el peinado. Espero lágrimas de gratitud.`,
+        gato_desaparece: (c) => `Me voy. En esta casa nadie me valora. Si alguien quisiera buscarme, estaré cerca y bien a la vista.`,
+        gato_amigo: (c) => `¡Es mi admirador número uno! No entiende nada de lo que digo y me aplaude igual. Lo adoro.`,
+        gato_famoso: (c) => `¡Tres millones! ¡Por tocar mal! El público me necesita. Quiero una cuenta, luces y mi mejor perfil.`,
+        gato_madrugada: (c) => `No puedo dormir. ¿Y si nunca llego a ser lo que estaba ${gn(c, 'destinado', 'destinada')} a ser? ¿Y si ya lo soy y nadie aplaude?`,
+        gato_veterinario: (c) => `¡Me quieren pinchar! ¡A mí! Llama a mi representante, a la prensa, a quien sea.`
       }
     },
     aristocrata: {
@@ -105,6 +123,15 @@
         despido: (c) => `Te despidieron. Alguien de mi rango no trabaja, así que no veo el problema. Aunque el atún no se paga solo.`,
         ascenso: (c) => `${c.d.title}. Por fin un cargo que se puede mencionar en una cena. Sigue así.`,
         casa: (c) => `Una propiedad más. Todavía no es un castillo, pero vas entendiendo cómo se vive.`
+      },
+      events: {
+        gato_celos: (c) => `No tengo nada contra tu pareja, salvo su presencia. En mi otra vida las visitas pedían audiencia.`,
+        gato_regalo: (c) => `Un presente, como corresponde entre gente de bien. No esperaba menos de mí ${gn(c, 'mismo', 'misma')}.`,
+        gato_desaparece: (c) => `He partido a atender asuntos de mi rango. No esperes explicaciones; guárdame la cena.`,
+        gato_amigo: (c) => `Te presento a mi escudero. No tiene apellido ni modales, pero sabe abrir la heladera.`,
+        gato_famoso: (c) => `La plebe pide ídolos. Estoy ${gn(c, 'dispuesto', 'dispuesta')} a dejarme admirar. Encárgate de los detalles.`,
+        gato_madrugada: (c) => `Me pregunto si en esta vida vine a aprender humildad. Lo dudo mucho. ¿Tú qué opinas?`,
+        gato_veterinario: (c) => `${gn(c, 'Un caballero', 'Una dama')} no se deja tomar la temperatura de esa manera. Es mi última palabra.`
       }
     }
   };

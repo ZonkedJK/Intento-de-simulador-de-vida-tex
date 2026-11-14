@@ -51,6 +51,7 @@ function richGame(MV, age, variant, seed) {
   if (variant === 'pobre') { p.money = -8000; p.housing = 'calle'; p.rent = null; p.karma = -60; p.stats.health = 25; p.stats.happy = 10; p.job = null; }
   if (variant === 'santo') { p.karma = 70; p.flags.padreAusente = MV.newNPC(g, { gender: 'm', age: age + 30 }).id; }
   if (variant === 'soltero') { p.addic.alcohol = 60; }
+  if (variant === 'gato') { const c = MV.newPet(g, 'gato', { age: 3 }); MV.addRel(g, c, 'mascota', 85); MV.sys.talkcat.grant(g, c, 'karma'); g.queue = []; }
   if (variant === 'club') { p.club = 'basquet'; p.sportsExp = { basquet: 6 }; p.skills.deporte = 70; if (p.edu.stage) p.edu.perf = 40; if (p.job && age < 23) p.job = null; }
   if ((variant === 'atleta' || variant === 'atleta_ind') && age >= 16) {
     p.skills.deporte = 75; p.sportsExp = {}; p.fame = 60;
@@ -61,7 +62,7 @@ function richGame(MV, age, variant, seed) {
   return g;
 }
 
-const VARIANTS = ['normal', 'simple', 'carcel', 'pobre', 'santo', 'soltero', 'mafia', 'club', 'atleta', 'atleta_ind'];
+const VARIANTS = ['normal', 'simple', 'carcel', 'pobre', 'santo', 'soltero', 'mafia', 'club', 'atleta', 'atleta_ind', 'gato'];
 
 test('todas las opciones de los eventos aleatorios se pueden ejecutar', () => {
   const MV = load({ seed: 21 });

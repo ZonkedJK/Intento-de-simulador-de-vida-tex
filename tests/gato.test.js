@@ -591,3 +591,177 @@ test('los textos de las travesuras nombran al gato con ambos géneros', () => {
     }
   }));
 });
+
+// ——— Tarea 5: las 7 decisiones ———
+const CAT_EVENTS = ['gato_celos', 'gato_regalo', 'gato_desaparece', 'gato_amigo', 'gato_famoso', 'gato_madrugada', 'gato_veterinario'];
+/** Gato que habla con valores fijos, pareja de relación 50 y $10.000 (o lo que se pida). */
+function scene(MV, seed, opts) {
+  opts = opts || {};
+  MV.rng.seed(seed);
+  const t = calm(MV, seed, opts.kind); const p = t.g.p;
+  Object.assign(p.stats, { happy: 50, smarts: 50, health: 80 });
+  p.stress = 30; p.karma = 0; p.followers = 0; p.skills.carisma = 50;
+  p.money = opts.money == null ? 10000 : opts.money;
+  t.r.rel = 50; t.n.health = 50;
+  const mate = MV.newNPC(t.g, { age: 30 }); t.mate = { n: mate, r: MV.addRel(t.g, mate, 'pareja', 50) };
+  if (opts.pg) p.gender = opts.pg;
+  if (opts.cg) t.n.gender = opts.cg;
+  t.g.queue = [];
+  return t;
+}
+const openEv = (MV, t, id) => { t.g.queue = []; MV.EV.push(t.g, id, { target: t.n.id }, true); return MV.EV.view(t.g); };
+const choiceOf = (v, re) => { const c = v.choices.find((x) => re.test(x.label)); assert.ok(c, `falta ${re} en ${v.id}: ${v.choices.map((x) => x.label).join(' | ')}`); return c.i; };
+/** Abre el evento, elige la opción y devuelve la escena con el resultado. */
+function play(MV, seed, id, re, opts) {
+  const t = scene(MV, seed, opts);
+  const v = openEv(MV, t, id);
+  assert.ok(v && v.id === id, 'no se pudo mostrar ' + id);
+  t.res = MV.EV.choose(t.g, choiceOf(v, re));
+  assert.ok(t.res.msg && !BAD_TEXT.test(t.res.msg), `${id}: ${t.res.msg}`);
+  return t;
+}
+/** Juega la opción con muchas semillas y clasifica cada resultado; exige ver todos los esperados. */
+function outcomes(MV, base, id, re, classify, expected) {
+  const seen = {};
+  for (let s = 0; s < 120; s++) { const k = classify(play(MV, base + s, id, re)); seen[k] = (seen[k] || 0) + 1; }
+  assert.deepEqual(Object.keys(seen).sort(), expected.slice().sort(), `${id}: ${JSON.stringify(seen)}`);
+  return seen;
+}
+
+test('cada opción de los 7 eventos hace lo que dice', () => {
+  const MV = load({ seed: 50 });
+  let t;
+  // Celos
+  t = play(MV, 5000, 'gato_celos', /Darle la razón/); assert.equal(t.mate.r.rel, 44); assert.equal(t.r.rel, 56);
+  t = play(MV, 5001, 'gato_celos', /Defender/); assert.equal(t.r.rel, 44); assert.equal(t.mate.r.rel, 55);
+  t = play(MV, 5002, 'gato_celos', /atún/); assert.equal(t.g.p.money, 9960); assert.equal(t.r.rel, 53);
+  // El regalo
+  outcomes(MV, 5100, 'gato_regalo', /Quedártelo/, (x) => {
+    const p = x.g.p;
+    if (p.money > 10000) { assert.ok(p.money >= 10050 && p.money <= 10500, 'valía ' + (p.money - 10000)); assert.equal(p.karma, 0); assert.equal(p.stats.happy, 50); return 'vale'; }
+    if (p.karma === -2) { assert.equal(p.money, 10000); assert.equal(p.stats.happy, 50); return 'vecino'; }
+    assert.equal(p.stats.happy, 47); assert.equal(p.karma, 0); assert.equal(p.money, 10000); return 'vivo';
+  }, ['vale', 'vecino', 'vivo']);
+  t = play(MV, 5200, 'gato_regalo', /Devolver/); assert.equal(t.g.p.karma, 3); assert.equal(t.r.rel, 47);
+  t = play(MV, 5201, 'gato_regalo', /Agradecer/); assert.equal(t.r.rel, 54);
+  // Desaparece
+  t = play(MV, 5300, 'gato_desaparece', /Buscarl[oa]/); assert.equal(t.g.p.stress, 35); assert.equal(t.r.rel, 58);
+  t = play(MV, 5301, 'gato_desaparece', /carteles/); assert.equal(t.g.p.money, 9940); assert.equal(t.r.rel, 54);
+  outcomes(MV, 5400, 'gato_desaparece', /Esperar/, (x) => {
+    assert.equal(T(MV).cat(x.g), x.n, 'siempre vuelve');
+    if (x.r.rel === 46) { assert.equal(x.g.p.stats.happy, 50); return 'ofendido'; }
+    assert.equal(x.r.rel, 50); assert.equal(x.g.p.stats.happy, 54); return 'historia';
+  }, ['ofendido', 'historia']);
+  // El amigo
+  t = play(MV, 5500, 'gato_amigo', /Invitarlo/); assert.equal(t.g.p.money, 9920); assert.equal(t.r.rel, 55);
+  const before = scene(MV, 5501); const cats0 = MV.rels(before.g, 'mascota').length, resc0 = T(MV).rescued(before.g);
+  t = play(MV, 5501, 'gato_amigo', /Adoptarlo/);
+  const pets = MV.rels(t.g, 'mascota');
+  assert.equal(pets.length, cats0 + 1);
+  const nw = pets.find((x) => x.n.id !== t.n.id);
+  assert.equal(nw.n.species, 'gato'); assert.equal(nw.r.rel, 60); assert.equal(nw.n.talk, undefined);
+  assert.equal(T(MV).rescued(t.g), resc0 + 1);
+  assert.ok(t.res.msg.includes(nw.n.first));
+  t = play(MV, 5502, 'gato_amigo', /que no/); assert.equal(t.r.rel, 45);
+  // Famoso
+  for (let s = 0; s < 40; s++) { t = play(MV, 5600 + s, 'gato_famoso', /cuenta/); assert.ok(t.g.p.followers >= 200 && t.g.p.followers <= 5000, 'seguidores ' + t.g.p.followers); }
+  t = play(MV, 5700, 'gato_famoso', /fama corrompe/); assert.equal(t.r.rel, 47); assert.equal(t.g.p.karma, 2);
+  for (let s = 0; s < 40; s++) { t = play(MV, 5800 + s, 'gato_famoso', /Cobrar/); assert.ok(t.g.p.money >= 10100 && t.g.p.money <= 11500, 'cobró ' + (t.g.p.money - 10000)); assert.equal(t.r.rel, 46); }
+  // Las 3 de la mañana
+  t = play(MV, 5900, 'gato_madrugada', /Escucharl[oa]/); assert.equal(t.g.p.stats.smarts, 52); assert.equal(t.g.p.stress, 34); assert.equal(t.r.rel, 56);
+  t = play(MV, 5901, 'gato_madrugada', /almohada/); assert.equal(t.r.rel, 47); assert.equal(t.g.p.stress, 27);
+  outcomes(MV, 6000, 'gato_madrugada', /Discutirle/, (x) => {
+    assert.equal(x.r.rel, 52);
+    if (x.g.p.stats.smarts === 53) { assert.equal(x.g.p.stats.happy, 50); return 'ganas'; }
+    assert.equal(x.g.p.stats.smarts, 50); assert.equal(x.g.p.stats.happy, 48); return 'pierdes';
+  }, ['ganas', 'pierdes']);
+  // El veterinario
+  t = play(MV, 6100, 'gato_veterinario', /igual/); assert.equal(t.g.p.money, 9750); assert.equal(t.n.health, 65); assert.equal(t.r.rel, 45);
+  outcomes(MV, 6200, 'gato_veterinario', /Negociar/, (x) => {
+    if (x.n.health === 65) { assert.equal(x.g.p.money, 9750); assert.equal(x.r.rel, 52); assert.equal(x.g.p.stats.health, 80); return 'acepta'; }
+    assert.equal(x.g.p.money, 10000, 'el arañazo no cobra'); assert.equal(x.g.p.stats.health, 78); assert.equal(x.n.health, 50); return 'araña';
+  }, ['acepta', 'araña']);
+  t = play(MV, 6300, 'gato_veterinario', /este año/); assert.equal(t.r.rel, 53); assert.equal(t.n.health, 45);
+});
+
+test('las opciones con precio no aparecen sin dinero', () => {
+  const MV = load({ seed: 51 });
+  const paid = { gato_celos: /atún/, gato_desaparece: /carteles/, gato_amigo: /Invitarlo/, gato_veterinario: /igual|Negociar/ };
+  CAT_EVENTS.forEach((id, i) => {
+    const poor = openEv(MV, scene(MV, 5100 + i, { money: 0 }), id);
+    assert.ok(poor.choices.length >= 1, id + ' quedó sin opciones');
+    const rich = openEv(MV, scene(MV, 5100 + i), id);
+    if (paid[id]) {
+      assert.ok(!poor.choices.some((c) => paid[id].test(c.label)), `${id} ofrece pagar sin dinero`);
+      assert.ok(rich.choices.some((c) => paid[id].test(c.label)), `${id} no ofrece la opción paga`);
+    }
+    // Ninguna opción deja el dinero en negativo.
+    poor.choices.forEach((c) => { const t = scene(MV, 5100 + i, { money: 0 }); const v = openEv(MV, t, id); MV.EV.choose(t.g, v.choices.find((x) => x.label === c.label).i); assert.ok(t.g.p.money >= 0, `${id}: ${c.label}`); });
+  });
+});
+
+test('el texto del evento cambia con la personalidad', () => {
+  const MV = load({ seed: 52 });
+  CAT_EVENTS.forEach((id, i) => {
+    const texts = KINDS.map((kind) => {
+      ['m', 'f'].forEach((pg) => ['m', 'f'].forEach((cg) => {
+        const t = scene(MV, 5200 + i, { kind, pg, cg }); const v = openEv(MV, t, id);
+        assert.ok(v.text.includes(t.n.first), `${id}/${kind}: ${v.text}`);
+        assert.ok(!BAD_TEXT.test(v.text + ' ' + v.title + ' ' + v.choices.map((c) => c.label + ' ' + (c.sub || '')).join(' ')), `${id}/${kind}: ${v.text}`);
+      }));
+      const t = scene(MV, 5200 + i, { kind });
+      return openEv(MV, t, id).text.replace(new RegExp(t.n.first, 'g'), 'X');
+    });
+    assert.equal(new Set(texts).size, 3, id + ' no cambia con la personalidad');
+    KINDS.forEach((kind) => assert.equal(typeof MV.CAT_VOICES[kind].events[id], 'function', `${kind}.events.${id}`));
+  });
+  assert.equal(MV.EV.list.filter((d) => /^gato_/.test(d.id) && d.id !== 'gato_sigue').length, 7);
+});
+
+test('sin gato que habla no aparecen', () => {
+  const MV = load({ seed: 53 });
+  const el = (g, id) => MV.EV.eligible(g, MV.EV.byId[id]);
+  const plain = game(MV, 53); cat(MV, plain, 90); MV.addRel(plain, MV.newNPC(plain, { age: 30 }), 'pareja', 50);
+  CAT_EVENTS.forEach((id) => assert.equal(el(plain, id), null, id + ' sin gato que habla'));
+  const t = scene(MV, 54);
+  CAT_EVENTS.forEach((id) => { const ctx = el(t.g, id); assert.ok(ctx && ctx.target === t.n.id, id + ' debería poder salir'); });
+  t.g.p.prison = { left: 2, total: 2, crime: 'Robo', behavior: 50, since: 30 };
+  CAT_EVENTS.forEach((id) => assert.equal(el(t.g, id), null, id + ' en prisión'));
+  t.g.p.prison = null;
+  MV.removeRel(t.g, t.mate.n.id);
+  assert.equal(el(t.g, 'gato_celos'), null, 'celos sin pareja');
+  t.g.p.age = 12;
+  assert.equal(el(t.g, 'gato_famoso'), null, 'famoso a los 12');
+  assert.ok(el(t.g, 'gato_regalo'));
+});
+
+test('si el gato ya no está, su evento en cola desaparece', () => {
+  const MV = load({ seed: 55 });
+  let t = scene(MV, 55);
+  MV.EV.push(t.g, 'gato_regalo', { target: t.n.id }, true);
+  MV.sys.people.die(t.g, t.n, 'vejez');
+  let v = MV.EV.view(t.g);
+  assert.ok(!v || v.id !== 'gato_regalo', 'el evento sigue tras su muerte');
+  assert.ok(!t.g.queue.some((q) => q.id === 'gato_regalo'));
+  t = scene(MV, 56);
+  MV.EV.push(t.g, 'gato_madrugada', { target: t.n.id }, true);
+  MV.removeRel(t.g, t.n.id);
+  v = MV.EV.view(t.g);
+  assert.equal(v, null, 'el evento sigue tras darlo en adopción');
+});
+
+test('aparece alguno cada pocos años', () => {
+  const MV = load({ seed: 57 });
+  let total = 0;
+  for (let s = 0; s < 40; s++) {
+    MV.rng.seed(5700 + s);
+    const { g } = talker(MV, 5700 + s, null, 30);
+    for (let y = 0; y < 20; y++) {
+      g.p.prison = null; g.over = false;
+      MV.EV.runYear(g);
+      total += g.queue.filter((q) => /^gato_/.test(q.id || '') && q.id !== 'gato_sigue').length;
+      g.queue = []; g.p.age++;
+    }
+  }
+  assert.ok(total >= 80 && total <= 400, `eventos del gato en 800 años: ${total}`);
+});
