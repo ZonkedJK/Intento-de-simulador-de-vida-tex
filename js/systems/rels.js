@@ -237,6 +237,7 @@
         if (n.age >= 1) A({ id: 'truco', icon: '🎓', label: 'Enseñarle un truco', sub: (n.tricks || []).length ? `Sabe ${n.tricks.length} truco${n.tricks.length === 1 ? '' : 's'}` : 'Todavía no sabe ninguno', limit: 1, run: (g) => rels.teachTrick(g, n, r) });
         if (n.age >= 1) A({ id: 'concurso', icon: '🏆', label: 'Anotarl' + U.gw(n.gender, 'o', 'a') + ' en un concurso', sub: '$50 de inscripción. Premios en efectivo', limit: 1, when: () => p.money >= 50, run: (g) => rels.petShow(g, n, r) });
         A({ id: 'vet', icon: '🩺', label: 'Llevar al veterinario', sub: '$250', limit: 1, run: (g) => { MV.fx.money(g, -250); n.health = U.clamp(n.health + U.int(10, 25), 0, 100); n.lifespan = (n.lifespan || 10) + (U.chance(0.3) ? 1 : 0); return `${n.first} fue al veterinario. Odia al veterinario.`; } });
+        MV.sys.talkcat.actions(g, r, n).forEach(A);
         A({ id: 'regalar_mascota', icon: '📦', label: 'Dar en adopción', sub: 'Adiós', limit: 1, confirm: `¿Dar en adopción a ${n.first}?`, run: (g) => { MV.removeRel(g, n.id); MV.fx.stat(g, 'karma', -5); MV.fx.stat(g, 'happy', -6); return `Diste en adopción a ${n.first}. Te miró por última vez con ojos de traición.`; } });
         return list.filter((a) => !a.when || a.when(g));
       }

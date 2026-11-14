@@ -67,8 +67,46 @@
       n.lifespan = Math.max(U.int(24, 30), n.age + 3);
       MV.ach.unlock(g, 'gato_habla');
       MV.EV.info(g, { title: U.gw(n.gender, 'Tu gato habló', 'Tu gata habló'), icon: '🗨️', scene: 'hogar',
-        text: `${n.first}: "${talkcat.voice(n).intro(talkcat.ctx(g, n))}"` });
+        text: talkcat.say(n, talkcat.voice(n).intro(talkcat.ctx(g, n))) });
       return n;
+    },
+
+    /** El riesgo más grande de tu vida hoy: { id, d } o null. El orden es la prioridad. */
+    risk(g) {
+      const p = g.p;
+      if (p.prison) return { id: 'preso', d: { years: p.prison.left } };
+      if (p.wanted > 0) return { id: 'profugo', d: { years: p.wanted } };
+      const grave = (p.conds || []).map((c) => MV.CONDITIONS[c.id]).find((C) => C && (C.drain[1] >= 8 || C.urgent));
+      if (p.stats.health < 35 || grave) return { id: 'salud', d: { cond: grave ? grave.name.toLowerCase() : null } };
+      const dues = U.sum((p.loans || []).filter((l) => l.start <= p.age && l.left > 0), (l) => l.pay || 0);
+      if (p.money < 0 || (dues > 0 && dues > p.money)) return { id: 'deudas', d: { amount: dues > 0 ? dues : -p.money } };
+      if (p.dirty > 50000) return { id: 'sucio', d: { amount: p.dirty } };
+      const x = MV.partner(g);
+      if (x && x.r.rel < 35) return { id: 'pareja', d: { name: x.n.first } };
+      if (p.job && p.job.perf < 30) return { id: 'trabajo', d: { title: MV.sys.career.title(p) } };
+      if (p.stress > 70) return { id: 'estres', d: {} };
+      if (p.age >= 50 && !MV.sys.insurance.covered(g, 'salud')) return { id: 'seguro', d: {} };
+      return null;
+    },
+
+    /** Lo que dice el gato, con su nombre delante. */
+    say(n, line) { return `${n.first}: "${line}"`; },
+
+    /** El consejo del año: el riesgo más grande, o una frase suya si todo va bien. */
+    advise(g) {
+      const n = talkcat.cat(g);
+      if (!n) return 'Tu gato te mira en silencio. Hoy no tiene nada que decir.';
+      const V = talkcat.voice(n), r = talkcat.risk(g);
+      const line = r ? V.advice[r.id](talkcat.ctx(g, n, r.d)) : U.pick(V.idle)(talkcat.ctx(g, n));
+      return talkcat.say(n, line);
+    },
+
+    /** Acciones propias del gato que habla, para su ficha. */
+    actions(g, r, n) {
+      if (!n || talkcat.cat(g) !== n) return [];
+      return [
+        { id: 'gato_consejo', icon: '🗨️', label: 'Pedirle consejo', sub: 'Te dice qué anda mal en tu vida', limit: 1, run: (gg) => talkcat.advise(gg) }
+      ];
     },
 
     /** Cierre del año: cuenta la lealtad de cada gato y revisa si alguno empieza a hablar. */

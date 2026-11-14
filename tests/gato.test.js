@@ -256,3 +256,103 @@ test('todas las frases de las tres voces salen limpias', () => {
   const { g, n } = talker(MV, 15);
   assert.deepEqual(T(MV).ctx(g, n).d, {});
 });
+
+// ——— Tarea 2: consejo del año ———
+/** Gato que habla en una vida sin ningún riesgo. */
+function calm(MV, seed, kind) {
+  const t = talker(MV, seed, kind, 30); const p = t.g.p;
+  p.stats.health = 80; p.stress = 10; p.loans = []; p.money = 10000; p.dirty = 0; p.prison = null; p.wanted = 0; p.conds = [];
+  p.job = null; p.rels = p.rels.filter((r) => !['pareja', 'conyuge'].includes(r.type));
+  return t;
+}
+const partner = (MV, g, rel) => { const n = MV.newNPC(g, { age: 30 }); MV.addRel(g, n, 'pareja', rel); return n; };
+
+test('cada riesgo aislado da su consejo con el dato', () => {
+  const MV = load({ seed: 20 });
+  const U = MV.U;
+  /** Arma el riesgo, comprueba su id y que el consejo nombre el dato. */
+  const check = (id, setup, datum) => KINDS.forEach((kind, i) => {
+    const { g, n } = calm(MV, 200 + i, kind);
+    assert.equal(T(MV).risk(g), null, 'la base no tiene riesgos');
+    const d = setup(g);
+    g.queue = [];
+    const r = T(MV).risk(g);
+    assert.equal(r && r.id, id, `${kind}: esperaba ${id}`);
+    const s = T(MV).advise(g);
+    assert.ok(s.startsWith(`${n.first}: "`) && s.endsWith('"'), s);
+    assert.ok(!BAD_TEXT.test(s), s);
+    const want = typeof datum === 'function' ? datum(g, d) : datum;
+    if (want) assert.ok(s.includes(want), `${kind}/${id}: falta "${want}" en: ${s}`);
+  });
+  check('preso', (g) => { g.p.prison = { left: 4, total: 6, crime: 'Robo', behavior: 50, since: 28 }; }, '4 años');
+  check('profugo', (g) => { g.p.wanted = 3; }, '3 años');
+  check('salud', (g) => { g.p.stats.health = 20; });
+  check('salud', (g) => { MV.sys.health.add(g, 'apendicitis'); }, 'apendicitis');
+  check('deudas', (g) => { g.p.money = 5000; g.p.loans.push({ name: 'Préstamo', left: 40000, pay: 9000, start: g.p.age }); }, U.money(9000));
+  check('deudas', (g) => { g.p.money = -700; }, U.money(700));
+  check('sucio', (g) => { g.p.dirty = 80000; }, U.money(80000));
+  check('pareja', (g) => partner(MV, g, 20), (g, n) => n.first);
+  check('trabajo', (g) => { MV.sys.career.hire(g, MV.jobById('cajero')); g.p.job.perf = 10; }, (g) => MV.sys.career.title(g.p));
+  check('estres', (g) => { g.p.stress = 80; });
+  check('seguro', (g) => { g.p.age = 55; });
+  // Con seguro de salud, los 55 años no son un riesgo.
+  const { g } = calm(MV, 210); g.p.age = 55; g.p.insurance = { vida: 0, salud: true, hogar: {} };
+  assert.equal(T(MV).risk(g), null);
+});
+
+test('una hipoteca que puedes pagar no es un riesgo', () => {
+  const MV = load({ seed: 21 });
+  const { g } = calm(MV, 21); g.p.money = 50000;
+  g.p.loans.push({ name: 'Hipoteca', left: 300000, pay: 9000, start: g.p.age });
+  assert.equal(T(MV).risk(g), null);
+  g.p.loans.push({ name: 'Préstamo estudiantil', left: 90000, pay: 80000, start: g.p.age + 3 });
+  assert.equal(T(MV).risk(g), null, 'una cuota que aún no empezó no cuenta');
+});
+
+test('con dos riesgos gana el primero de la lista', () => {
+  const MV = load({ seed: 22 });
+  let { g } = calm(MV, 22); g.p.stress = 80; g.p.dirty = 80000;
+  assert.equal(T(MV).risk(g).id, 'sucio');
+  ({ g } = calm(MV, 23)); g.p.stats.health = 20; g.p.prison = { left: 2, total: 2, crime: 'Robo', behavior: 50, since: 30 };
+  assert.equal(T(MV).risk(g).id, 'preso');
+  ({ g } = calm(MV, 24)); g.p.wanted = 2; g.p.money = -50;
+  assert.equal(T(MV).risk(g).id, 'profugo');
+});
+
+test('sin riesgos dice una frase suya', () => {
+  const MV = load({ seed: 25 });
+  const ADVICE = ['preso', 'profugo', 'salud', 'deudas', 'sucio', 'pareja', 'trabajo', 'estres', 'seguro'];
+  KINDS.forEach((kind, i) => {
+    const V = MV.CAT_VOICES[kind];
+    assert.ok(V.idle.length >= 4, kind + ' tiene pocas frases sueltas');
+    assert.deepEqual(Object.keys(V.advice).sort(), ADVICE.slice().sort());
+    const { g, n } = calm(MV, 250 + i, kind);
+    assert.equal(T(MV).risk(g), null);
+    const idle = V.idle.map((f) => `${n.first}: "${f(T(MV).ctx(g, n))}"`);
+    const seen = new Set();
+    for (let s = 0; s < 40; s++) { const x = T(MV).advise(g); assert.ok(idle.includes(x), x); seen.add(x); }
+    assert.ok(seen.size >= 3, 'varía');
+  });
+});
+
+test('el consejo está en su ficha, una vez por año, también en prisión', () => {
+  const MV = load({ seed: 26 });
+  const { g, n, r } = calm(MV, 26); r.acts = {};
+  const common = cat(MV, g, 90);
+  const ids = (rr, nn) => MV.sys.rels.actions(g, rr, nn).map((a) => a.id);
+  assert.ok(ids(r, n).includes('gato_consejo'));
+  assert.ok(ids(r, n).indexOf('gato_consejo') < ids(r, n).indexOf('regalar_mascota'), 'antes de dar en adopción');
+  assert.ok(!ids(common.r, common.n).includes('gato_consejo'));
+  assert.deepEqual(T(MV).actions(g, common.r, common.n), []);
+  const act = MV.sys.rels.actions(g, r, n).find((a) => a.id === 'gato_consejo');
+  assert.equal(act.label, 'Pedirle consejo'); assert.equal(act.limit, 1);
+  const before = JSON.stringify([g.p.stats, g.p.stress, g.p.karma, g.p.money, r.rel]);
+  const res = MV.doAction(g, act, undefined, r.acts);
+  assert.ok(!res.blocked && res.msg.startsWith(n.first), res.msg);
+  assert.equal(JSON.stringify([g.p.stats, g.p.stress, g.p.karma, g.p.money, r.rel]), before, 'el consejo no cambia nada');
+  assert.ok(MV.doAction(g, act, undefined, r.acts).blocked, 'una vez por año');
+  g.p.prison = { left: 5, total: 5, crime: 'Robo', behavior: 50, since: 30 }; g.p.yearActs = {}; r.acts = {};
+  const jail = MV.sys.rels.actions(g, r, n).find((a) => a.id === 'gato_consejo');
+  assert.ok(jail, 'también en prisión');
+  assert.ok(MV.doAction(g, jail, undefined, r.acts).msg.includes('5 años'));
+});
