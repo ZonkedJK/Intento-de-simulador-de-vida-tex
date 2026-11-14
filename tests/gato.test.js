@@ -24,6 +24,7 @@ function talker(MV, seed, kind, age) {
   const g = game(MV, seed, age); const c = cat(MV, g, 90);
   T(MV).grant(g, c.n, 'karma'); if (kind) c.n.talk.kind = kind;
   g.queue = [];
+  g.log.push({ age: g.p.age, year: g.year, items: [] }); // su presentación queda en el año anterior del diario
   return { g, n: c.n, r: c.r };
 }
 const talking = (g) => Object.values(g.people).filter((n) => n.talk);
@@ -355,4 +356,99 @@ test('el consejo está en su ficha, una vez por año, también en prisión', () 
   const jail = MV.sys.rels.actions(g, r, n).find((a) => a.id === 'gato_consejo');
   assert.ok(jail, 'también en prisión');
   assert.ok(MV.doAction(g, jail, undefined, r.acts).msg.includes('5 años'));
+});
+
+// ——— Tarea 3: comentario en el diario ———
+/** Lo que dijo el gato en el último año del diario. */
+const said = (g, n) => g.log[g.log.length - 1].items.map((i) => i.t).filter((t) => t.startsWith(`${n.first}: "`));
+const idleLines = (MV, g, n) => MV.CAT_VOICES[n.talk.kind].idle.map((f) => T(MV).say(n, f(T(MV).ctx(g, n))));
+
+test('comenta cada hecho del año', () => {
+  const MV = load({ seed: 30 });
+  /** Provoca el hecho, cierra el año y devuelve el único comentario. */
+  const check = (id, cause, datum) => KINDS.forEach((kind, i) => {
+    const { g, n } = calm(MV, 300 + i, kind);
+    const d = cause(g);
+    g.queue = [];
+    const f = T(MV).fact(g, n.talk.snap);
+    assert.equal(f && f.id, id, `${kind}: esperaba ${id}`);
+    T(MV).yearly(g);
+    const lines = said(g, n);
+    assert.equal(lines.length, 1, `${kind}/${id}: ${lines.join(' | ')}`);
+    assert.ok(!idleLines(MV, g, n).includes(lines[0]), 'no es una frase suelta');
+    assert.equal(lines[0], T(MV).say(n, MV.CAT_VOICES[kind].facts[id](T(MV).ctx(g, n, f.d))));
+    assert.ok(!BAD_TEXT.test(lines[0]), lines[0]);
+    const want = typeof datum === 'function' ? datum(g, d) : datum;
+    if (want) assert.ok(lines[0].includes(want), `${kind}/${id}: falta "${want}" en: ${lines[0]}`);
+    // El año siguiente, sin novedades, no repite el hecho.
+    g.log.push({ age: g.p.age + 1, year: g.year + 1, items: [] });
+    assert.equal(T(MV).fact(g, n.talk.snap), null, 'el hecho ya quedó registrado');
+  });
+  check('carcel', (g) => { MV.sys.crime.jail(g, 3, 'Robo'); });
+  check('muerte', (g) => { const s = MV.newNPC(g, { age: 40 }); MV.addRel(g, s, 'hermano', 70); T(MV).cat(g).talk.snap = T(MV).snapshot(g); MV.sys.people.die(g, s, 'un infarto'); return s; }, (g, s) => s.first);
+  check('boda', (g) => { const s = MV.newNPC(g, { age: 30 }); MV.addRel(g, s, 'conyuge', 80); g.p.counters.bodas = 1; return s; }, (g, s) => s.first);
+  check('divorcio', (g) => { g.p.counters.divorcios = 1; });
+  check('hijo', (g) => { const k = MV.newNPC(g, { age: 0, last: g.p.last }); MV.addRel(g, k, 'hijo', 90); return k; }, (g, k) => k.first);
+  check('despido', (g) => { MV.sys.career.hire(g, MV.jobById('cajero')); T(MV).cat(g).talk.snap = T(MV).snapshot(g); MV.sys.career.fire(g, 'Recorte de personal.'); });
+  check('ascenso', (g) => { MV.sys.career.hire(g, MV.jobById('cajero')); T(MV).cat(g).talk.snap = T(MV).snapshot(g); g.p.job.level++; }, (g) => MV.sys.career.title(g.p));
+  check('casa', (g) => { g.p.assets.push({ id: 'casa1', type: 'casa', kind: 'Casa', icon: '🏡', name: 'Casa de prueba', value: 100000, cond: 80 }); });
+  KINDS.forEach((kind) => assert.deepEqual(Object.keys(MV.CAT_VOICES[kind].facts).sort(),
+    ['ascenso', 'boda', 'carcel', 'casa', 'despido', 'divorcio', 'hijo', 'muerte']));
+});
+
+test('con dos hechos gana el primero', () => {
+  const MV = load({ seed: 31 });
+  const { g, n } = calm(MV, 31, 'diva');
+  const s = MV.newNPC(g, { age: 30 }); MV.addRel(g, s, 'conyuge', 80); g.p.counters.bodas = 1;
+  MV.sys.crime.jail(g, 3, 'Robo'); g.queue = [];
+  T(MV).yearly(g);
+  assert.deepEqual(said(g, n), [T(MV).say(n, MV.CAT_VOICES.diva.facts.carcel(T(MV).ctx(g, n, {})))]);
+  // Cambiar de trabajo no es un ascenso.
+  const t = calm(MV, 32); MV.sys.career.hire(t.g, MV.jobById('cajero')); t.n.talk.snap = T(MV).snapshot(t.g);
+  MV.sys.career.hire(t.g, MV.jobById('programador'), 2);
+  assert.equal(T(MV).fact(t.g, t.n.talk.snap), null);
+});
+
+test('un año tranquilo calla casi siempre', () => {
+  const MV = load({ seed: 33 });
+  let spoke = 0;
+  for (let s = 0; s < 400; s++) {
+    MV.rng.seed(3300 + s);
+    const { g, n } = calm(MV, 3300 + s);
+    T(MV).yearly(g);
+    const lines = said(g, n);
+    assert.ok(lines.length <= 1, 'más de un comentario en el año');
+    if (lines.length) { spoke++; assert.ok(idleLines(MV, g, n).includes(lines[0]), lines[0]); }
+  }
+  assert.ok(spoke / 400 > 0.17 && spoke / 400 < 0.33, 'comentó ' + spoke / 400);
+});
+
+test('el año en que empieza a hablar no comenta', () => {
+  const MV = load({ seed: 34 });
+  const g = game(MV, 34); g.p.karma = 0;
+  const { n, r } = cat(MV, g, 85); r.loyal = 4;
+  const s = MV.newNPC(g, { age: 30 }); MV.addRel(g, s, 'conyuge', 80); g.p.counters.bodas = 1;
+  T(MV).yearly(g);
+  assert.ok(n.talk && n.talk.snap, 'guarda la foto del año al empezar a hablar');
+  const intro = T(MV).say(n, MV.CAT_VOICES[n.talk.kind].intro(T(MV).ctx(g, n)));
+  assert.deepEqual(said(g, n), [intro], 'solo su presentación');
+  assert.equal(T(MV).fact(g, n.talk.snap), null, 'la boda de ese año ya no es novedad');
+});
+
+test('un gato de una partida vieja no rompe el cierre del año', () => {
+  const MV = load({ seed: 35 });
+  const g = game(MV, 35);
+  const { n } = cat(MV, g, 90); n.talk = { kind: 'diva' };
+  g.p.flags.gatoHabla = n.id; g.p.counters = {}; delete g.p.loans; g.p.jobs = [];
+  T(MV).yearly(g);
+  assert.deepEqual(said(g, n), []);
+  assert.ok(n.talk.snap && Array.isArray(n.talk.snap.dead), 'deja guardada la foto del año');
+  assert.ok(!BAD_TEXT.test(T(MV).advise(g)));
+  // Marca perdida: nadie habla, y nada falla.
+  const h = game(MV, 36);
+  const c = cat(MV, h, 90); c.n.talk = { kind: 'filosofo' };
+  delete h.p.flags; delete h.p.counters;
+  assert.equal(T(MV).cat(h), null);
+  T(MV).yearly(h);
+  assert.equal(T(MV).rescued(h), 0);
 });

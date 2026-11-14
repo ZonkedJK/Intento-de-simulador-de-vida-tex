@@ -5,6 +5,8 @@
   MV.sys = MV.sys || {};
 
   const KINDS = ['filosofo', 'diva', 'aristocrata'];
+  /** Relaciones cuya muerte el gato comenta. */
+  const CLOSE = ['padre', 'hijo', 'nieto', 'hermano', 'abuelo', 'pareja', 'conyuge', 'mascota'];
   /** Tus gatos vivos, en el orden de tus relaciones: [{ r, n }]. */
   const cats = (g) => MV.rels(g, 'mascota').filter(({ n }) => n.species === 'gato');
 
@@ -62,7 +64,7 @@
     grant(g, n, how) {
       const p = g.p;
       p.flags = p.flags || {};
-      n.talk = { kind: U.pick(KINDS), since: p.age, how };
+      n.talk = { kind: U.pick(KINDS), since: p.age, how, snap: talkcat.snapshot(g) };
       p.flags.gatoHabla = n.id;
       n.lifespan = Math.max(U.int(24, 30), n.age + 3);
       MV.ach.unlock(g, 'gato_habla');
@@ -109,13 +111,59 @@
       ];
     },
 
+    /** Foto de tu vida al cerrar el año, para saber qué cambió al año siguiente. */
+    snapshot(g) {
+      const p = g.p, c = p.counters || {};
+      return {
+        prison: !!p.prison,
+        dead: (p.rels || []).filter((r) => CLOSE.includes(r.type) && g.people[r.id] && !g.people[r.id].alive).map((r) => r.id),
+        bodas: c.bodas || 0, divorcios: c.divorcios || 0,
+        hijos: MV.rels(g, 'hijo', true).map(({ n }) => n.id),
+        despidos: (p.jobs || []).filter((j) => j.why === 'despido').length,
+        job: p.job ? p.job.id : null, level: p.job ? p.job.level : -1,
+        casas: (p.assets || []).filter((a) => a.type === 'casa').length
+      };
+    },
+
+    /** Lo más notable que pasó desde la foto anterior: { id, d } o null. El orden es la prioridad. */
+    fact(g, old) {
+      const now = talkcat.snapshot(g);
+      old = old || now;
+      if (now.prison && !old.prison) return { id: 'carcel', d: {} };
+      const gone = now.dead.find((id) => !(old.dead || []).includes(id));
+      if (gone) { const n = g.people[gone], r = MV.relOf(g, gone); return { id: 'muerte', d: { name: n.first, label: MV.relLabel(r.type, n).toLowerCase() } }; }
+      if (now.bodas > (old.bodas || 0)) { const s = MV.rels(g, 'conyuge')[0]; return { id: 'boda', d: { name: s ? s.n.first : null } }; }
+      if (now.divorcios > (old.divorcios || 0)) return { id: 'divorcio', d: {} };
+      const kid = now.hijos.find((id) => !(old.hijos || []).includes(id));
+      if (kid) return { id: 'hijo', d: { name: g.people[kid].first } };
+      if (now.despidos > (old.despidos || 0)) return { id: 'despido', d: {} };
+      if (now.job && now.job === old.job && now.level > old.level) return { id: 'ascenso', d: { title: MV.sys.career.title(g.p) } };
+      if (now.casas > (old.casas || 0)) return { id: 'casa', d: {} };
+      return null;
+    },
+
+    /** Como mucho un comentario por año en el diario: el hecho más notable o, a veces, una frase suya. */
+    comment(g) {
+      const n = talkcat.cat(g);
+      if (!n) return;
+      const V = talkcat.voice(n), old = n.talk.snap;
+      let line = null;
+      if (old) {
+        const f = talkcat.fact(g, old);
+        if (f) line = V.facts[f.id](talkcat.ctx(g, n, f.d));
+        else if (U.chance(0.25)) line = U.pick(V.idle)(talkcat.ctx(g, n));
+      }
+      n.talk.snap = talkcat.snapshot(g);
+      if (line) MV.log(g, talkcat.say(n, line), '🐈');
+    },
+
     /** Cierre del año: cuenta la lealtad de cada gato y revisa si alguno empieza a hablar. */
     yearly(g) {
       const p = g.p;
       if (!p.alive) return;
       p.flags = p.flags || {};
       cats(g).forEach(({ r }) => { r.loyal = r.rel >= 80 ? (r.loyal || 0) + 1 : 0; });
-      if (p.flags.gatoHabla) return;
+      if (p.flags.gatoHabla) { talkcat.comment(g); return; }
       if (p.age < 6) return;
       const c = talkcat.candidate(g);
       if (c) talkcat.grant(g, c.n, c.how);

@@ -31,7 +31,17 @@
         (c) => `Todo en orden. Sospechoso. Pero como dice el refrán: a día tranquilo no se le mira el diente.`,
         (c) => `Hoy no tengo nada que reprocharte. Anótalo, que no pasa seguido.`,
         (c) => `Vas bien. No te agrandes: ${gn(c, 'gato', 'gata')} que presume, se cae del techo.`
-      ]
+      ],
+      facts: {
+        carcel: (c) => `Así que la cárcel. Te lo advertí durante años sin decir una palabra. Quien mal anda, termina comiendo en bandeja de lata.`,
+        muerte: (c) => `Se fue tu ${c.d.label} ${c.d.name}. No sé consolar, pero me voy a quedar a tu lado toda la tarde. La pena compartida pesa la mitad.`,
+        boda: (c) => `Te casaste${c.d.name ? ` con ${c.d.name}` : ''}. Bien. Recuerda el refrán: casa de dos, sillón de tres, y el tercero soy yo.`,
+        divorcio: (c) => `Divorcio. Ya está, ya pasó. Corazón roto come igual: sírvete algo y sírveme algo.`,
+        hijo: (c) => `Llegó ${c.d.name}. Llora más que yo y duerme menos. Paciencia: cría que hoy grita, mañana abre latas.`,
+        despido: (c) => `Te echaron. No es el fin del mundo, es el fin de ese sueldo. Busca otro antes de que se termine el atún.`,
+        ascenso: (c) => `Así que ahora eres ${c.d.title}. Te felicito a mi manera: no te voy a morder en toda la semana.`,
+        casa: (c) => `Casa nueva. Ya elegí la mejor ventana. Techo propio, siesta segura.`
+      }
     },
     diva: {
       name: 'divo dramático|diva dramática',
@@ -53,7 +63,17 @@
         (c) => `Todo va bien, o sea que nadie me presta atención. Tomo nota.`,
         (c) => `Tu vida está en orden. La mía no: hace tres horas que nadie me acaricia.`,
         (c) => `Sin novedades. Si quieres drama, mira mi plato: se le ve el fondo.`
-      ]
+      ],
+      facts: {
+        carcel: (c) => `¡${gp(c, 'Preso', 'Presa')}! ¡En mi propia familia! ¿Tienes idea de lo que van a decir en el barrio? Voy a tener que cambiar de vereda.`,
+        muerte: (c) => `${c.d.name} ya no está... No puedo hablar. Bueno, sí puedo, pero hoy no va a ser sobre mí. Ven aquí.`,
+        boda: (c) => `¡Una boda!${c.d.name ? ` Y con ${c.d.name}.` : ''} Nadie me consultó, nadie me puso moño, pero lloré igual. De emoción, que conste.`,
+        divorcio: (c) => `¡Lo sabía! Lo vi venir desde el primer capítulo. ${gp(c, 'Tranquilo', 'Tranquila')}, corazón: me tienes a mí, que valgo por tres.`,
+        hijo: (c) => `¿Y ${c.d.name} quién es? ¿Ahora la atención se reparte? Está bien. Pero ${gn(c, 'el', 'la')} protagonista sigo siendo yo.`,
+        despido: (c) => `¡Te despidieron! ¡Qué injusticia, qué atropello! Un momento... ¿esto afecta mi comida? Dime que no afecta mi comida.`,
+        ascenso: (c) => `¡${c.d.title}! Siempre supe que llegarías lejos, sobre todo porque yo te inspiré. De nada.`,
+        casa: (c) => `¡Casa nueva! Necesito recorrerla entera, criticar cada ambiente y reclamar el dormitorio principal.`
+      }
     },
     aristocrata: {
       name: 'aristócrata venido a menos|aristócrata venida a menos',
@@ -75,7 +95,17 @@
         (c) => `Todo en orden. Casi parece una casa decente.`,
         (c) => `No tengo consejos. En mi otra vida esto se celebraba con salmón; aquí me conformo con que no molestes.`,
         (c) => `Sin novedad. Sigue así y quizá algún día merezcas mi compañía.`
-      ]
+      ],
+      facts: {
+        carcel: (c) => `Presidio. Qué deshonra. Aun así diré que estás de viaje, que es lo que decíamos en mi familia.`,
+        muerte: (c) => `Mis condolencias por ${c.d.name}. En mi otra vida habríamos guardado un año de luto. Hoy te cedo mi lado del sillón.`,
+        boda: (c) => `Te casaste${c.d.name ? ` con ${c.d.name}` : ''}. Una unión aceptable. Espero que quede claro cuál es mi lugar en la mesa.`,
+        divorcio: (c) => `Un divorcio. En mi época esto se resolvía con un duelo. Lo de ahora es más civilizado y bastante más caro.`,
+        hijo: (c) => `Ha llegado ${c.d.name}. Le enseñaré modales, ya que nadie más en esta casa los tiene.`,
+        despido: (c) => `Te despidieron. Alguien de mi rango no trabaja, así que no veo el problema. Aunque el atún no se paga solo.`,
+        ascenso: (c) => `${c.d.title}. Por fin un cargo que se puede mencionar en una cena. Sigue así.`,
+        casa: (c) => `Una propiedad más. Todavía no es un castillo, pero vas entendiendo cómo se vive.`
+      }
     }
   };
 })(window.MV = window.MV || {});
