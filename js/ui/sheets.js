@@ -548,7 +548,7 @@
           if (!xs.length) return;
           body.append(title(GROUP[t]));
           const l = h('div', { class: 'list' });
-          xs.forEach(({ r, n }) => l.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${MV.relLabel(r.type, n)}, ${n.age} año${n.age === 1 ? '' : 's'}${n.species === 'humano' && n.job && n.job !== '-' ? ', ' + n.job.toLowerCase() : ''}`, h('span', { class: 'relbar' }, UI.bar(r.rel)), () => UI.showPerson(n.id))));
+          xs.forEach(({ r, n }) => l.append(UI.row(UI.avatar(n, 40), MV.fullName(n), `${MV.relLabel(r.type, n)}, ${n.age} año${n.age === 1 ? '' : 's'}${n.species === 'humano' && n.job && n.job !== '-' ? ', ' + n.job.toLowerCase() : ''}${n.talk ? ', habla' : ''}`, h('span', { class: 'relbar' }, UI.bar(r.rel)), () => UI.showPerson(n.id))));
           body.append(l);
         });
         const dead = MV.rels(g, null, true).filter((x) => !x.n.alive);
@@ -574,7 +574,8 @@
           h('div', null,
             h('p', null, h('b', { class: 'hand', style: { fontSize: '1.2rem' } }, MV.fullName(n))),
             h('p', { class: 'note', style: { margin: 0 } }, `${MV.relLabel(r.type, n)}, ${n.age} año${n.age === 1 ? '' : 's'}${human && n.job && n.job !== '-' ? '. ' + n.job : ''}`),
-            human ? h('p', null, n.traits.map((t) => h('span', { class: 'tag' }, t))) : h('p', null, h('span', { class: 'tag' }, n.traits[0] || 'mascota')),
+            human ? h('p', null, n.traits.map((t) => h('span', { class: 'tag' }, t))) : h('p', null, h('span', { class: 'tag' }, n.traits[0] || 'mascota'),
+              n.talk ? h('span', { class: 'tag', id: 'pet-talk' }, `🗨️ Habla · ${MV.sys.talkcat.kindName(n)}`) : null),
             h('div', { style: { maxWidth: '200px' } }, UI.bar(r.rel)))));
         if (!human && ((n.tricks || []).length || n.trophies)) {
           body.append(h('div', { class: 'box', id: 'pet-tricks' },

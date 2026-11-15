@@ -132,6 +132,7 @@
       { t: 'Adoptarlo', eff: (g, ctx) => {
         const pet = mythic.strayCat(g, ctx.group || 'joven');
         MV.addRel(g, pet, 'mascota', U.int(65, 90));
+        MV.sys.talkcat.noteRescue(g);
         MV.fx.stat(g, 'happy', 6); MV.fx.stat(g, 'karma', ctx.group === 'anciano' ? 6 : 3);
         MV.ach.check(g);
         return `Le abriste la puerta y lo llamaste ${pet.first}. Por las marcas, ${pet.street}. Ya eligió tu almohada.`;

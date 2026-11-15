@@ -240,7 +240,7 @@
       return U.pick(['No saliste. El encargado te abrió la puerta con cara de lástima.', 'Pasaste 40 minutos intentando abrir un cajón que era decorativo.']); } });
   A({ id: 'refugio', cat: 'ocio', icon: '🐾', label: 'Voluntariado en un refugio de animales', sub: '+karma, muchos pelos', minAge: 12, limit: 1,
     run: (g) => { fx.stat(g, 'karma', U.int(3, 6)); fx.stat(g, 'happy', U.int(3, 6)); fx.stat(g, 'stress', -3);
-      if (U.chance(0.08)) { const pet = MV.sys.mythic.strayCat(g, U.pick(['adulto', 'anciano'])); MV.addRel(g, pet, 'mascota', U.int(70, 95)); MV.ach.check(g); return `En el refugio, ${U.gw(pet.gender, 'un gato', 'una gata')} de ${pet.age} años se te subió a los hombros y no se bajó más. Te llevaste a ${pet.first} a casa.`; }
+      if (U.chance(0.08)) { const pet = MV.sys.mythic.strayCat(g, U.pick(['adulto', 'anciano'])); MV.addRel(g, pet, 'mascota', U.int(70, 95)); MV.sys.talkcat.noteRescue(g); MV.ach.check(g); return `En el refugio, ${U.gw(pet.gender, 'un gato', 'una gata')} de ${pet.age} años se te subió a los hombros y no se bajó más. Te llevaste a ${pet.first} a casa.`; }
       return U.pick(['Bañaste a 6 perros. Ahora tú también necesitas un baño.', 'Le diste el biberón a gatitos huérfanos. Lloraste un poco.', 'Paseaste a un perro viejo que caminaba más lento que tu abuela. Fue perfecto.']); } });
   A({ id: 'picnic', cat: 'ocio', icon: '🧺', label: 'Hacer un picnic', sub: '$15 · pasto, sándwiches y hormigas', minAge: 6, limit: 1, when: (g) => g.p.money >= 15,
     run: (g) => { fx.money(g, -15); fx.stat(g, 'happy', U.int(3, 6)); fx.stat(g, 'stress', -3);
@@ -267,6 +267,7 @@
       if (pays) fx.money(g, -vet);
       const pet = MV.sys.mythic.strayCat(g, k);
       MV.addRel(g, pet, 'mascota', U.int(60, 90));
+      MV.sys.talkcat.noteRescue(g);
       fx.stat(g, 'karma', k === 'anciano' ? 6 : 3); fx.stat(g, 'happy', U.int(4, 8));
       MV.ach.check(g);
       const age = pet.age === 0 ? 'meses' : `${pet.age} año${pet.age === 1 ? '' : 's'}`;

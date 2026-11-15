@@ -189,8 +189,8 @@
 
   MV.REGIONS = ['Latinoamérica', 'América del Norte', 'Europa', 'Asia'];
 
-  MV.PET_NAMES = ['Firulais', 'Michi', 'Toby', 'Luna', 'Rocky', 'Pelusa', 'Chispa', 'Manchas', 'Bigotes', 'Max', 'Nala',
-    'Simba', 'Coco', 'Pancho', 'Lola', 'Chocolate', 'Canela', 'Copito', 'Sr. Pelusa', 'Duquesa', 'Tornado', 'Pochoclo',
+  MV.PET_NAMES = ['Firulais', 'Michi', 'Toby', 'Luna', 'Rocky', 'Pelusa', 'Chispa', 'Manchas', 'Bigotes', 'Max', 'Lenteja',
+    'Garbanzo', 'Coco', 'Pancho', 'Lola', 'Chocolate', 'Canela', 'Copito', 'Sr. Pelusa', 'Mandarina', 'Tornado', 'Pochoclo',
     'Milanesa', 'Empanada', 'Tito', 'Kira', 'Zeus', 'Thor', 'Pirata', 'Morcilla', 'Dr. Ladridos', 'Bombón', 'Fideo',
     'Gordo', 'Princesa', 'Satanás', 'Galleta', 'Churro', 'Ramón', 'Turrón'];
 

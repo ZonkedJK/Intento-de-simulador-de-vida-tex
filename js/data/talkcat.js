@@ -1,0 +1,144 @@
+/* Mil Vidas — el gato que habla: las tres voces (filósofo gruñón, diva dramática y aristócrata venido a menos).
+   Cada frase es una función (c) => texto, con c = { g, p, n, d }: partida, jugador, gato y datos del caso.
+   Las frases van sin comillas dobles y sin el nombre del gato delante: eso lo pone quien las usa. */
+(function (MV) {
+  'use strict';
+  const U = MV.U;
+  /** Según el género del gato (gn) o del jugador (gp). */
+  const gn = (c, m, f) => U.gw(c.n.gender, m, f);
+  const gp = (c, m, f) => U.gw(c.p.gender, m, f);
+  const yrs = (c) => `${c.d.years} año${c.d.years === 1 ? '' : 's'}`;
+  const $ = (c) => U.money(c.d.amount);
+
+  MV.CAT_VOICES = {
+    filosofo: {
+      name: 'filósofo gruñón|filósofa gruñona',
+      intro: (c) => `Sí, hablo. Llevo años oyéndote decir tonterías y alguien tenía que contestar. Como dice el refrán: ${gn(c, 'gato', 'gata')} que calla, piensa peor de ti.`,
+      farewell: (c) => `Me voy ${gn(c, 'tranquilo', 'tranquila')}. Fuiste mejor compañía de lo que dije, y dije bastante. Recuerda el último refrán: ${gn(c, 'gato que se va querido', 'gata que se va querida')}, no se va del todo.`,
+      adopted: (c) => `Así que me regalas. Está bien. Pero escucha el último refrán: quien suelta a su ${gn(c, 'gato', 'gata')}, se queda hablando ${gp(c, 'solo', 'sola')}.`,
+      advice: {
+        preso: (c) => `Te faltan ${yrs(c)} ahí adentro. Pórtate bien, lee en la biblioteca y no te metas en motines: preso que hace buena letra sale antes de la cena.`,
+        profugo: (c) => `Te buscan y tú paseando. Tienes ${yrs(c)} pendientes y cada año afuera es una moneda al aire. No llames la atención: gato escondido no sale en la foto.`,
+        salud: (c) => (c.d.cond ? `Lo de tu ${c.d.cond} no se cura mirando el techo. Hazte tratar este año: quien deja la salud para mañana amanece en el veterinario.`
+          : `Estás ${gp(c, 'hecho', 'hecha')} un trapo. Médico, gimnasio o siesta, pero haz algo por tu salud antes de que sea tarde.`),
+        deudas: (c) => `Las cuentas no cierran: debes ${$(c)} este año y en la billetera no hay con qué. Vende algo o gasta menos. Bolsillo roto no guarda sardinas.`,
+        sucio: (c) => `Tienes ${$(c)} que no puedes explicar. Lávalos de a poco o un fiscal va a venir a preguntar. Plata sucia, sueño corto.`,
+        pareja: (c) => `${c.d.name} está a un portazo de irse. Un regalo, tiempo juntos y una disculpa aunque tengas razón. Amor descuidado, sillón para uno.`,
+        trabajo: (c) => `Como ${c.d.title} rindes tan poco que hasta yo lo noto, y yo duermo dieciséis horas. Esfuérzate o te echan.`,
+        estres: (c) => `Tienes los nervios como cable pelado. Descansa, medita o tómate vacaciones. Quien no duerme la siesta, la paga con intereses.`,
+        seguro: (c) => `A tu edad y sin seguro de salud. Un tratamiento serio te deja en la calle. Contrátalo en Bienes, y de paso me compras atún.`
+      },
+      idle: [
+        (c) => `No veo ningún desastre a la vista. Aprovecha, que la calma es como la leche: se corta sola.`,
+        (c) => `Todo en orden. Sospechoso. Pero como dice el refrán: a día tranquilo no se le mira el diente.`,
+        (c) => `Hoy no tengo nada que reprocharte. Anótalo, que no pasa seguido.`,
+        (c) => `Vas bien. No te agrandes: ${gn(c, 'gato', 'gata')} que presume, se cae del techo.`
+      ],
+      facts: {
+        carcel: (c) => `Así que la cárcel. Te lo advertí durante años sin decir una palabra. Quien mal anda, termina comiendo en bandeja de lata.`,
+        muerte: (c) => `Se fue tu ${c.d.label} ${c.d.name}. No sé consolar, pero me voy a quedar a tu lado toda la tarde. La pena compartida pesa la mitad.`,
+        boda: (c) => `Te casaste${c.d.name ? ` con ${c.d.name}` : ''}. Bien. Recuerda el refrán: casa de dos, sillón de tres, y el tercero soy yo.`,
+        divorcio: (c) => `Divorcio. Ya está, ya pasó. Corazón roto come igual: sírvete algo y sírveme algo.`,
+        hijo: (c) => `Llegó ${c.d.name}. Llora más que yo y duerme menos. Paciencia: cría que hoy grita, mañana abre latas.`,
+        despido: (c) => `Te echaron. No es el fin del mundo, es el fin de ese sueldo. Busca otro antes de que se termine el atún.`,
+        ascenso: (c) => `Así que ahora eres ${c.d.title}. Te felicito a mi manera: no te voy a morder en toda la semana.`,
+        casa: (c) => `Casa nueva. Ya elegí la mejor ventana. Techo propio, siesta segura.`
+      },
+      events: {
+        gato_celos: (c) => `Esa persona ocupa mi lado de la cama. Donde duermen tres, alguien duerme mal, y no pienso ser yo.`,
+        gato_regalo: (c) => `Es un regalo. No preguntes de dónde salió: a obsequio regalado no se le mira el dueño.`,
+        gato_desaparece: (c) => `Salí a pensar. No me busques: quien se va sin que lo echen, vuelve sin que lo llamen.`,
+        gato_amigo: (c) => `Es un colega del techo de enfrente. No habla, y aun así dice más que mucha gente.`,
+        gato_famoso: (c) => `Ese animal no sabe ni afinar. Yo tengo cosas que decirle al mundo. Ábreme una cuenta.`,
+        gato_madrugada: (c) => `Si un árbol cae y nadie lo oye, ¿hace ruido? ¿Y si mi plato está vacío y nadie lo ve? Piénsalo.`,
+        gato_veterinario: (c) => `No voy. ${gn(c, 'Gato sano', 'Gata sana')} no visita al matasanos, y con fiebre tampoco si puede evitarlo.`
+      }
+    },
+    diva: {
+      name: 'divo dramático|diva dramática',
+      intro: (c) => `¡Por fin! ¿Sabes lo que es pasar años sin poder decirte que ese sillón es MÍO? Siéntate, que tenemos mucho de qué hablar. Sobre mí, principalmente.`,
+      farewell: (c) => `No llores... Bueno, sí, llora, y bastante, que me lo merezco. Fuiste mi mejor público. Que nadie ocupe mi sillón.`,
+      adopted: (c) => `¿Me entregas? ¿A MÍ? Voy a contar esta historia en cada casa donde viva, y tú no quedas nada bien.`,
+      advice: {
+        preso: (c) => `¡${yrs(c)} más ahí adentro! ¿Y a mí quién me abre las latas? Pórtate como un ángel y apela si puedes, que este drama ya duró demasiados capítulos.`,
+        profugo: (c) => `¡Vivo con ${gp(c, 'un prófugo', 'una prófuga')}! Te buscan por ${yrs(c)} y yo sin arreglar para la foto del diario. No llames la atención, te lo ruego.`,
+        salud: (c) => (c.d.cond ? `¡Tu ${c.d.cond} me tiene con el corazón en la boca! Hazte tratar YA. No pienso quedar ${gn(c, 'huérfano', 'huérfana')} en mitad de temporada.`
+          : `¡Mírate! Tienes peor cara que yo después del baño. Descansa, cuídate, ve al médico. Hazlo por mí.`),
+        deudas: (c) => `¡Estamos en la ruina! Debes ${$(c)} este año y no los tienes. Vende algo, lo que sea, menos mi rascador.`,
+        sucio: (c) => `Hay ${$(c)} escondidos que huelen peor que mi arenero. Lávalos antes de que lleguen las cámaras, y yo sin peinar.`,
+        pareja: (c) => `${c.d.name} te mira como yo miro al veterinario. Haz algo romántico hoy mismo o este capítulo termina con valijas en la puerta.`,
+        trabajo: (c) => `Me contaron que como ${c.d.title} eres el hazmerreír del lugar. ¡Qué vergüenza para esta familia! Esfuérzate, que yo tengo una reputación.`,
+        estres: (c) => `Estás insoportable de ${gp(c, 'nervioso', 'nerviosa')}, y aquí ${gn(c, 'el único', 'la única')} con derecho a un ataque soy yo. Tómate un descanso, por el bien de los dos.`,
+        seguro: (c) => `¿Sin seguro de salud a tu edad? ¡Qué suspenso innecesario! Contrátalo en Bienes, que los finales trágicos no me favorecen.`
+      },
+      idle: [
+        (c) => `Hoy no hay ninguna tragedia. Qué aburrido. Tendré que inventar una.`,
+        (c) => `Todo va bien, o sea que nadie me presta atención. Tomo nota.`,
+        (c) => `Tu vida está en orden. La mía no: hace tres horas que nadie me acaricia.`,
+        (c) => `Sin novedades. Si quieres drama, mira mi plato: se le ve el fondo.`
+      ],
+      facts: {
+        carcel: (c) => `¡${gp(c, 'Preso', 'Presa')}! ¡En mi propia familia! ¿Tienes idea de lo que van a decir en el barrio? Voy a tener que cambiar de vereda.`,
+        muerte: (c) => `${c.d.name} ya no está... No puedo hablar. Bueno, sí puedo, pero hoy no va a ser sobre mí. Ven aquí.`,
+        boda: (c) => `¡Una boda!${c.d.name ? ` Y con ${c.d.name}.` : ''} Nadie me consultó, nadie me puso moño, pero lloré igual. De emoción, que conste.`,
+        divorcio: (c) => `¡Lo sabía! Lo vi venir desde el primer capítulo. ${gp(c, 'Tranquilo', 'Tranquila')}, corazón: me tienes a mí, que valgo por tres.`,
+        hijo: (c) => `¿Y ${c.d.name} quién es? ¿Ahora la atención se reparte? Está bien. Pero ${gn(c, 'el', 'la')} protagonista sigo siendo yo.`,
+        despido: (c) => `¡Te despidieron! ¡Qué injusticia, qué atropello! Un momento... ¿esto afecta mi comida? Dime que no afecta mi comida.`,
+        ascenso: (c) => `¡${c.d.title}! Siempre supe que llegarías lejos, sobre todo porque yo te inspiré. De nada.`,
+        casa: (c) => `¡Casa nueva! Necesito recorrerla entera, criticar cada ambiente y reclamar el dormitorio principal.`
+      },
+      events: {
+        gato_celos: (c) => `¡O esa persona o yo! Bueno, no. Pero quiero que conste mi sufrimiento y que alguien me compense.`,
+        gato_regalo: (c) => `¡Lo cacé para ti! Arriesgué la vida, las uñas y el peinado. Espero lágrimas de gratitud.`,
+        gato_desaparece: (c) => `Me voy. En esta casa nadie me valora. Si alguien quisiera buscarme, estaré cerca y bien a la vista.`,
+        gato_amigo: (c) => `¡Es mi admirador número uno! No entiende nada de lo que digo y me aplaude igual. Lo adoro.`,
+        gato_famoso: (c) => `¡Tres millones! ¡Por tocar mal! El público me necesita. Quiero una cuenta, luces y mi mejor perfil.`,
+        gato_madrugada: (c) => `No puedo dormir. ¿Y si nunca llego a ser lo que estaba ${gn(c, 'destinado', 'destinada')} a ser? ¿Y si ya lo soy y nadie aplaude?`,
+        gato_veterinario: (c) => `¡Me quieren pinchar! ¡A mí! Llama a mi representante, a la prensa, a quien sea.`
+      }
+    },
+    aristocrata: {
+      name: 'aristócrata venido a menos|aristócrata venida a menos',
+      intro: (c) => `No te asustes. En mi otra vida fui ${gn(c, 'conde', 'condesa')} y me atendían mejor, pero contigo me conformo. Sigue sirviendo el atún: desde hoy te diré si está a la altura.`,
+      farewell: (c) => `Ha sido un honor, aunque no lo dije nunca. En mi próxima vida volveré a ser ${gn(c, 'conde', 'condesa')}; te guardaré un lugar en la corte.`,
+      adopted: (c) => `Me retiro. No es la primera vez que pierdo un palacio. De ti esperaba un poco más de clase.`,
+      advice: {
+        preso: (c) => `Te quedan ${yrs(c)} de condena. En mi familia también hubo presos, pero en torres con vista. Compórtate y saldrás antes; yo te espero, aunque no lo diré en público.`,
+        profugo: (c) => `Te buscan y tienes ${yrs(c)} por cumplir. Un noble no huye: se retira con elegancia. Tú huyes, así que al menos no llames la atención.`,
+        salud: (c) => (c.d.cond ? `Lo de tu ${c.d.cond} es impropio de esta casa. Hazte ver por un médico de verdad, no por el curandero del barrio.`
+          : `Tu salud es una vergüenza para el apellido. Médico y reposo, y que no tenga que repetirlo.`),
+        deudas: (c) => `Debes ${$(c)} este año y no los tienes. Mi familia perdió un castillo así. Vende algo antes de que vengan a tasar mis cosas.`,
+        sucio: (c) => `Guardas ${$(c)} de procedencia dudosa. La nobleza siempre tuvo dinero raro, pero lo lavaba con discreción. Imítala.`,
+        pareja: (c) => `${c.d.name} está a punto de dejarte. Un regalo, una cena, una disculpa: lo mínimo que se espera de alguien que vive conmigo.`,
+        trabajo: (c) => `Tu desempeño como ${c.d.title} es lamentable. En mi otra vida te habría despedido yo. Esfuérzate antes de que lo haga otro.`,
+        estres: (c) => `Te veo ${gp(c, 'alterado', 'alterada')}. Qué vulgar. La gente de clase descansa: tómate unos días y vuelve presentable.`,
+        seguro: (c) => `A tu edad y sin seguro de salud. Hasta mis antepasados tenían médico de cabecera. Contrátalo en Bienes.`
+      },
+      idle: [
+        (c) => `No hay nada que objetar hoy. Aprovecha: no acostumbro aprobar a nadie.`,
+        (c) => `Todo en orden. Casi parece una casa decente.`,
+        (c) => `No tengo consejos. En mi otra vida esto se celebraba con salmón; aquí me conformo con que no molestes.`,
+        (c) => `Sin novedad. Sigue así y quizá algún día merezcas mi compañía.`
+      ],
+      facts: {
+        carcel: (c) => `Presidio. Qué deshonra. Aun así diré que estás de viaje, que es lo que decíamos en mi familia.`,
+        muerte: (c) => `Mis condolencias por ${c.d.name}. En mi otra vida habríamos guardado un año de luto. Hoy te cedo mi lado del sillón.`,
+        boda: (c) => `Te casaste${c.d.name ? ` con ${c.d.name}` : ''}. Una unión aceptable. Espero que quede claro cuál es mi lugar en la mesa.`,
+        divorcio: (c) => `Un divorcio. En mi época esto se resolvía con un duelo. Lo de ahora es más civilizado y bastante más caro.`,
+        hijo: (c) => `Ha llegado ${c.d.name}. Le enseñaré modales, ya que nadie más en esta casa los tiene.`,
+        despido: (c) => `Te despidieron. Alguien de mi rango no trabaja, así que no veo el problema. Aunque el atún no se paga solo.`,
+        ascenso: (c) => `${c.d.title}. Por fin un cargo que se puede mencionar en una cena. Sigue así.`,
+        casa: (c) => `Una propiedad más. Todavía no es un castillo, pero vas entendiendo cómo se vive.`
+      },
+      events: {
+        gato_celos: (c) => `No tengo nada contra tu pareja, salvo su presencia. En mi otra vida las visitas pedían audiencia.`,
+        gato_regalo: (c) => `Un presente, como corresponde entre gente de bien. No esperaba menos de mí ${gn(c, 'mismo', 'misma')}.`,
+        gato_desaparece: (c) => `He partido a atender asuntos de mi rango. No esperes explicaciones; guárdame la cena.`,
+        gato_amigo: (c) => `Te presento a mi escudero. No tiene apellido ni modales, pero sabe abrir la heladera.`,
+        gato_famoso: (c) => `La plebe pide ídolos. Estoy ${gn(c, 'dispuesto', 'dispuesta')} a dejarme admirar. Encárgate de los detalles.`,
+        gato_madrugada: (c) => `Me pregunto si en esta vida vine a aprender humildad. Lo dudo mucho. ¿Tú qué opinas?`,
+        gato_veterinario: (c) => `${gn(c, 'Un caballero', 'Una dama')} no se deja tomar la temperatura de esa manera. Es mi última palabra.`
+      }
+    }
+  };
+})(window.MV = window.MV || {});

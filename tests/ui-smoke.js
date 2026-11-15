@@ -542,6 +542,34 @@ const SHOTS = process.argv[2] || null;
     if (/null|undefined|NaN/.test(workTxt)) errors.push('Ocupación muestra texto roto con la jubilación');
     await page.evaluate(() => { MV.UI.closeAll(); MV.UI.g.p.dirty = 0; });
   }
+  // El gato que habla — etiqueta en su ficha, sus dos acciones y "habla" en Relaciones
+  {
+    const sheetText = () => page.evaluate(() => document.querySelector('#layer .layer-item:last-child .sheet-body').textContent);
+    const catName = await page.evaluate(() => {
+      MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 20); g.p.yearActs = {};
+      if (g.p.flags.gatoHabla) { const old = g.people[g.p.flags.gatoHabla]; if (old) delete old.talk; delete g.p.flags.gatoHabla; }
+      const n = MV.newPet(g, 'gato', { age: 3 }); n.gender = 'f'; MV.addRel(g, n, 'mascota', 90);
+      MV.sys.talkcat.grant(g, n, 'karma'); n.talk.kind = 'diva'; g.queue = [];
+      MV.UI.save(); MV.UI.refreshGame(); MV.UI.showPerson(n.id);
+      return n.first;
+    });
+    await page.waitForSelector('#pet-talk');
+    const tag = await page.$eval('#pet-talk', (e) => e.textContent);
+    if (!/Habla/.test(tag) || !/diva dramática/.test(tag)) errors.push('La ficha no muestra que habla ni su personalidad: ' + tag);
+    const petTxt = await sheetText();
+    if (!/Pedirle consejo/.test(petTxt) || !/Planear algo con tu gata/.test(petTxt)) errors.push('La ficha del gato que habla no tiene sus dos acciones');
+    if (/null|undefined|NaN/.test(petTxt)) errors.push('La ficha del gato que habla muestra texto roto');
+    await page.click('#layer .layer-item:last-child button.row:has-text("Pedirle consejo")');
+    await page.waitForSelector('#layer .card .result');
+    const advice = await page.$eval('#layer .card .result', (e) => e.textContent);
+    if (!advice.includes(catName) || /null|undefined|NaN/.test(advice)) errors.push('El consejo no nombra a la gata: ' + advice);
+    await resolve();
+    await page.evaluate(() => { MV.UI.closeAll(); MV.UI.showRelations(); });
+    const relTxt = await sheetText();
+    if (!new RegExp(catName + '[^]*?, habla').test(relTxt)) errors.push('Relaciones no dice que la gata habla');
+    if (/null|undefined|NaN/.test(relTxt)) errors.push('Relaciones muestra texto roto');
+    await page.evaluate(() => MV.UI.closeAll());
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {
