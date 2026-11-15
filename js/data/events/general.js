@@ -30,7 +30,7 @@
       { t: 'Comprar otro sillón ($400)', when: (g) => g.p.money >= 400 || g.p.age < 18, eff: (g) => { if (g.p.age >= 18) fx.money(g, -400); return 'Compraste otro sillón. {t} ya lo está evaluando.'; } },
       { t: 'Sacar foto para redes', eff: (g) => { const gain = U.int(20, 400) + (U.chance(0.05) ? 20000 : 0); g.p.followers += gain; if (gain > 10000) { fx.stat(g, 'fame', 8); MV.ach.unlock(g, 'viral'); return `La foto de {t} sobre el sillón destruido se hizo viral. +${U.num(gain)} seguidores.`; } return `Publicaste la foto. +${U.num(gain)} seguidores. {t} es más famos{to} que tú.`; } }
     ] });
-  ev({ id: 'mascota_escapa', age: [3, 110], when: H.has('mascota', (n) => ['perro', 'gato', 'conejo', 'huron', 'loro'].includes(n.species)), target: H.rel('mascota', (n) => ['perro', 'gato', 'conejo', 'huron', 'loro'].includes(n.species)), icon: '🔦', title: '¡Se escapó!',
+  ev({ id: 'mascota_escapa', age: [3, 110], when: H.has('mascota', (n) => !n.talk && ['perro', 'gato', 'conejo', 'huron', 'loro'].includes(n.species)), target: H.rel('mascota', (n) => !n.talk && ['perro', 'gato', 'conejo', 'huron', 'loro'].includes(n.species)), icon: '🔦', title: '¡Se escapó!',
     text: '{t} se escapó de casa. La puerta estaba abierta (alguien la dejó abierta, no diremos quién).',
     choices: [
       { t: 'Buscarl{to} toda la noche', eff: (g, ctx) => { if (U.chance(0.75)) { H.bump(g, ctx, 10); fx.stat(g, 'health', -1); return 'Buscaste a {t} hasta las 4 a.m. Estaba en la casa del vecino comiendo salchichas.'; } MV.removeRel(g, ctx.target); fx.stat(g, 'happy', -12); return 'No encontraste a {t}. Te gusta pensar que vive feliz en una granja.'; } },

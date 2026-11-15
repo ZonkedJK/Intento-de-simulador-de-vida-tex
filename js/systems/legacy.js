@@ -212,6 +212,7 @@
       siblings.forEach(({ n }) => { copy(n); p.rels.push({ id: n.id, type: 'hermano', rel: U.int(35, 85), since: 0 }); });
       // El gato que habla era de quien murió: no pasa al heredero.
       const talker = c.age < 30 ? MV.rels(g, 'mascota').map((x) => x.n).find((n) => n.talk) : null;
+      p.counters.gatosRescatados = 0; // los rescates son de cada vida: los gatos heredados no cuentan
       MV.rels(g, 'mascota').forEach(({ n, r }) => { if (c.age < 30 && !n.talk) { copy(n); p.rels.push({ id: n.id, type: 'mascota', rel: r.rel, since: c.age }); } });
 
       // Herencia: la casa familiar siempre; todos los bienes si es el único o el nombrado.

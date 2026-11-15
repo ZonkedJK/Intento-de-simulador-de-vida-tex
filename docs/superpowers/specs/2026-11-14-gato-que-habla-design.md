@@ -114,7 +114,7 @@ la frase incluye el dato concreto.
 |---|---|---|---|
 | 1 | Preso o prófugo | estás en prisión, o te buscan | años que te faltan, o que te buscan |
 | 2 | Salud | salud menor que 35, o tienes una enfermedad que el juego ya trata como grave (las que abren el aviso de diagnóstico) o urgente | la enfermedad, si la hay |
-| 3 | Deudas | dinero negativo, o las cuotas de este año de tus préstamos superan tu efectivo | el monto de las cuotas |
+| 3 | Deudas | dinero negativo, o las cuotas de este año de tus préstamos superan tu efectivo más lo que ganas en el año (sueldo y pensión) | lo que debes este año: las cuotas, más lo que estés en rojo |
 | 4 | Dinero sucio | más de $50.000 sucios | el monto |
 | 5 | Pareja enojada | tu pareja o cónyuge tiene relación menor que 35 | su nombre |
 | 6 | Trabajo | rendimiento menor que 30 | tu puesto |

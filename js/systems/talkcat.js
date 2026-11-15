@@ -80,8 +80,10 @@
       if (p.wanted > 0) return { id: 'profugo', d: { years: p.wanted } };
       const grave = (p.conds || []).map((c) => MV.CONDITIONS[c.id]).find((C) => C && (C.drain[1] >= 8 || C.urgent));
       if (p.stats.health < 35 || grave) return { id: 'salud', d: { cond: grave ? grave.name.toLowerCase() : null } };
-      const dues = U.sum((p.loans || []).filter((l) => l.start <= p.age && l.left > 0), (l) => l.pay || 0);
-      if (p.money < 0 || (dues > 0 && dues > p.money)) return { id: 'deudas', d: { amount: dues > 0 ? dues : -p.money } };
+      // Deudas: estás en rojo, o las cuotas de este año superan tu efectivo más lo que ganas en el año.
+      const dues = U.sum((p.loans || []).filter((l) => l.start <= p.age && l.left > 0), (l) => Math.min(l.pay || 0, l.left));
+      const income = (p.job ? p.job.salary || 0 : 0) + (p.pension || 0);
+      if (p.money < 0 || dues > p.money + income) return { id: 'deudas', d: { amount: dues + Math.max(0, -p.money) } };
       if (p.dirty > 50000) return { id: 'sucio', d: { amount: p.dirty } };
       const x = MV.partner(g);
       if (x && x.r.rel < 35) return { id: 'pareja', d: { name: x.n.first } };
@@ -209,7 +211,8 @@
       if (old) {
         const f = talkcat.fact(g, old);
         if (f) line = V.facts[f.id](talkcat.ctx(g, n, f.d));
-        else if (U.chance(0.25)) line = U.pick(V.idle)(talkcat.ctx(g, n));
+        // Sus frases sueltas dicen que todo va bien: solo valen si de verdad no hay ningún riesgo.
+        else if (!talkcat.risk(g) && U.chance(0.25)) line = U.pick(V.idle)(talkcat.ctx(g, n));
       }
       n.talk.snap = talkcat.snapshot(g);
       if (line) MV.log(g, talkcat.say(n, line), '🐈');

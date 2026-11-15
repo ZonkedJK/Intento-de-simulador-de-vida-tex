@@ -19,7 +19,7 @@
       advice: {
         preso: (c) => `Te faltan ${yrs(c)} ahí adentro. Pórtate bien, lee en la biblioteca y no te metas en motines: preso que hace buena letra sale antes de la cena.`,
         profugo: (c) => `Te buscan y tú paseando. Tienes ${yrs(c)} pendientes y cada año afuera es una moneda al aire. No llames la atención: gato escondido no sale en la foto.`,
-        salud: (c) => (c.d.cond ? `Esa ${c.d.cond} no se cura mirando el techo. Trátala este año: quien deja la salud para mañana amanece en el veterinario.`
+        salud: (c) => (c.d.cond ? `Lo de tu ${c.d.cond} no se cura mirando el techo. Hazte tratar este año: quien deja la salud para mañana amanece en el veterinario.`
           : `Estás ${gp(c, 'hecho', 'hecha')} un trapo. Médico, gimnasio o siesta, pero haz algo por tu salud antes de que sea tarde.`),
         deudas: (c) => `Las cuentas no cierran: debes ${$(c)} este año y en la billetera no hay con qué. Vende algo o gasta menos. Bolsillo roto no guarda sardinas.`,
         sucio: (c) => `Tienes ${$(c)} que no puedes explicar. Lávalos de a poco o un fiscal va a venir a preguntar. Plata sucia, sueño corto.`,
@@ -62,7 +62,7 @@
       advice: {
         preso: (c) => `¡${yrs(c)} más ahí adentro! ¿Y a mí quién me abre las latas? Pórtate como un ángel y apela si puedes, que este drama ya duró demasiados capítulos.`,
         profugo: (c) => `¡Vivo con ${gp(c, 'un prófugo', 'una prófuga')}! Te buscan por ${yrs(c)} y yo sin arreglar para la foto del diario. No llames la atención, te lo ruego.`,
-        salud: (c) => (c.d.cond ? `¡Tu ${c.d.cond} me tiene con el corazón en la boca! Trátala YA. No pienso quedar ${gn(c, 'huérfano', 'huérfana')} en mitad de temporada.`
+        salud: (c) => (c.d.cond ? `¡Tu ${c.d.cond} me tiene con el corazón en la boca! Hazte tratar YA. No pienso quedar ${gn(c, 'huérfano', 'huérfana')} en mitad de temporada.`
           : `¡Mírate! Tienes peor cara que yo después del baño. Descansa, cuídate, ve al médico. Hazlo por mí.`),
         deudas: (c) => `¡Estamos en la ruina! Debes ${$(c)} este año y no los tienes. Vende algo, lo que sea, menos mi rascador.`,
         sucio: (c) => `Hay ${$(c)} escondidos que huelen peor que mi arenero. Lávalos antes de que lleguen las cámaras, y yo sin peinar.`,
@@ -105,7 +105,7 @@
       advice: {
         preso: (c) => `Te quedan ${yrs(c)} de condena. En mi familia también hubo presos, pero en torres con vista. Compórtate y saldrás antes; yo te espero, aunque no lo diré en público.`,
         profugo: (c) => `Te buscan y tienes ${yrs(c)} por cumplir. Un noble no huye: se retira con elegancia. Tú huyes, así que al menos no llames la atención.`,
-        salud: (c) => (c.d.cond ? `Esa ${c.d.cond} es impropia de esta casa. Hazte ver por un médico de verdad, no por el curandero del barrio.`
+        salud: (c) => (c.d.cond ? `Lo de tu ${c.d.cond} es impropio de esta casa. Hazte ver por un médico de verdad, no por el curandero del barrio.`
           : `Tu salud es una vergüenza para el apellido. Médico y reposo, y que no tenga que repetirlo.`),
         deudas: (c) => `Debes ${$(c)} este año y no los tienes. Mi familia perdió un castillo así. Vende algo antes de que vengan a tasar mis cosas.`,
         sucio: (c) => `Guardas ${$(c)} de procedencia dudosa. La nobleza siempre tuvo dinero raro, pero lo lavaba con discreción. Imítala.`,

@@ -881,3 +881,105 @@ test('el jugador automático vive 30 vidas con gatos que hablan', () => {
   assert.ok(talkers >= 1, 'ninguna vida tuvo un gato que habla');
   assert.ok(events >= 1, 'ninguna vida vio una decisión del gato');
 });
+
+// ——— Revisión final ———
+test('en un año sin novedades no dice que todo va bien si hay un riesgo', () => {
+  const MV = load({ seed: 70 });
+  for (let s = 0; s < 300; s++) {
+    MV.rng.seed(7000 + s);
+    const { g, n } = calm(MV, 7000 + s);
+    g.p.prison = { left: 8, total: 10, crime: 'Robo', behavior: 50, since: 28 };
+    n.talk.snap = T(MV).snapshot(g); // ya estaba preso el año pasado: no es novedad
+    T(MV).yearly(g);
+    assert.deepEqual(said(g, n), [], 'comentó con un riesgo activo');
+  }
+});
+
+test('el consejo de salud concuerda con cualquier enfermedad', () => {
+  const MV = load({ seed: 71 });
+  const grave = Object.keys(MV.CONDITIONS).filter((k) => MV.CONDITIONS[k].drain[1] >= 8 || MV.CONDITIONS[k].urgent);
+  assert.ok(grave.includes('cancer'), 'el cáncer cuenta como grave');
+  grave.forEach((id) => KINDS.forEach((kind, i) => {
+    const { g } = calm(MV, 710 + i, kind);
+    g.p.conds = [{ id, since: g.p.age }];
+    const s = T(MV).advise(g), name = MV.CONDITIONS[id].name.toLowerCase();
+    assert.ok(s.includes(name), s);
+    assert.ok(!/\b(es[ae]|un|una|el|la)\s+$/i.test(s.slice(0, s.indexOf(name))), `artículo con género delante de "${name}": ${s}`);
+    assert.ok(!/Trátal[ao]\b/.test(s), `pronombre con género: ${s}`);
+  }));
+});
+
+test('el gato que habla no se pierde con el evento de la mascota que se escapa', () => {
+  const MV = load({ seed: 72 });
+  const escapa = MV.EV.byId.mascota_escapa;
+  const { g, n } = calm(MV, 72);
+  assert.equal(MV.EV.eligible(g, escapa), null, 'si es tu única mascota, el evento no sale');
+  const dog = MV.newPet(g, 'perro', { age: 3 }); MV.addRel(g, dog, 'mascota', 80);
+  for (let s = 0; s < 100; s++) {
+    MV.rng.seed(7200 + s);
+    const ctx = MV.EV.eligible(g, escapa);
+    assert.ok(ctx && ctx.target === dog.id, 'eligió al gato que habla');
+  }
+  assert.equal(T(MV).cat(g), n);
+});
+
+test('el heredero no hereda los rescates', () => {
+  const MV = load({ seed: 73 });
+  const g = game(MV, 73, 70); g.p.loans = []; g.p.karma = 0;
+  for (let i = 0; i < 3; i++) { cat(MV, g, 50, { street: 'dormía arriba de los autos' }); T(MV).noteRescue(g); }
+  const kid = MV.newNPC(g, { age: 20, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+  MV.sys.legacy.die(g, 'una prueba');
+  const ng = MV.sys.legacy.continueAs(g, kid.id); ng.p.karma = 0;
+  assert.equal(MV.rels(ng, 'mascota').filter((x) => x.n.street).length, 3, 'hereda los gatos');
+  assert.equal(T(MV).rescued(ng), 0, 'pero no los rescates');
+  T(MV).yearly(ng);
+  assert.equal(talking(ng).length, 0, 'ninguno habla por rescates ajenos');
+  cat(MV, ng, 50, { street: 'robaba salchichas' }); T(MV).noteRescue(ng);
+  assert.equal(T(MV).rescued(ng), 1);
+});
+
+test('las decisiones concuerdan con el género de tu gata', () => {
+  const MV = load({ seed: 74 });
+  CAT_EVENTS.forEach((id, i) => {
+    const f = openEv(MV, scene(MV, 7400 + i, { cg: 'f' }), id);
+    const m = openEv(MV, scene(MV, 7400 + i, { cg: 'm' }), id);
+    const all = (v) => v.choices.map((c) => c.label + ' | ' + (c.sub || '')).join(' || ');
+    assert.ok(!/\btu gato\b/i.test(all(f)), `${id} con gata: ${all(f)}`);
+    assert.ok(!/\btu gata\b/i.test(all(m)), `${id} con gato: ${all(m)}`);
+  });
+  let lost = 0;
+  for (let s = 0; s < 60; s++) {
+    const t = play(MV, 7500 + s, 'gato_madrugada', /Discutirle/, { cg: 'f' });
+    if (t.g.p.stats.happy === 48) { lost++; assert.ok(!/\bun gato\b/.test(t.res.msg), t.res.msg); assert.ok(/\buna gata\b/.test(t.res.msg), t.res.msg); }
+  }
+  assert.ok(lost > 5);
+});
+
+test('el consejo de deudas no asusta a quien puede pagar', () => {
+  const MV = load({ seed: 75 });
+  const U = MV.U;
+  const loan = (g, left, pay) => g.p.loans.push({ name: 'Hipoteca', left, pay, start: g.p.age });
+  // Con sueldo, una cuota mayor que tu efectivo no es un problema.
+  let { g } = calm(MV, 75); MV.sys.career.hire(g, MV.jobById('cajero'), 0, 80000); g.p.job.perf = 60; g.p.money = 5000; loan(g, 200000, 12000);
+  assert.equal(T(MV).risk(g), null);
+  // La pensión también cuenta.
+  ({ g } = calm(MV, 76)); g.p.retired = true; g.p.pension = 20000; g.p.money = 1000; loan(g, 100000, 12000);
+  assert.equal(T(MV).risk(g), null);
+  // La última cuota es lo que falta pagar, no la cuota entera.
+  ({ g } = calm(MV, 77)); g.p.money = 5000; loan(g, 2000, 9000);
+  assert.equal(T(MV).risk(g), null);
+  // Si el sueldo tampoco alcanza, sí avisa, con el monto de las cuotas.
+  ({ g } = calm(MV, 78)); MV.sys.career.hire(g, MV.jobById('cajero'), 0, 10000); g.p.job.perf = 60; g.p.money = 1000; loan(g, 200000, 30000);
+  assert.equal(T(MV).risk(g).id, 'deudas'); assert.ok(T(MV).advise(g).includes(U.money(30000)));
+  // En rojo y con cuotas: nombra todo lo que debes este año.
+  ({ g } = calm(MV, 79)); g.p.money = -72215; loan(g, 50000, 5000);
+  assert.deepEqual(T(MV).risk(g), { id: 'deudas', d: { amount: 77215 } });
+  assert.ok(T(MV).advise(g).includes(U.money(77215)));
+});
+
+test('ningún nombre de mascota viene de otra obra', () => {
+  const MV = load({ seed: 76 });
+  ['Duquesa', 'Simba', 'Nala'].forEach((x) => assert.ok(!MV.PET_NAMES.includes(x), x));
+  assert.equal(MV.PET_NAMES.length, 40);
+  assert.equal(new Set(MV.PET_NAMES).size, 40, 'sin repetidos');
+});

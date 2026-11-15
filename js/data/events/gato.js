@@ -11,6 +11,9 @@
   const says = (g, ctx, id) => { const n = catOf(g, ctx); return `"${T().voice(n).events[id](T().ctx(g, n))}"`; };
   /** "lo" o "la" según el gato. */
   const lo = (g, ctx) => U.gw(catOf(g, ctx).gender, 'lo', 'la');
+  /** "tu gato" o "tu gata", y con mayúscula. */
+  const tu = (g, ctx) => U.gw(catOf(g, ctx).gender, 'tu gato', 'tu gata');
+  const Tu = (g, ctx) => U.gw(catOf(g, ctx).gender, 'Tu gato', 'Tu gata');
   const base = (id, extra) => ({
     id, w: 0.5, icon: '🐈', scene: 'hogar',
     when: (g) => !!T().cat(g) && (!extra || extra(g)),
@@ -28,7 +31,7 @@
       { t: 'Darle la razón', sub: 'Tu pareja se va a ofender',
         eff: (g, ctx) => { const x = MV.partner(g); if (x) x.r.rel = U.clamp(x.r.rel - 6, 0, 100); bump(g, ctx, 6);
           return `Le diste la razón a ${catOf(g, ctx).first}. ${x ? x.n.first : 'Tu pareja'} durmió en el sillón, y no por elección propia.`; } },
-      { t: 'Defender a tu pareja', sub: 'Tu gato se va a ofender',
+      { t: 'Defender a tu pareja', sub: (g, ctx) => `${Tu(g, ctx)} se va a ofender`,
         eff: (g, ctx) => { const x = MV.partner(g); if (x) x.r.rel = U.clamp(x.r.rel + 5, 0, 100); bump(g, ctx, -6);
           return `Defendiste a ${x ? x.n.first : 'tu pareja'}. ${catOf(g, ctx).first} pasó tres días mirándote desde arriba del ropero sin dirigirte la palabra.`; } },
       { t: (g, ctx) => `Sobornar${lo(g, ctx)} con atún ($40)`, sub: 'La paz tiene precio', when: (g) => g.p.money >= 40,
@@ -49,10 +52,10 @@
           if (k < 0.8) { fx.stat(g, 'karma', -2); return 'Eran los anteojos del vecino. Te los quedaste igual, y ahora él te saluda entrecerrando los ojos.'; }
           fx.stat(g, 'happy', -3); return 'Estaba vivo. Era una rana. Pasaste la noche buscándola debajo de la cama.';
         } },
-      { t: 'Devolverlo a su dueño', sub: '+karma, pero tu gato se ofende',
+      { t: 'Devolverlo a su dueño', sub: (g, ctx) => `+karma, pero ${tu(g, ctx)} se ofende`,
         eff: (g, ctx) => { fx.stat(g, 'karma', 3); bump(g, ctx, -3);
           return `Encontraste al dueño y se lo devolviste. ${catOf(g, ctx).first} te mira como a alguien que no entiende nada de regalos.`; } },
-      { t: 'Agradecer y tirarlo a escondidas', sub: 'Tu gato queda feliz',
+      { t: 'Agradecer y tirarlo a escondidas', sub: (g, ctx) => `${Tu(g, ctx)} queda feliz`,
         eff: (g, ctx) => { bump(g, ctx, 4);
           return `Agradeciste con una reverencia y lo tiraste cuando nadie miraba. ${catOf(g, ctx).first} ya está planeando el próximo.`; } }
     ]
@@ -83,7 +86,7 @@
     title: (g, ctx) => `${catOf(g, ctx).first} trajo visita`,
     text: (g, ctx) => `${catOf(g, ctx).first} llegó con un gato flaco y atigrado que no dice una palabra: solo maúlla. Te lo presenta así: ${says(g, ctx, 'gato_amigo')}`,
     choices: [
-      { t: 'Invitarlo a comer ($80)', sub: 'Tu gato queda como un gran anfitrión', when: (g) => g.p.money >= 80,
+      { t: 'Invitarlo a comer ($80)', sub: (g, ctx) => `${Tu(g, ctx)} queda como ${U.gw(catOf(g, ctx).gender, 'un gran anfitrión', 'una gran anfitriona')}`, when: (g) => g.p.money >= 80,
         eff: (g, ctx) => { fx.money(g, -80); bump(g, ctx, 5);
           return `Serviste dos platos. El invitado comió por cuatro y ${catOf(g, ctx).first} quedó como la mejor casa del barrio.`; } },
       { t: 'Adoptarlo también', sub: 'Un gato más en casa',
@@ -92,7 +95,7 @@
           MV.addRel(g, pet, 'mascota', 60); T().noteRescue(g); MV.ach.check(g);
           return `Ahora son dos. Le pusiste ${pet.first}. No habla, pero ${catOf(g, ctx).first} traduce todo lo que maúlla (y a veces inventa).`;
         } },
-      { t: 'Decirle que no', sub: 'Tu gato se ofende',
+      { t: 'Decirle que no', sub: (g, ctx) => `${Tu(g, ctx)} se ofende`,
         eff: (g, ctx) => { bump(g, ctx, -5);
           return `Dijiste que no. ${catOf(g, ctx).first} acompañó a su amigo hasta la puerta y volvió sin mirarte.`; } }
     ]
@@ -109,7 +112,7 @@
       { t: 'Decirle que la fama corrompe', sub: '+karma, pero no le gusta oírlo',
         eff: (g, ctx) => { bump(g, ctx, -3); fx.stat(g, 'karma', 2);
           return `Le explicaste los peligros de la fama. ${catOf(g, ctx).first} te escuchó entero y después practicó poses frente al espejo.`; } },
-      { t: 'Cobrar por sus fotos', sub: 'Plata fácil; tu gato se siente usado',
+      { t: 'Cobrar por sus fotos', sub: (g, ctx) => `Plata fácil; ${tu(g, ctx)} se siente ${U.gw(catOf(g, ctx).gender, 'usado', 'usada')}`,
         eff: (g, ctx) => { const amt = U.int(100, 1500); fx.money(g, amt); bump(g, ctx, -4); const n = catOf(g, ctx);
           return `Vendiste sus fotos a una marca de arena sanitaria por ${U.money(amt)}. ${n.first} exige su parte y se siente ${U.gw(n.gender, 'usado', 'usada')}.`; } }
     ]
@@ -123,14 +126,14 @@
       { t: (g, ctx) => `Escuchar${lo(g, ctx)} hasta el amanecer`, sub: 'Aprendes algo y duermes poco',
         eff: (g, ctx) => { fx.stat(g, 'smarts', 2); fx.stat(g, 'stress', 4); bump(g, ctx, 6);
           return `Hablaron hasta que salió el sol. No resolvieron nada, pero ahora piensas distinto sobre los platos vacíos. Y tienes sueño.`; } },
-      { t: 'Taparte con la almohada', sub: 'Duermes; tu gato se ofende',
+      { t: 'Taparte con la almohada', sub: (g, ctx) => `Duermes; ${tu(g, ctx)} se ofende`,
         eff: (g, ctx) => { bump(g, ctx, -3); fx.stat(g, 'stress', -3);
           return `Te tapaste la cabeza. ${catOf(g, ctx).first} siguió hablando media hora y después se fue a filosofar con la heladera.`; } },
       { t: 'Discutirle', sub: 'Puedes ganar o perder',
         eff: (g, ctx) => {
           bump(g, ctx, 2);
           if (U.chance(0.5)) { fx.stat(g, 'smarts', 3); return `Le ganaste la discusión con un argumento brillante. ${catOf(g, ctx).first} dijo que igual tenía razón y se fue a dormir.`; }
-          fx.stat(g, 'happy', -2); return `Te ganó la discusión. A las tres de la mañana, un gato te demostró que estabas ${U.gw(g.p.gender, 'equivocado', 'equivocada')}.`;
+          fx.stat(g, 'happy', -2); return `Te ganó la discusión. A las tres de la mañana, ${U.gw(catOf(g, ctx).gender, 'un gato', 'una gata')} te demostró que estabas ${U.gw(g.p.gender, 'equivocado', 'equivocada')}.`;
         } }
     ]
   }));
@@ -152,7 +155,7 @@
           }
           fx.stat(g, 'health', -2); return `La negociación terminó cuando ${n.first} te arañó la mano. No hubo veterinario; hubo curita.`;
         } },
-      { t: (g, ctx) => `Dejar${lo(g, ctx)} por este año`, sub: 'Tu gato feliz, su salud no tanto',
+      { t: (g, ctx) => `Dejar${lo(g, ctx)} por este año`, sub: (g, ctx) => `${Tu(g, ctx)} feliz, su salud no tanto`,
         eff: (g, ctx) => { const n = catOf(g, ctx); n.health = U.clamp((n.health || 0) - 5, 0, 100); bump(g, ctx, 3);
           return `Cancelaste el turno. ${n.first} salió de abajo de la cama en dos segundos y dice que eres una persona razonable.`; } }
     ]
