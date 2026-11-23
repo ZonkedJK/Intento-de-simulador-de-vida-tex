@@ -78,6 +78,15 @@ Cada relación con una persona (no mascota) guarda `mem`: una lista de recuerdos
 - `d`: un dato concreto cuando lo hay, por ejemplo el monto prestado o el regalo;
 - `done`: si ya volvió.
 
+**Un recuerdo por tipo y persona** (decisión mía). Repetir lo mismo con la misma persona no crea otro recuerdo:
+refuerza el que ya está, mientras no haya vuelto todavía.
+- El peso sube 1, hasta 3 en valor absoluto.
+- El dato se suma cuando es un monto (dos préstamos de $1.000 son "$2.000"); si no, queda el último.
+- `a` pasa a ser la edad de la última vez.
+
+Así, cinco insultos dan un solo rencor más fuerte, y repetir una acción gratis todos los años no acumula favores. Si el
+recuerdo ya volvió, la vez siguiente empieza uno nuevo.
+
 **Hasta 6 recuerdos por persona.** Al guardar el séptimo se descarta el de menor peso; a igual peso, el más viejo.
 Los que ya volvieron se descartan antes que cualquier otro.
 
@@ -88,7 +97,7 @@ Los que ya volvieron se descartan antes que cualquier otro.
 | `prestamo` | bueno | 2 | "Prestarle dinero", y "Prestar" en el evento del amigo que pide plata | monto |
 | `dinero` | bueno | 1 si es menos de $1.000, 2 si es $1.000 o más, 3 si es $20.000 o más | "Darle dinero" | monto |
 | `regalo` | bueno | 1, o 2 si cuesta $500 o más | "Hacer un regalo" | nombre del regalo |
-| `apoyo` | bueno | 1 | "Escuchar" y "Dar un consejo" | — |
+| `apoyo` | bueno | 1 | "Escuchar" (pedirle un consejo no cuenta: ahí la ayuda la recibes tú) | — |
 | `inversion` | bueno | 2 | invertir en la idea de un amigo | monto |
 | `discurso` | bueno | 1 | un buen discurso en la boda de un amigo | — |
 | `insulto` | malo | 1 | "Insultar" | lo que le dijiste, si el texto lo tiene |
@@ -97,8 +106,8 @@ Los que ya volvieron se descartan antes que cualquier otro.
 | `broma` | malo | 1 | una broma que salió mal | — |
 | `infidelidad` | malo | 3 | tu pareja descubre tu infidelidad (el recuerdo es de tu pareja) | nombre del amante |
 | `ruptura` | malo | 2 | terminas con tu pareja (el recuerdo es de tu ex) | — |
-| `divorcio` | malo | 3 | te divorcias (el recuerdo es de tu ex) | — |
-| `humillacion` | malo | 2 | en el trabajo, dejas mal parado a un compañero frente al jefe | — |
+| `divorcio` | malo | 3 | pides tú el divorcio (el recuerdo es de tu ex); si lo pide tu ex, no deja recuerdo | — |
+| `humillacion` | malo | 2 | en el trabajo: culpas a un compañero por un error, o reclamas ante el jefe que el rival te robó la idea y el jefe te da la razón | — |
 
 Quien construye puede sumar otras fuentes donde una acción o un evento claramente ayuda o daña a una persona
 concreta, con el mismo formato.
@@ -110,6 +119,8 @@ Al cerrar cada año (con el jugador vivo, sin la partida terminada y con 8 años
 - **Recuerdos que pueden volver:** de personas vivas que siguen en tus relaciones, no mascotas, con `done` falso y de
   hace 3 años o más.
 - **Chance:** si hay alguno, 20 % de que uno vuelva ese año. Como mucho uno por año.
+- **Una persona por vez** (decisión mía): cuando le vuelve un recuerdo a alguien, sus otros recuerdos esperan 5 años
+  antes de poder volver.
 - **Cuál:** se sortea con peso según su `v` en valor absoluto y los años que pasaron (los más pesados y los más
   viejos salen antes).
 - **Al volver** se marca `done` y se encola una decisión según la tabla de abajo.
@@ -138,8 +149,8 @@ Se elige el primero que encaje con tu situación de hoy:
 | tienes pareja con relación menor que 40 | los ayuda a reconciliarse | sube la relación con tu pareja |
 | ninguna de las anteriores | te invita a un viaje o te hace un regalo | más felicidad |
 
-Cada favor ofrece aceptarlo y, cuando tiene sentido, rechazarlo con orgullo. Aceptar puede dejar un recuerdo nuevo de
-la otra persona (por ejemplo, ahora te prestó ella).
+Cada favor ofrece aceptarlo y, cuando tiene sentido, rechazarlo con orgullo. Aceptarlo no deja un recuerdo nuevo
+(decisión mía): los recuerdos son siempre de lo que tú le hiciste a la otra persona.
 
 ### Vueltas de la vida
 
@@ -168,7 +179,8 @@ Se elige al azar entre las que encajen con tu situación:
 
 En cada venganza puedes:
 - **disculparte:** a veces lo acepta; la relación sube y la venganza no hace daño;
-- **devolver el golpe:** la persona pasa a ser tu enemiga y te guarda un recuerdo malo nuevo;
+- **devolver el golpe:** la persona te guarda un recuerdo malo nuevo. Si no es de tu familia ni tu pareja, pasa a ser
+  tu enemiga; si lo es, solo baja mucho la relación (decisión mía: así no se rompen la herencia ni la familia);
 - **ignorarlo:** recibes el daño.
 
 **Límites de las venganzas:** nunca matan, nunca te mandan preso, nunca te quitan más del 10 % de tu dinero y nunca
@@ -179,7 +191,7 @@ tocan a tus hijos.
 **Quién puede serlo**, con estas chances:
 - alguien con quien pasaste una noche y elegiste "Solo fue una noche": 6 %;
 - tu pareja cuando la dejas tú (ruptura o divorcio): 8 %;
-- un fan, cuando el evento del fan número uno sale mal: 30 %.
+- un fan, cuando en el evento del fan número uno le respondes y sale mal (acampa en tu puerta): 30 %.
 
 Como mucho un acosador activo a la vez y dos por vida. Puede ser mujer u hombre.
 
@@ -187,7 +199,8 @@ Como mucho un acosador activo a la vez y dos por vida. Puede ser mujer u hombre.
 Relaciones.
 
 **Cómo escala.** Cada año, mientras esté activo, hay 60 % de chance de una decisión de su etapa. Si la ignoras, sube
-de etapa:
+de etapa; si pruebas algo y no funciona, queda en la misma etapa (decisión mía). En la etapa 3, ignorarla la deja ahí y
+vuelve a hacer daño cada año:
 1. **Mensajes:** te escribe sin parar. Más estrés.
 2. **Aparece:** en tu trabajo o en tu casa. Más estrés y menos felicidad.
 3. **Tu pareja:** se mete con tu pareja. Baja esa relación.
@@ -199,11 +212,15 @@ de etapa:
 | hablar con la persona | — | 25 % |
 | bloquearla | — | 50 % en la etapa 1; después no sirve |
 | ir a la policía | — | 40 % |
-| pedir una orden de alejamiento | $5.000 de abogado | 80 %; si la viola, la arrestan y termina igual |
+| pedir una orden de alejamiento | $5.000 de abogado | siempre termina: 80 % sin más; 20 % la viola una vez, te da un susto (más estrés) y la arrestan |
 | mudarte | $2.000 | 70 % |
 | ignorarla | — | no termina y sube de etapa |
 
 Cuando funciona, la persona sale de tu vida con un cierre en el diario y no vuelve a acosarte.
+
+**Su ficha** (decisión mía): en lugar de las acciones de siempre (conversar, regalos, insultar, "Sacar de tu vida"),
+muestra solo estas respuestas, para que puedas actuar sin esperar a que aparezca. Comparten un único uso por año con
+la decisión anual: si ya respondiste ese año, la decisión de ese año no sale.
 
 ## 4. Partidas y heredero
 
@@ -231,6 +248,7 @@ Cuando funciona, la persona sale de tu vida con un cierre en el diario y no vuel
 ## 6. Lo que queda a criterio de quien lo construye
 
 - Las cifras exactas de cada favor, venganza y vuelta de la vida, dentro de los rangos y límites de arriba.
+- Casos raros como un favor que viene de tu propia pareja, o una venganza de alguien que vive contigo.
 - La redacción de cada texto.
 - Las condiciones exactas de las vueltas de la vida y cuáles son, mientras haya unas 5.
 - La organización del código. Se propone seguir el patrón del juego: datos en `js/data/memory.js`, lógica en
