@@ -1142,18 +1142,24 @@ test('el jugador automático vive 30 vidas con memoria', () => {
     assert.ok(g.over, `seed ${seed}`);
     if (Object.keys(g.evDone || {}).some((k) => /^mem_/.test(k))) back++;
   }
-  console.log('vidas con un recuerdo que volvió:', back, 'de 30');
   assert.ok(back > 0, 'nunca volvió un recuerdo');
 });
 
-test('en 40 vidas hay algún acosador', () => {
+test('en las vidas sociales hay acosadores', () => {
   const { live } = require('./agent');
-  let n = 0;
-  for (let seed = 700; seed < 740; seed++) {
+  let lives = 0, entries = 0;
+  const N = 100;
+  for (let seed = 700; seed < 700 + N; seed++) {
     const MV = load({ seed }); const g = MV.newGame({ seed });
-    live(MV, g, { acts: 4 });
-    if (g.p.counters.acosadores) n++;
+    for (const k of ['breakUp', 'divorce']) {
+      const f = MV.sys.rels[k];
+      MV.sys.rels[k] = function (...a) { entries++; return f.apply(this, a); };
+    }
+    live(MV, g, { acts: 4, social: true });
+    assert.ok(g.over, `seed ${seed}`);
+    if (g.p.counters.acosadores) lives++;
   }
-  console.log('vidas con acosador:', n, 'de 40');
-  assert.ok(n > 0, 'ninguna vida tuvo un acosador');
+  // Cada ruptura o divorcio tiene un 8 % de dejar un acosador: con tantas, nunca debería quedar en cero.
+  assert.ok(entries >= 100, `pocas rupturas y divorcios: ${entries}`);
+  assert.ok(lives >= 1, `ninguna vida con acosador en ${N} (${entries} rupturas y divorcios)`);
 });
