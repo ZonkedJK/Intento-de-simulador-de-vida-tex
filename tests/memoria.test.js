@@ -252,9 +252,9 @@ test('los efectos de siempre no cambian', () => {
   for (let s = 0; s < 400; s++) {
     const x = setup(9000 + s); x.g.p.money = 50000;
     choose(x.MV, x.g, 'inversion_amigo', { target: x.n.id }, /Invertir/);
-    // Igual que antes de esta tarea: el "-5000" de arriba no se aplica (con "p" solo cuenta la rama), así que al fracasar el dinero no cambia.
-    if (x.g.p.money > 50000) { ok++; assert.ok(x.g.p.money >= 58000 && x.g.p.money <= 90000, 'ganancia: ' + x.g.p.money); }
-    else assert.strictEqual(x.g.p.money, 50000);
+    // Invertir cuesta $5.000 en los dos casos; si sale bien, se recuperan entre $8.000 y $40.000.
+    if (x.g.p.money > 45000) { ok++; assert.ok(x.g.p.money >= 50000 - 5000 + 8000 && x.g.p.money <= 50000 - 5000 + 40000, 'ganancia: ' + x.g.p.money); }
+    else assert.strictEqual(x.g.p.money, 45000);
   }
   assert.ok(ok / 400 >= 0.22 && ok / 400 <= 0.38, 'sale bien ' + ok / 400);
   const rels = eachSeed(9500, 80, (s) => {

@@ -55,7 +55,8 @@
     choices: [
       { t: 'Invertir $5.000', eff: (g, ctx) => {
         MV.sys.memory.remember(g, ctx.target, 'inversion', 5000);
-        return MV.fx.apply(g, { money: -5000, p: 0.3, ok: { money: [8000, 40000], happy: 10, rel: 10, msg: '¡El negocio funcionó! Recuperaste {amount}. {t} te invita a cenar de por vida.' }, ko: { happy: -6, rel: -5, msg: 'El negocio fracasó en dos meses. {t} se mudó a otra provincia. Tu dinero también.' } }, ctx);
+        fx.money(g, -5000);
+        return MV.fx.apply(g, { p: 0.3, ok: { money: [8000, 40000], happy: 10, rel: 10, msg: '¡El negocio funcionó! Recuperaste {amount}. {t} te invita a cenar de por vida.' }, ko: { happy: -6, rel: -5, msg: 'El negocio fracasó en dos meses. {t} se mudó a otra provincia. Tu dinero también.' } }, ctx);
       } },
       { t: 'No, gracias', eff: { rel: -3, msg: 'Le dijiste que no a {t}. Se ofendió un poco. Tu billetera está tranquila.' } }
     ] });
