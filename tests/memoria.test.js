@@ -407,3 +407,114 @@ test('el favor del abogado concuerda con el género de la jugadora', () => {
   const w = favor(t.MV, t.g, t.n, 'prestamo', 500, 'abogado');
   assert.ok(/preso/.test(w.text) && !/presa/.test(w.text), w.text);
 });
+
+// ——— Vueltas de la vida y "Ya te perdoné" ———
+const KINDS_OF = { empresa: ['prestamo', 'inversion', 'dinero'], devuelve: ['prestamo'], medico: ['apoyo'], padrino: ['discurso'] };
+function twist(MV, g, n, k, d, v) {
+  g.queue = [];
+  MV.EV.push(g, 'mem_vuelta', { target: n.id, k, a: g.p.age - 15, d, v }, true);
+  return MV.EV.view(g);
+}
+function perdon(MV, g, n, k, d) {
+  g.queue = [];
+  MV.EV.push(g, 'mem_perdon', { target: n.id, k, a: g.p.age - 15, d, v: null }, true);
+  return MV.EV.view(g);
+}
+const pick = (MV, g, v, re) => () => MV.EV.choose(g, v.choices.find((c) => re.test(c.label)).i);
+
+test('cada vuelta de la vida', () => {
+  const ids = (s, k, d) => { const out = new Set(); for (let i = 0; i < 60; i++) out.add(MEM(s.MV).twistFor(s.g, s.r, s.n, { k, d })); return out; };
+  let s = calm(200); s.n.age = 40;
+  assert.ok(ids(s, 'prestamo', 1000).has('empresa') && ids(s, 'prestamo', 1000).has('devuelve'));
+  assert.ok(ids(s, 'inversion', 1000).has('empresa') && ids(s, 'dinero', 1000).has('empresa'));
+  assert.ok(ids(s, 'apoyo').has('medico'));
+  assert.ok(ids(s, 'discurso').has('padrino'));
+  assert.ok(ids(s, 'regalo').has('recomienda') && ids(s, 'regalo').size === 1);
+  assert.ok(!ids(s, 'apoyo').has('empresa') && !ids(s, 'discurso').has('medico') && !ids(s, 'prestamo').has('padrino'));
+  s.n.age = 24;
+  assert.ok(!ids(s, 'prestamo', 1000).has('empresa') && !ids(s, 'apoyo').has('medico'));
+  assert.ok(ids(s, 'discurso').has('padrino'));
+  s.n.age = 21; assert.ok(!ids(s, 'discurso').has('padrino'));
+  s.n.age = 51; assert.ok(!ids(s, 'discurso').has('padrino'));
+
+  // empresa
+  for (const [d, exp] of [[1000, 5000], [undefined, 5000], [3000, 15000], [50000, 100000]]) {
+    s = calm(201); const m0 = s.p.money;
+    const v = twist(s.MV, s.g, s.n, 'inversion', d, 'empresa'); pick(s.MV, s.g, v, /Aceptar/)();
+    assert.strictEqual(s.p.money - m0, exp, 'empresa ' + d);
+  }
+  // devuelve
+  for (const [d, exp] of [[1000, 2000], [undefined, 2000], [7000, 14000]]) {
+    s = calm(202); const m0 = s.p.money;
+    pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'prestamo', d, 'devuelve'), /Aceptar/)();
+    assert.strictEqual(s.p.money - m0, exp, 'devuelve ' + d);
+  }
+  // medico
+  s = calm(203); s.p.conds = [{ id: 'gripe' }, { id: 'alergia' }]; s.p.stats.health = 50;
+  let res = pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'apoyo', undefined, 'medico'), /Aceptar/)();
+  assert.deepStrictEqual(s.p.conds.map((c) => c.id), ['alergia']); assert.strictEqual(s.p.stats.health, 50);
+  assert.ok(!BAD_TEXT.test(res.msg), res.msg);
+  s = calm(204); s.p.stats.health = 50;
+  pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'apoyo', undefined, 'medico'), /Aceptar/)();
+  assert.strictEqual(s.p.stats.health, 58);
+  // padrino
+  s = calm(205); s.p.stats.happy = 50; s.r.rel = 60;
+  pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'discurso', undefined, 'padrino'), /Aceptar/)();
+  assert.strictEqual(s.p.stats.happy, 58); assert.strictEqual(s.r.rel, 70); assert.strictEqual(s.p.karma, 2);
+  // recomienda
+  s = calm(206); s.p.job.perf = 60;
+  pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'regalo', 'Reloj', 'recomienda'), /Aceptar/)();
+  assert.strictEqual(s.p.job.perf, 75);
+  s = calm(207); s.p.job.perf = 95;
+  pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'regalo', 'Reloj', 'recomienda'), /Aceptar/)();
+  assert.strictEqual(s.p.job.perf, 100);
+  // sin trabajo al elegir, o vuelta desconocida: no se rompe
+  s = calm(208); const v = twist(s.MV, s.g, s.n, 'regalo', 'Reloj', 'recomienda'); s.p.job = null;
+  res = pick(s.MV, s.g, v, /Aceptar/)(); assert.ok(res.msg && !BAD_TEXT.test(res.msg), res.msg);
+  s = calm(209); res = pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'regalo', undefined, 'zzz'), /Aceptar/)();
+  assert.ok(res.msg && !BAD_TEXT.test(res.msg), res.msg);
+  // decirle que no hacía falta
+  s = calm(210); s.r.rel = 60;
+  res = pick(s.MV, s.g, twist(s.MV, s.g, s.n, 'prestamo', 500, 'devuelve'), /no hacía falta/)();
+  assert.strictEqual(s.r.rel, 65); assert.ok(res.msg && !BAD_TEXT.test(res.msg));
+});
+
+test('sin vuelta posible devuelve null', () => {
+  let s = calm(220); s.p.job = null;
+  assert.strictEqual(MEM(s.MV).twistFor(s.g, s.r, s.n, { k: 'regalo' }), null);
+  s = calm(221); s.n.age = 40; s.p.prison = { left: 4, total: 4, crime: 'Robo', behavior: 50, gang: false, since: 28 };
+  for (const k of ['prestamo', 'apoyo', 'discurso', 'regalo', 'inversion', 'dinero']) {
+    for (let i = 0; i < 10; i++) assert.strictEqual(MEM(s.MV).twistFor(s.g, s.r, s.n, { k, d: 1000 }), null);
+  }
+  assert.strictEqual(MEM(s.MV).twistFor(s.g, s.r, s.n, undefined), null);
+});
+
+test('ya te perdoné', () => {
+  let s = calm(230); s.r.rel = 50; s.p.stats.happy = 50;
+  const res = pick(s.MV, s.g, perdon(s.MV, s.g, s.n, 'golpe'), /Agradecer/)();
+  assert.strictEqual(s.r.rel, 58); assert.strictEqual(s.p.stats.happy, 53); assert.ok(res.msg && !BAD_TEXT.test(res.msg));
+  s = calm(231); s.r.rel = 50;
+  const r2 = pick(s.MV, s.g, perdon(s.MV, s.g, s.n, 'golpe'), /distraído/)();
+  assert.strictEqual(s.r.rel, 48); assert.ok(r2.msg && !BAD_TEXT.test(r2.msg));
+  s = calm(232); s.p.prison = { left: 4, total: 4, crime: 'Robo', behavior: 50, gang: false, since: 28 };
+  assert.ok(perdon(s.MV, s.g, s.n, 'golpe').id === 'mem_perdon');
+});
+
+test('los textos de las vueltas y el perdón nombran a la persona, el hecho y los años', () => {
+  for (const gender of ['m', 'f']) for (const pg of ['m', 'f']) for (const d of [undefined, 5000]) {
+    const s = calm(240, gender); s.p.gender = pg; s.n.age = 40;
+    const cases = [];
+    for (const [id, k] of [['empresa', 'prestamo'], ['devuelve', 'prestamo'], ['medico', 'apoyo'], ['padrino', 'discurso'], ['recomienda', 'regalo'], ['zzz', 'dinero']]) cases.push([twist(s.MV, s.g, s.n, k, d, id), k]);
+    for (const k of ['golpe', 'insulto', 'infidelidad']) cases.push([perdon(s.MV, s.g, s.n, k, d), k]);
+    for (const [v, k] of cases) {
+      const mm = { k, a: s.p.age - 15, d };
+      assert.ok(v.text.includes(s.n.first), v.text);
+      assert.ok(v.text.includes(MEM(s.MV).said(s.g, s.n, mm)), v.text);
+      assert.ok(v.text.includes(MEM(s.MV).ago(s.g, mm)), v.text);
+      assert.ok(!BAD_TEXT.test(v.text), v.text);
+    }
+  }
+  const s = calm(241);
+  assert.strictEqual(s.MV.EV.byId.mem_vuelta.when(s.g, undefined), false);
+  assert.strictEqual(s.MV.EV.byId.mem_perdon.when(s.g, undefined), false);
+});

@@ -101,4 +101,106 @@
         } }
     ]
   });
+
+  // ——— Las vueltas de la vida: algo bueno que te llega gracias a lo que hiciste por alguien ———
+  const amount = (ctx) => (typeof ctx.d === 'number' && isFinite(ctx.d) ? ctx.d : 1000);
+  const GOOD = () => Object.keys(MV.MEMORY_KINDS || {}).filter((k) => MV.MEMORY_KINDS[k].good);
+  MV.MEMORY_TWISTS = [
+    { id: 'empresa', kinds: ['prestamo', 'inversion', 'dinero'], when: (g, r, n) => n.age >= 25,
+      ok: (g, r, n, ctx) => {
+        const amt = Math.min(100000, Math.max(5000, 5 * amount(ctx)));
+        fx.money(g, amt);
+        return `${n.first} te mandó ${U.money(amt)}: tu parte de la empresa que levantó con tu ayuda. "Sin ti no existiría", escribió.`;
+      } },
+    { id: 'devuelve', kinds: ['prestamo'], when: () => true,
+      ok: (g, r, n, ctx) => {
+        const amt = 2 * amount(ctx);
+        fx.money(g, amt);
+        return `${n.first} te devolvió ${U.money(amt)}, el doble de lo que le prestaste. "Los intereses", dijo.`;
+      } },
+    { id: 'medico', kinds: ['apoyo'], when: (g, r, n) => n.age >= 25,
+      ok: (g, r, n) => {
+        const c = (g.p.conds || [])[0];
+        if (c) {
+          MV.sys.health.remove(g, c.id);
+          const C = MV.CONDITIONS[c.id];
+          return `${n.first} ahora es ${U.gw(n.gender, 'médico', 'médica')} y te atendió ${U.gw(n.gender, 'él mismo', 'ella misma')}. Te curó: ${C ? C.name.toLowerCase() : 'lo que tenías'}.`;
+        }
+        fx.stat(g, 'health', 8);
+        return `${n.first} ahora es ${U.gw(n.gender, 'médico', 'médica')} y te hizo un chequeo completo, gratis. Saliste mejor de lo que entraste.`;
+      } },
+    { id: 'padrino', kinds: ['discurso'], when: (g, r, n) => n.age >= 22 && n.age <= 50,
+      ok: (g, r, n) => {
+        fx.stat(g, 'happy', 8); fx.stat(g, 'karma', 2);
+        if (r) r.rel = U.clamp(r.rel + 10, 0, 100);
+        return `Fuiste ${U.gw(g.p.gender, 'el padrino', 'la madrina')} del hijo de ${n.first}. Lloraste más que los padres.`;
+      } },
+    { id: 'recomienda', get kinds() { return GOOD(); }, when: (g) => !!g.p.job,
+      ok: (g, r, n) => {
+        const job = g.p.job;
+        if (!job) return `${n.first} quiso recomendarte en tu trabajo, pero ya no estás ahí. La intención cuenta.`;
+        job.perf = U.clamp(job.perf + 15, 0, 100);
+        return `${n.first} habló bien de ti con gente que conoce a tu jefe. En la oficina empezaron a mirarte distinto.`;
+      } }
+  ];
+
+  const twistOf = (ctx) => MV.MEMORY_TWISTS.find((t) => t.id === ctx.v) || MV.MEMORY_TWISTS[MV.MEMORY_TWISTS.length - 1];
+  /** Lo que trae cada vuelta, para el texto. */
+  const BRINGS = {
+    empresa: (g, n) => `Su empresa creció y quiere darte lo que te corresponde.`,
+    devuelve: () => `Quiere devolverte lo que le prestaste, con intereses.`,
+    medico: (g, n) => `Ahora es ${U.gw(n.gender, 'médico', 'médica')} y quiere atenderte.`,
+    padrino: (g, n) => `Te pide que seas ${U.gw(g.p.gender, 'el padrino', 'la madrina')} de su hijo.`,
+    recomienda: () => `Quiere hablar bien de ti con gente que conoce a tu jefe.`
+  };
+  const nobody = (g, ctx) => MV.person(g, ctx.target) || { first: 'Alguien', gender: 'm' };
+  /** Lo que hiciste, y cuándo: "hace 3 años, le prestaste $5.000". */
+  const deed = (g, n, ctx) => {
+    const m = { k: ctx.k, a: ctx.a, d: ctx.d };
+    return `${M().ago(g, m)}, ${M().said(g, n, m)}`;
+  };
+
+  // ——— Una vuelta de la vida (la encola el motor de memoria) ———
+  ev({
+    id: 'mem_vuelta', pushOnly: true, icon: '🔄', scene: 'hogar', title: 'Vueltas de la vida',
+    when: (g, ctx) => !!ctx && !!MV.relOf(g, ctx.target),
+    text: (g, ctx) => {
+      const n = nobody(g, ctx);
+      return `${n.first} no se olvidó de lo que hiciste: ${deed(g, n, ctx)}. ${(BRINGS[ctx.v] || BRINGS.recomienda)(g, n)}`;
+    },
+    choices: [
+      { t: 'Aceptar', eff: (g, ctx) => twistOf(ctx).ok(g, MV.relOf(g, ctx.target), nobody(g, ctx), ctx) },
+      { t: 'Decirle que no hacía falta',
+        eff: (g, ctx) => {
+          const r = MV.relOf(g, ctx.target);
+          if (r) r.rel = U.clamp(r.rel + 5, 0, 100);
+          return `Le dijiste a ${nobody(g, ctx).first} que no hacía falta. Sonrió: "Para eso estamos."`;
+        } }
+    ]
+  });
+
+  // ——— Ya te perdoné: alguien a quien le hiciste algo malo lo dejó atrás ———
+  ev({
+    id: 'mem_perdon', pushOnly: true, prison: 'any', icon: '🕊️', scene: 'hogar', title: 'Ya te perdoné',
+    when: (g, ctx) => !!ctx && !!MV.relOf(g, ctx.target),
+    text: (g, ctx) => {
+      const n = nobody(g, ctx);
+      return `${n.first} te buscó por algo que sigue en el aire: ${deed(g, n, ctx)}. "Ya lo superé", te dice. "Ya te perdoné. Cargar con eso pesaba demasiado."`;
+    },
+    choices: [
+      { t: 'Agradecer',
+        eff: (g, ctx) => {
+          const r = MV.relOf(g, ctx.target);
+          if (r) r.rel = U.clamp(r.rel + 8, 0, 100);
+          fx.stat(g, 'happy', 3);
+          return `Le agradeciste a ${nobody(g, ctx).first}. Algo que cargabas sin saberlo se aflojó.`;
+        } },
+      { t: 'Hacerte el distraído',
+        eff: (g, ctx) => {
+          const r = MV.relOf(g, ctx.target);
+          if (r) r.rel = U.clamp(r.rel - 2, 0, 100);
+          return `Hiciste como que no sabías de qué hablaba. ${nobody(g, ctx).first} asintió despacio y cambió de tema.`;
+        } }
+    ]
+  });
 })(window.MV = window.MV || {});

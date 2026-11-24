@@ -47,6 +47,13 @@
       return f ? f.id : 'regalo';
     },
 
+    /** La vuelta de la vida de esta persona: una al azar entre las de MV.MEMORY_TWISTS que encajan con ctx.k y cuya condición se cumple. Null si no hay o estás preso. */
+    twistFor(g, r, n, ctx) {
+      if (g.p.prison || !ctx) return null;
+      const ok = (MV.MEMORY_TWISTS || []).filter((x) => x.kinds.includes(ctx.k) && (() => { try { return x.when(g, r, n, ctx); } catch (e) { return false; } })());
+      return ok.length ? MV.U.pick(ok).id : null;
+    },
+
     /** "hace 3 años". */
     ago(g, m) {
       const y = g.p.age - m.a;
