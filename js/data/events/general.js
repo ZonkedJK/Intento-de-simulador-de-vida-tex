@@ -64,7 +64,13 @@
   ev({ id: 'fan_obsesivo', age: [16, 110], when: (g) => g.p.fame >= 35, icon: '💌', title: 'Fan número uno',
     text: 'Un fan te manda cartas todos los días. La última incluía un mechón de pelo.',
     choices: [
-      { t: 'Responderle con amabilidad', eff: { karma: 2, p: 0.7, ok: { msg: 'Le respondiste. Lloró de emoción y prometió respetar tu espacio.' }, ko: { stress: 10, msg: 'Le respondiste. Ahora acampa en tu puerta.' } } },
+      { t: 'Responderle con amabilidad', eff: (g) => {
+        fx.stat(g, 'karma', 2);
+        if (U.chance(0.7)) return 'Le respondiste. Lloró de emoción y prometió respetar tu espacio.';
+        fx.stat(g, 'stress', 10);
+        if (U.chance(0.3)) MV.sys.memory.makeStalker(g, MV.newNPC(g, { age: U.int(18, 45) }), 'fan');
+        return 'Le respondiste. Ahora acampa en tu puerta.';
+      } },
       { t: 'Ignorar', eff: { stress: 3, msg: 'Lo ignoraste. Las cartas siguen llegando, ahora con dibujos.' } },
       { t: 'Llamar a la policía', eff: { stress: -3, msg: 'La policía le pidió que se alejara. Ahora te manda correos.' } }
     ] });

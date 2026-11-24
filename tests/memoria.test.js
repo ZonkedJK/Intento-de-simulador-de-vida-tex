@@ -777,3 +777,285 @@ test('yearly no falla con partidas viejas', () => {
   for (let i = 0; i < 30; i++) MEM(MV).yearly(g);
   g.p.age = 5; MEM(MV).yearly(g);
 });
+
+// ---- Tarea 7: acosadora o acosador ----
+let SH;
+/** Un solo MV para los recorridos largos (cargarlo cuesta ~20 ms): cada semilla trae su partida. */
+const sh = (seed) => { SH = SH || load({ seed: 1 }); SH.rng.seed(seed); return SH; };
+const setupS = (seed, type, gender) => {
+  const MV = sh(seed); const g = game(MV, seed, 30); g.p.money = 100000;
+  const x = person(MV, g, type || 'amigo', gender);
+  return { MV, g, n: x.n, r: x.r };
+};
+const SEXUAL = /sexo|sexual|desnud|violaci|violó|violar|cama\b/i;
+const stalkerOf = (MV, g) => MV.rels(g, 'acosador')[0] || null;
+/** Partida con una persona ya vuelta acosador, en esa etapa. */
+function stalked(seed, gender, stage) {
+  const t = setupS(seed, 'amigo', gender);
+  assert.strictEqual(MEM(t.MV).makeStalker(t.g, t.n, 'fan'), true);
+  t.r = t.MV.relOf(t.g, t.n.id);
+  t.r.stalk.stage = stage || 1;
+  return t;
+}
+
+test('cómo empieza', () => {
+  // Una noche: 6 %.
+  let hit = 0;
+  for (let s = 0; s < 1000; s++) {
+    const MV = sh(7000 + s); const g = game(MV, 7000 + s, 30);
+    const n = MV.newNPC(g, { age: 30 });
+    choose(MV, g, 'despues_noche', { target: n.id, casual: true }, /Solo fue una noche/);
+    const r = MV.relOf(g, n.id);
+    if (r && r.type === 'acosador') { hit++; assert.strictEqual(r.stalk.stage, 1); assert.strictEqual(r.stalk.since, 30); }
+  }
+  assert.ok(hit >= 30 && hit <= 90, 'noche ' + hit);
+
+  // Ruptura y divorcio: 8 %, y el ex es el mismo.
+  const run = (seeds, type, fn) => {
+    let h = 0;
+    for (let s = 0; s < seeds; s++) {
+      const MV = sh(8000 + s); const g = game(MV, 8000 + s, 30);
+      const x = person(MV, g, type);
+      fn(MV, g, x.n);
+      const r = MV.relOf(g, x.n.id);
+      if (r.type === 'acosador') { h++; assert.strictEqual(r.stalk.stage, 1); } else assert.strictEqual(r.type, 'ex');
+    }
+    return h;
+  };
+  const b = run(1000, 'pareja', (MV, g, n) => MV.sys.rels.breakUp(g, n));
+  assert.ok(b >= 50 && b <= 110, 'ruptura ' + b);
+  const d = run(1000, 'conyuge', (MV, g, n) => MV.sys.rels.divorce(g, n, false));
+  assert.ok(d >= 50 && d <= 110, 'divorcio ' + d);
+  const e = run(400, 'conyuge', (MV, g, n) => MV.sys.rels.divorce(g, n, true));
+  assert.strictEqual(e, 0);
+
+  // El fan que sale mal: 30 % de los fallos, con un fan nuevo de 18 a 45.
+  let ko = 0, fans = 0;
+  for (let s = 0; s < 1000; s++) {
+    const MV = sh(9000 + s); const g = game(MV, 9000 + s, 30); g.p.fame = 50;
+    const before = Object.keys(g.people).length;
+    const res = choose(MV, g, 'fan_obsesivo', {}, /Responderle con amabilidad/);
+    assert.ok(res.msg && !BAD_TEXT.test(res.msg), res.msg);
+    if (/acampa/.test(res.msg)) ko++;
+    const st = stalkerOf(MV, g);
+    if (st) {
+      fans++;
+      assert.ok(/acampa/.test(res.msg));
+      assert.ok(st.n.age >= 18 && st.n.age <= 45);
+      assert.strictEqual(Object.keys(g.people).length, before + 1);
+    }
+  }
+  assert.ok(ko > 200, 'fallos ' + ko);
+  assert.ok(fans / ko >= 0.2 && fans / ko <= 0.4, `fans ${fans}/${ko}`);
+  // El karma +2 se aplica en las dos ramas.
+  const MV = sh(9500); const g = game(MV, 9500, 30); g.p.karma = 0; g.p.fame = 50;
+  choose(MV, g, 'fan_obsesivo', {}, /Responderle con amabilidad/);
+  assert.strictEqual(g.p.karma, 2);
+});
+
+test('uno a la vez y dos por vida', () => {
+  const MV = sh(7100); const g = game(MV, 7100, 30);
+  const a = person(MV, g, 'ex'), b = person(MV, g, 'ex'), c = person(MV, g, 'ex');
+  assert.strictEqual(MEM(MV).makeStalker(g, a.n, 'ruptura'), true);
+  assert.strictEqual(a.r.type, 'acosador'); assert.strictEqual(g.p.counters.acosadores, 1);
+  assert.strictEqual(MEM(MV).makeStalker(g, b.n, 'ruptura'), false); assert.strictEqual(b.r.type, 'ex');
+  MV.removeRel(g, a.n.id);
+  assert.strictEqual(MEM(MV).makeStalker(g, b.n, 'noche'), true);
+  MV.removeRel(g, b.n.id);
+  assert.strictEqual(MEM(MV).makeStalker(g, c.n, 'fan'), false); assert.strictEqual(c.r.type, 'ex');
+  assert.strictEqual(g.p.counters.acosadores, 2);
+  // Un acosador muerto no bloquea.
+  const MV2 = sh(7101); const g2 = game(MV2, 7101, 30);
+  const d = person(MV2, g2, 'ex'), e = person(MV2, g2, 'ex');
+  MEM(MV2).makeStalker(g2, d.n, 'fan'); d.n.alive = false;
+  assert.strictEqual(MEM(MV2).makeStalker(g2, e.n, 'fan'), true);
+  // Partidas viejas sin contador.
+  const MV3 = sh(7102); const g3 = game(MV3, 7102, 30); delete g3.p.counters.acosadores;
+  assert.strictEqual(MEM(MV3).makeStalker(g3, person(MV3, g3, 'ex').n, 'fan'), true);
+});
+
+test('cada respuesta', () => {
+  const RATE = { hablar: 0.25, bloquear: 0.5, policia: 0.4, orden: 1, mudarte: 0.7 };
+  for (const how of Object.keys(RATE)) {
+    let ended = 0;
+    const N = 400;
+    for (let s = 0; s < N; s++) {
+      const t = stalked(10000 + s, s % 2 ? 'f' : 'm', 1);
+      t.g.p.stress = 20; t.g.p.money = 100000;
+      const res = MEM(t.MV).stalkRespond(t.g, t.n.id, how);
+      assert.ok(typeof res === 'string' && res && !BAD_TEXT.test(res), res);
+      const gone = !t.MV.relOf(t.g, t.n.id);
+      if (gone) {
+        ended++;
+        assert.ok(t.g.people[t.n.id], 'no se borra de g.people');
+      } else {
+        assert.strictEqual(t.r.stalk.stage, 1);
+        assert.strictEqual(t.g.p.stress, 23, how + ' fallo');
+      }
+      if (how === 'orden') { assert.strictEqual(t.g.p.money, 95000); assert.ok(t.g.p.stress === 20 || t.g.p.stress === 30); }
+      if (how === 'mudarte') assert.strictEqual(t.g.p.money, 98000);
+      if (how !== 'orden' && how !== 'mudarte') assert.strictEqual(t.g.p.money, 100000);
+    }
+    assert.ok(Math.abs(ended / N - RATE[how]) <= 0.1, `${how} ${ended}/${N}`);
+  }
+  // La orden: el 20 % la viola una vez, con estrés +10 y el acosador preso.
+  let viol = 0;
+  for (let s = 0; s < 400; s++) {
+    const t = stalked(11000 + s, 'm', 2); t.g.p.stress = 20;
+    const res = MEM(t.MV).stalkRespond(t.g, t.n.id, 'orden');
+    if (t.g.p.stress === 30) { viol++; assert.ok(/arrest|detuv|preso/i.test(res), res); }
+    assert.ok(!t.g.p.prison);
+  }
+  assert.ok(viol / 400 >= 0.1 && viol / 400 <= 0.3, 'violaciones ' + viol);
+  // Bloquear fuera de la etapa 1 nunca funciona.
+  for (let s = 0; s < 200; s++) {
+    const t = stalked(12000 + s, 'f', 2 + (s % 2));
+    MEM(t.MV).stalkRespond(t.g, t.n.id, 'bloquear');
+    assert.ok(t.MV.relOf(t.g, t.n.id), 'bloquear en etapa 2 o 3');
+  }
+  // Ignorar: hace el daño de su etapa, sube de etapa y se queda en 3. Nunca termina.
+  const t = stalked(13000, 'm', 1); t.g.p.stress = 20; t.g.p.stats.happy = 50;
+  MEM(t.MV).stalkRespond(t.g, t.n.id, 'ignorar');
+  assert.strictEqual(t.r.stalk.stage, 2); assert.strictEqual(t.g.p.stress, 26); assert.strictEqual(t.g.p.stats.happy, 50);
+  MEM(t.MV).stalkRespond(t.g, t.n.id, 'ignorar');
+  assert.strictEqual(t.r.stalk.stage, 3); assert.strictEqual(t.g.p.stress, 34); assert.strictEqual(t.g.p.stats.happy, 45);
+  MEM(t.MV).stalkRespond(t.g, t.n.id, 'ignorar');
+  assert.strictEqual(t.r.stalk.stage, 3); assert.strictEqual(t.g.p.stress, 42); assert.strictEqual(t.g.p.stats.happy, 40);
+  assert.ok(t.MV.relOf(t.g, t.n.id));
+  // Sin plata, la orden y la mudanza no cobran.
+  const u = stalked(13001, 'm', 1); u.g.p.money = 1000;
+  MEM(u.MV).stalkRespond(u.g, u.n.id, 'orden'); MEM(u.MV).stalkRespond(u.g, u.n.id, 'mudarte');
+  assert.strictEqual(u.g.p.money, 1000);
+  assert.ok(u.MV.relOf(u.g, u.n.id));
+});
+
+test('el daño de la etapa 3', () => {
+  const t = stalked(14000, 'f', 3); t.g.p.stress = 20;
+  const par = person(t.MV, t.g, 'pareja'); par.r.rel = 70;
+  MEM(t.MV).stalkRespond(t.g, t.n.id, 'ignorar');
+  assert.strictEqual(par.r.rel, 60); assert.strictEqual(t.g.p.stress, 28);
+  const u = stalked(14001, 'f', 3); u.g.p.stress = 20; u.g.p.stats.happy = 50;
+  MEM(u.MV).stalkRespond(u.g, u.n.id, 'ignorar');
+  assert.strictEqual(u.g.p.stress, 28); assert.strictEqual(u.g.p.stats.happy, 45);
+  assert.ok(u.MV.relOf(u.g, u.n.id).type === 'acosador');
+});
+
+test('la decisión anual', () => {
+  let n = 0;
+  for (let s = 0; s < 400; s++) {
+    const t = stalked(15000 + s, 'm', 1);
+    t.g.queue = [];
+    MEM(t.MV).stalkYearly(t.g);
+    const q = t.g.queue.filter((x) => x.id === 'acoso');
+    assert.ok(q.length <= 1);
+    if (q.length) { n++; assert.strictEqual(q[0].ctx.target, t.n.id); }
+  }
+  assert.ok(n >= 200 && n <= 280, 'acoso ' + n);
+  // Preso, nunca. Muerto, nunca. Si respondiste desde la ficha el año anterior, nunca.
+  for (let s = 0; s < 200; s++) {
+    const a = stalked(16000 + s, 'm', 1); a.g.p.prison = { years: 2, left: 2 }; a.g.queue = [];
+    MEM(a.MV).stalkYearly(a.g); assert.strictEqual(a.g.queue.length, 0);
+    const b = stalked(16300 + s, 'f', 1); b.n.alive = false; b.g.queue = [];
+    MEM(b.MV).stalkYearly(b.g); assert.strictEqual(b.g.queue.length, 0);
+    const c = stalked(16600 + s, 'f', 2); c.r.stalk.acted = c.g.p.age - 1; c.g.queue = [];
+    MEM(c.MV).stalkYearly(c.g); assert.strictEqual(c.g.queue.length, 0);
+  }
+  // `yearly` la llama aunque no haya recuerdos que vuelvan.
+  let viaYearly = 0;
+  for (let s = 0; s < 100; s++) {
+    const t = stalked(17000 + s, 'm', 1); t.g.queue = [];
+    MEM(t.MV).yearly(t.g);
+    if (t.g.queue.some((x) => x.id === 'acoso')) viaYearly++;
+  }
+  assert.ok(viaYearly > 30, 'por yearly ' + viaYearly);
+  // Partida vieja: acosador sin `stalk`.
+  const o = stalked(17500, 'm', 1); delete o.r.stalk;
+  assert.doesNotThrow(() => { MEM(o.MV).stalkYearly(o.g); MEM(o.MV).stalkActions(o.g, o.r, o.n); MEM(o.MV).stalkRespond(o.g, o.n.id, 'hablar'); });
+});
+
+test('su ficha', () => {
+  const t = stalked(18000, 'f', 1); t.g.p.money = 100000;
+  const list = t.MV.sys.rels.actions(t.g, t.r, t.n);
+  const ids = list.map((a) => a.id);
+  assert.deepStrictEqual([...ids], ['acoso_hablar', 'acoso_bloquear', 'acoso_policia', 'acoso_orden', 'acoso_mudarte']);
+  for (const a of list) assert.strictEqual(a.limit, 1);
+  // Solo una por año.
+  t.r.acts = {};
+  const first = t.MV.doAction(t.g, list[2], null, t.r.acts);
+  assert.ok(!first.blocked && first.msg && !BAD_TEXT.test(first.msg));
+  if (t.MV.relOf(t.g, t.n.id)) {
+    assert.strictEqual(t.r.stalk.acted, t.g.p.age);
+    const second = t.MV.doAction(t.g, list[0], null, t.r.acts);
+    assert.ok(second.blocked); assert.ok(t.MV.relOf(t.g, t.n.id));
+  }
+  // Etapa 2: ya no hay bloquear. Sin plata: ni orden ni mudanza.
+  const u = stalked(18001, 'm', 2); u.g.p.money = 4999;
+  assert.deepStrictEqual([...u.MV.sys.rels.actions(u.g, u.r, u.n).map((a) => a.id)], ['acoso_hablar', 'acoso_policia', 'acoso_mudarte']);
+  u.g.p.money = 1999;
+  assert.deepStrictEqual([...u.MV.sys.rels.actions(u.g, u.r, u.n).map((a) => a.id)], ['acoso_hablar', 'acoso_policia']);
+  // Responder al evento gasta el año de la ficha, y al revés.
+  const v = stalked(18002, 'f', 1); v.g.p.money = 100000;
+  v.g.queue = []; v.MV.EV.push(v.g, 'acoso', { target: v.n.id }, true);
+  const view = v.MV.EV.view(v.g);
+  v.MV.EV.choose(v.g, view.choices.find((c) => /Ignorarla/.test(c.label)).i);
+  assert.strictEqual(v.r.stalk.ev, v.g.p.age);
+  const acts = v.MV.sys.rels.actions(v.g, v.r, v.n);
+  v.r.acts = {};
+  const blocked = v.MV.doAction(v.g, acts.find((a) => a.id === 'acoso_hablar'), null, v.r.acts);
+  assert.ok(blocked.blocked);
+  assert.strictEqual(v.r.stalk.acted, undefined);
+  // Y no hay recuerdos con ellos.
+  assert.strictEqual(MEM(v.MV).remember(v.g, v.n.id, 'golpe'), null);
+});
+
+test('no guarda recuerdos ni le vuelven', () => {
+  const t = setupS(19000, 'ex');
+  t.r.mem = [{ k: 'prestamo', a: 20, v: 2 }];
+  assert.strictEqual(MEM(t.MV).recall(t.g).length, 1);
+  assert.strictEqual(MEM(t.MV).makeStalker(t.g, t.n, 'ruptura'), true);
+  assert.strictEqual(t.MV.relOf(t.g, t.n.id).type, 'acosador');
+  assert.strictEqual(MEM(t.MV).recall(t.g).length, 0);
+  assert.strictEqual(MEM(t.MV).remember(t.g, t.n.id, 'insulto'), null);
+});
+
+test('los textos', () => {
+  for (const gender of ['m', 'f']) for (const stage of [1, 2, 3]) for (const partner of [false, true]) {
+    const t = stalked(20000 + stage, gender, stage); t.g.p.money = 100000;
+    if (partner) person(t.MV, t.g, 'pareja', gender === 'm' ? 'f' : 'm');
+    t.g.queue = []; t.MV.EV.push(t.g, 'acoso', { target: t.n.id }, true);
+    const v = t.MV.EV.view(t.g);
+    const tag = `${gender}${stage}${partner}`;
+    assert.ok(v && v.id === 'acoso', tag);
+    assert.ok(!BAD_TEXT.test(v.text) && !SEXUAL.test(v.text), tag + v.text);
+    assert.ok(v.text.includes(t.n.first), tag);
+    const labels = v.choices.map((c) => c.label);
+    labels.forEach((l) => assert.ok(!BAD_TEXT.test(l), l));
+    assert.strictEqual(labels.some((l) => /Bloquear/.test(l)), stage === 1, tag);
+    assert.ok(labels.some((l) => /Ignorar/.test(l)));
+    assert.ok(labels.some((l) => (gender === 'f' ? /Ignorarla/ : /Ignorarlo/).test(l)), tag);
+    assert.strictEqual(labels.length, stage === 1 ? 6 : 5, tag);
+    if (stage === 3 && partner) assert.ok(/pareja|novi/i.test(v.text), v.text);
+    for (const c of v.choices) {
+      const u = stalked(20000 + stage, gender, stage); u.g.p.money = 100000;
+      if (partner) person(u.MV, u.g, 'pareja', 'f');
+      u.g.queue = []; u.MV.EV.push(u.g, 'acoso', { target: u.n.id }, true);
+      const vv = u.MV.EV.view(u.g);
+      const res = u.MV.EV.choose(u.g, vv.choices[v.choices.indexOf(c)].i);
+      assert.ok(res.msg && !BAD_TEXT.test(res.msg) && !SEXUAL.test(res.msg), tag + c.label + res.msg);
+      assert.ok(u.g.p.money >= 0 && !u.g.p.prison);
+    }
+  }
+  // Con poca plata, sin orden ni mudanza.
+  const p = stalked(20100, 'm', 1); p.g.p.money = 1500; p.g.queue = [];
+  p.MV.EV.push(p.g, 'acoso', { target: p.n.id }, true);
+  const l = p.MV.EV.view(p.g).choices.map((c) => c.label);
+  assert.ok(!l.some((x) => /orden|Mudarte/i.test(x)), l.join('|'));
+  p.g.p.money = 2000;
+  p.g.queue = []; p.MV.EV.push(p.g, 'acoso', { target: p.n.id }, true);
+  const l2 = p.MV.EV.view(p.g).choices.map((c) => c.label);
+  assert.ok(l2.some((x) => /Mudarte/i.test(x)) && !l2.some((x) => /orden/i.test(x)), l2.join('|'));
+  // Sin acosador, el evento se descarta.
+  const q = setupS(20200); q.g.queue = []; q.MV.EV.push(q.g, 'acoso', { target: q.n.id }, true);
+  assert.strictEqual(q.MV.EV.view(q.g), null);
+  assert.doesNotThrow(() => q.MV.EV.byId.acoso.when(q.g));
+});

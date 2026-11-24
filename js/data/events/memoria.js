@@ -296,4 +296,35 @@
         } }
     ]
   });
+  // ——— Acosadoras y acosadores: la decisión anual (la encola `stalkYearly`) ———
+  const stageOf = (g, ctx) => {
+    const r = MV.relOf(g, ctx.target);
+    return r && r.stalk ? r.stalk.stage : 1;
+  };
+  /** Responde al acoso desde el evento: gasta el año de la ficha y deja el resultado. */
+  const answer = (how) => (g, ctx) => {
+    const r = MV.relOf(g, ctx.target);
+    if (r) { r.stalk = r.stalk || { stage: 1, since: g.p.age }; r.stalk.ev = g.p.age; }
+    return M().stalkRespond(g, ctx.target, how);
+  };
+  ev({
+    id: 'acoso', pushOnly: true, icon: '🚨', scene: 'hogar', title: 'Alguien no te suelta',
+    when: (g, ctx) => !!ctx && (MV.relOf(g, ctx.target) || {}).type === 'acosador',
+    text: (g, ctx) => {
+      const n = nobody(g, ctx), st = stageOf(g, ctx), par = MV.partner(g);
+      if (st <= 1) return `${n.first} no te deja en paz: mensajes a cualquier hora, audios de cuatro minutos y un "solo quería saber cómo estabas" cada madrugada. Ya ni abres el celular con confianza.`;
+      if (st === 2) return `${n.first} apareció en la puerta de tu trabajo con un ramo y cara de no haber dormido. Dice que pasaba por casualidad, a cuarenta cuadras de su casa. Ayer estaba frente a la tuya.`;
+      return par
+        ? `${n.first} se metió en tu vida de a poco: le escribió a ${par.n.first}, tu pareja, para contarle "la verdad sobre ti", y ${U.gw(par.n.gender, 'lo', 'la')} siguió hasta la puerta del trabajo. En casa nadie habla de otra cosa.`
+        : `${n.first} ya no se esconde: habla de ti con tus vecinos, se sienta en el café de siempre y sabe qué pides antes de que lo pidas. Si tuvieras pareja, ya la habría molestado también.`;
+    },
+    choices: [
+      { t: (g, ctx) => `Hablar con ${U.gw(nobody(g, ctx).gender, 'él', 'ella')}`, eff: answer('hablar') },
+      { t: 'Bloquear su número', when: (g, ctx) => stageOf(g, ctx) === 1, eff: answer('bloquear') },
+      { t: 'Llamar a la policía', eff: answer('policia') },
+      { t: 'Pedir una orden de restricción ($5.000)', when: (g) => g.p.money >= 5000, eff: answer('orden') },
+      { t: 'Mudarte ($2.000)', when: (g) => g.p.money >= 2000, eff: answer('mudarte') },
+      { t: (g, ctx) => U.gw(nobody(g, ctx).gender, 'Ignorarlo', 'Ignorarla'), eff: answer('ignorar') }
+    ]
+  });
 })(window.MV = window.MV || {});

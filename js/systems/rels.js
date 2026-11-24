@@ -62,12 +62,13 @@
       if (!r) return '';
       rels.makeEx(g, r); r.rel = U.clamp(r.rel - 30, 0, 100);
       if (!theyLeft) MV.sys.memory.remember(g, n.id, 'divorcio');
+      const stalks = !theyLeft && U.chance(0.08) && MV.sys.memory.makeStalker(g, n, 'ruptura');
       g.p.counters.divorcios = (g.p.counters.divorcios || 0) + 1;
       MV.fx.stat(g, 'happy', -15);
       let lost = 0;
       if (g.p.money > 0) { lost = Math.round(g.p.money * U.float(0.2, 0.5)); MV.fx.money(g, -lost); n.money += lost; }
       MV.ach.check(g);
-      return `${theyLeft ? `${n.first} pidió el divorcio.` : `Te divorciaste de ${n.first}.`}${lost ? ` El acuerdo te costó ${U.money(lost)}.` : ''}`;
+      return `${theyLeft ? `${n.first} pidió el divorcio.` : `Te divorciaste de ${n.first}.`}${lost ? ` El acuerdo te costó ${U.money(lost)}.` : ''}${stalks ? ` ${n.first} no lo aceptó bien.` : ''}`;
     },
 
     /** Enseña un truco a una mascota. Aprende según la relación, su salud y su viveza. */
@@ -133,7 +134,8 @@
       rels.makeEx(g, r); r.rel = U.clamp(r.rel - 25, 0, 100);
       MV.sys.memory.remember(g, n.id, 'ruptura');
       MV.fx.stat(g, 'happy', -6);
-      return `Terminaste con ${n.first}. ${U.pick(['Lloró en tu cara.', 'Te devolvió tu buzo, sin lavar.', 'Dijo "ya lo veía venir".', 'Cambió su estado a "liberad' + U.gw(n.gender, 'o', 'a') + '".'])}`;
+      const stalks = U.chance(0.08) && MV.sys.memory.makeStalker(g, n, 'ruptura');
+      return `Terminaste con ${n.first}. ${stalks ? 'No lo tomó bien. ' : ''}${U.pick(['Lloró en tu cara.', 'Te devolvió tu buzo, sin lavar.', 'Dijo "ya lo veía venir".', 'Cambió su estado a "liberad' + U.gw(n.gender, 'o', 'a') + '".'])}`;
     },
 
     /** Nacimiento de un hijo. Devuelve el texto. */
@@ -235,6 +237,7 @@
     actions(g, r, n) {
       const p = g.p, list = [];
       if (!n || !n.alive) return list;
+      if (r.type === 'acosador') return MV.sys.memory.stalkActions(g, r, n);
       const t = r.type, adult = p.age >= 18, human = n.species === 'humano';
       const A = (o) => list.push(o);
       if (!human) {
@@ -452,7 +455,7 @@
       { t: '💑 Proponer que sean pareja', when: (g) => !MV.partner(g), eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'pareja', U.int(55, 80)); MV.fx.stat(g, 'happy', 8); return `Le propusiste a ${n.first} que sean pareja y dijo que sí. Ahora salen.`; } },
       { t: '🤫 Seguir viéndose en secreto', when: (g) => !!MV.partner(g), eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'amante', U.int(45, 70)); MV.fx.stat(g, 'karma', -3); return `${n.first} y tú acordaron seguir viéndose. En secreto. ${MV.partner(g).n.first} no sabe nada... todavía.`; } },
       { t: '🤝 Quedar como amigos', eff: (g, ctx) => { const n = MV.person(g, ctx.target); MV.addRel(g, n, 'amigo', U.int(40, 65)); return `Quedaron como amigos con ${n.first}. Raro, pero funciona.`; } },
-      { t: '👋 Solo fue una noche', eff: (g, ctx) => { const n = MV.person(g, ctx.target); return `Se despidieron con un abrazo. ${n.first} será un buen recuerdo (o una anécdota).`; } }
+      { t: '👋 Solo fue una noche', eff: (g, ctx) => { const n = MV.person(g, ctx.target); if (U.chance(0.06) && MV.sys.memory.makeStalker(g, n, 'noche')) return `Se despidieron con un abrazo. ${n.first} no se lo tomó como una despedida.`; return `Se despidieron con un abrazo. ${n.first} será un buen recuerdo (o una anécdota).`; } }
     ]
   });
 
