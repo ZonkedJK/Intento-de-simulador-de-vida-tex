@@ -59,6 +59,47 @@
       return (MV.MEMORY_REVENGES || []).filter((x) => { try { return x.when(g, r, n); } catch (e) { return false; } }).map((x) => x.id);
     },
 
+    /** Los recuerdos que podrían volver: sin `done`, de hace 3 años o más, de humanos vivos que siguen en tus relaciones. */
+    recall(g) {
+      const out = [], age = g.p.age;
+      for (const r of g.p.rels || []) {
+        if (NO_MEM.includes(r.type) || !Array.isArray(r.mem)) continue;
+        const n = g.people[r.id];
+        if (!n || !n.alive || n.species !== 'humano') continue;
+        if (r.memNext != null && age < r.memNext) continue;
+        for (const m of r.mem) {
+          if (m && !m.done && MV.MEMORY_KINDS[m.k] && age - m.a >= 3) out.push({ r, n, m });
+        }
+      }
+      return out;
+    },
+
+    /** Qué pasa con este recuerdo: { ev, v } (el evento y su dato: el favor, la vuelta o la venganza). */
+    outcome(g, r, n, m) {
+      const ctx = { k: m.k, a: m.a, d: m.d }, U = MV.U;
+      if (m.v > 0) {
+        const twist = memory.twistFor(g, r, n, ctx);
+        if (twist && U.chance(0.3)) return { ev: 'mem_vuelta', v: twist };
+        return { ev: 'mem_favor', v: memory.favorFor(g, r, n, ctx) };
+      }
+      if (r.rel >= 70) return { ev: 'mem_perdon', v: null };
+      return { ev: 'mem_venganza', v: U.pick(memory.revengesFor(g, r, n)) };
+    },
+
+    /** Cada año, con 20 %, vuelve un recuerdo viejo (uno solo). Preso, solo los buenos. */
+    yearly(g) {
+      const p = g.p, U = MV.U;
+      if (!p.alive || g.over || p.age < 8) return;
+      let all = memory.recall(g);
+      if (p.prison) all = all.filter((e) => e.m.v > 0);
+      if (!all.length || !U.chance(0.2)) return;
+      const e = U.pickW(all, (x) => Math.abs(x.m.v) * (p.age - x.m.a));
+      if (!e) return;
+      const o = memory.outcome(g, e.r, e.n, e.m);
+      e.m.done = true; e.r.memNext = p.age + 5;
+      MV.EV.push(g, o.ev, { target: e.n.id, k: e.m.k, a: e.m.a, d: e.m.d, v: o.v });
+    },
+
     /** "hace 3 años". */
     ago(g, m) {
       const y = g.p.age - m.a;

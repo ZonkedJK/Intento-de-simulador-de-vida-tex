@@ -651,3 +651,129 @@ test('los textos de las venganzas nombran a la persona, el hecho y los años', (
   assert.strictEqual(s.MV.EV.byId.mem_venganza.when(s.g, undefined), false);
   assert.strictEqual(s.MV.EV.byId.mem_venganza.title, 'Te la tenía guardada');
 });
+
+// ---- Tarea 6: cuándo vuelve un recuerdo ----
+const MEMEV = ['mem_favor', 'mem_vuelta', 'mem_perdon', 'mem_venganza'];
+const memQ = (g) => g.queue.filter((q) => MEMEV.includes(q.id));
+/** Persona con un recuerdo viejo (hace `ago` años). */
+function old(MV, g, k, v, ago, rel, type) {
+  const s = person(MV, g, type || 'amigo');
+  s.r.rel = rel == null ? 60 : rel;
+  s.r.mem = [{ k, a: g.p.age - (ago == null ? 5 : ago), v }];
+  return s;
+}
+
+test('nada vuelve antes de 3 años', () => {
+  const MV = load({ seed: 1000 }); const g = game(MV, 1000, 30);
+  const a = old(MV, g, 'prestamo', 2, 2), b = old(MV, g, 'prestamo', 2, 3);
+  const got = MEM(MV).recall(g).map((x) => x.r);
+  assert.ok(!got.includes(a.r)); assert.ok(got.includes(b.r));
+  const x = MEM(MV).recall(g).find((e) => e.r === b.r);
+  assert.strictEqual(x.n, b.n); assert.strictEqual(x.m, b.r.mem[0]);
+});
+
+test('uno por año, cerca del 20 %', () => {
+  let hit = 0;
+  for (let seed = 1100; seed < 1600; seed++) {
+    const MV = load({ seed }); const g = game(MV, seed, 30);
+    for (let i = 0; i < 5; i++) old(MV, g, i % 2 ? 'prestamo' : 'insulto', i % 2 ? 2 : -2, 6);
+    MEM(MV).yearly(g);
+    const q = memQ(g).length; assert.ok(q <= 1, 'más de uno');
+    hit += q;
+  }
+  assert.ok(hit >= 75 && hit <= 125, 'veces ' + hit);
+});
+
+test('cada recuerdo vuelve una vez, y la persona espera 5 años', () => {
+  for (let seed = 1700; seed < 1800; seed++) {
+    const MV = load({ seed }); const g = game(MV, seed, 30);
+    const s = old(MV, g, 'prestamo', 2, 6);
+    s.r.mem.push({ k: 'apoyo', a: 20, v: 1 });
+    MEM(MV).yearly(g);
+    if (!memQ(g).length) continue;
+    assert.strictEqual(s.r.mem.filter((m) => m.done).length, 1);
+    assert.strictEqual(s.r.memNext, 35);
+    assert.strictEqual(MEM(MV).recall(g).length, 0);
+    g.p.age = 34; assert.strictEqual(MEM(MV).recall(g).length, 0);
+    g.p.age = 35; assert.strictEqual(MEM(MV).recall(g).length, 1);
+    return;
+  }
+  assert.fail('nunca volvió');
+});
+
+test('el evento correcto', () => {
+  const MV0 = load({ seed: 2000 }); const g0 = game(MV0, 2000, 30);
+  const s0 = old(MV0, g0, 'prestamo', 2, 6);
+  const o = MEM(MV0).outcome(g0, s0.r, s0.n, s0.r.mem[0]);
+  assert.ok(['mem_favor', 'mem_vuelta'].includes(o.ev)); assert.ok(o.v);
+  let vuelta = 0, total = 0;
+  for (let seed = 2100; seed < 2500; seed++) {
+    const MV = load({ seed }); const g = game(MV, seed, 30);
+    const s = old(MV, g, 'prestamo', 2, 6);
+    if (!MEM(MV).twistFor(g, s.r, s.n, { k: 'prestamo', a: 24 })) continue;
+    total++;
+    const out = MEM(MV).outcome(g, s.r, s.n, s.r.mem[0]);
+    assert.ok(['mem_favor', 'mem_vuelta'].includes(out.ev));
+    if (out.ev === 'mem_vuelta') vuelta++;
+  }
+  assert.ok(total >= 300, 'con vuelta posible ' + total);
+  assert.ok(vuelta / total >= 0.2 && vuelta / total <= 0.4, 'vueltas ' + vuelta + '/' + total);
+  const MV = load({ seed: 2600 }); const g = game(MV, 2600, 30);
+  const p70 = old(MV, g, 'insulto', -2, 6, 70), p69 = old(MV, g, 'insulto', -2, 6, 69);
+  const a = MEM(MV).outcome(g, p70.r, p70.n, p70.r.mem[0]);
+  assert.strictEqual(a.ev, 'mem_perdon'); assert.strictEqual(a.v, null);
+  const b = MEM(MV).outcome(g, p69.r, p69.n, p69.r.mem[0]);
+  assert.strictEqual(b.ev, 'mem_venganza'); assert.ok(MEM(MV).revengesFor(g, p69.r, p69.n).includes(b.v));
+});
+
+test('desde la cárcel, solo favores', () => {
+  let seen = 0;
+  for (let seed = 2700; seed < 2900; seed++) {
+    const MV = load({ seed }); const g = game(MV, seed, 30);
+    old(MV, g, 'prestamo', 2, 6); old(MV, g, 'insulto', -2, 6, 40);
+    g.p.prison = { years: 2 };
+    MEM(MV).yearly(g);
+    for (const q of memQ(g)) { assert.strictEqual(q.id, 'mem_favor'); seen++; }
+  }
+  assert.ok(seen > 0);
+});
+
+test('los que se fueron no vuelven', () => {
+  const MV = load({ seed: 3000 }); const g = game(MV, 3000, 30);
+  const dead = old(MV, g, 'prestamo', 2, 6), gone = old(MV, g, 'prestamo', 2, 6);
+  const pet = old(MV, g, 'prestamo', 2, 6, 60, 'mascota'), stalker = old(MV, g, 'prestamo', 2, 6, 60, 'acosador');
+  const ani = old(MV, g, 'prestamo', 2, 6); ani.n.species = 'perro';
+  dead.n.alive = false; MV.removeRel(g, gone.n.id);
+  assert.strictEqual(MEM(MV).recall(g).length, 0);
+});
+
+test('si la persona ya no está, su decisión desaparece', () => {
+  for (const how of ['die', 'remove']) {
+    const MV = load({ seed: 3100 }); const g = game(MV, 3100, 30);
+    const s = old(MV, g, 'prestamo', 2, 6), t = old(MV, g, 'insulto', -2, 6, 40);
+    MV.EV.push(g, 'mem_favor', { target: s.n.id, k: 'prestamo', a: 24, v: 'regalo' });
+    MV.EV.push(g, 'mem_venganza', { target: s.n.id, k: 'insulto', a: 24, v: 'chismes' });
+    if (how === 'die') MV.sys.people.die(g, s.n, 'enfermedad'); else MV.removeRel(g, s.n.id);
+    const v = MV.EV.view(g);
+    assert.ok(!v || !MEMEV.includes(v.id), how);
+  }
+});
+
+test('el cierre del año lo usa', () => {
+  let n = 0;
+  for (let seed = 3200; seed < 3400; seed++) {
+    const MV = load({ seed }); const g = game(MV, seed, 30);
+    old(MV, g, 'prestamo', 2, 6);
+    MV.ageUp(g);
+    if (g.queue.some((q) => MEMEV.includes(q.id)) || (MV.EV.view(g) && MEMEV.includes(MV.EV.view(g).id))) n++;
+  }
+  assert.ok(n > 0, 'nunca encoló');
+});
+
+test('yearly no falla con partidas viejas', () => {
+  const MV = load({ seed: 3500 }); const g = game(MV, 3500, 30);
+  const s = old(MV, g, 'inventado', 2, 6); delete person(MV, g).r.mem;
+  s.r.mem.push({ k: 'prestamo', a: 10, v: 2 });
+  for (let i = 0; i < 30; i++) MEM(MV).yearly(g);
+  g.p.age = 5; MEM(MV).yearly(g);
+});
