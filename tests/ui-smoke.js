@@ -570,6 +570,44 @@ const SHOTS = process.argv[2] || null;
     if (/null|undefined|NaN/.test(relTxt)) errors.push('Relaciones muestra texto roto');
     await page.evaluate(() => MV.UI.closeAll());
   }
+  // Memoria y acoso — grupo "Acoso" en Relaciones, ficha con respuestas y tarjeta de un favor que vuelve
+  {
+    const sheetText = () => page.evaluate(() => document.querySelector('#layer .layer-item:last-child .sheet-body').textContent);
+    const bad = /null|undefined|NaN/;
+    const st = await page.evaluate(() => {
+      MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.p.age = Math.max(g.p.age, 25); g.p.yearActs = {};
+      MV.rels(g, 'acosador').forEach(({ n }) => MV.removeRel(g, n.id));
+      g.p.counters.acosadores = 0;
+      const n = MV.newNPC(g, { gender: 'f', age: 30 }); g.people[n.id] = n; MV.addRel(g, n, 'amigo', 50);
+      const ok = MV.sys.memory.makeStalker(g, n, 'ruptura');
+      g.queue = [];
+      MV.UI.save(); MV.UI.refreshGame(); MV.UI.showRelations();
+      return { ok, id: n.id, name: n.first };
+    });
+    if (!st.ok) errors.push('No se pudo crear la acosadora para la prueba');
+    const relTxt = await sheetText();
+    if (!/Acoso/.test(relTxt) || !relTxt.includes(st.name)) errors.push('Relaciones no muestra el grupo Acoso con su nombre: ' + relTxt.slice(0, 200));
+    if (bad.test(relTxt)) errors.push('Relaciones muestra texto roto con una acosadora');
+    await page.evaluate((id) => { MV.UI.closeAll(); MV.UI.showPerson(id); }, st.id);
+    await page.waitForSelector('#layer .layer-item:last-child .sheet-body');
+    const stTxt = await sheetText();
+    if (/Conversar/.test(stTxt)) errors.push('La ficha de la acosadora ofrece "Conversar"');
+    if (!/Bloquearla/.test(stTxt) || !/Llamar a la policía/.test(stTxt)) errors.push('La ficha de la acosadora no tiene sus respuestas: ' + stTxt.slice(0, 300));
+    if (bad.test(stTxt)) errors.push('La ficha de la acosadora muestra texto roto');
+    const fav = await page.evaluate(() => {
+      MV.UI.closeAll(); const g = MV.UI.g; g.queue = [];
+      const n = MV.newNPC(g, { gender: 'm', age: 35 }); g.people[n.id] = n; const r = MV.addRel(g, n, 'amigo', 70);
+      r.mem = [{ k: 'prestamo', a: g.p.age - 6, v: 2, d: 5000 }];
+      MV.EV.push(g, 'mem_favor', { target: n.id, k: 'prestamo', a: g.p.age - 6, v: 'regalo' });
+      MV.UI.flushQueue();
+      return { name: n.first };
+    });
+    await page.waitForSelector('#layer .card .choice');
+    const cardTxt = await page.$eval('#layer .card', (e) => e.textContent);
+    if (!cardTxt.includes(fav.name) || bad.test(cardTxt)) errors.push('La tarjeta del favor no nombra a la persona o tiene texto roto: ' + cardTxt.slice(0, 200));
+    await resolve();
+    await page.evaluate(() => MV.UI.closeAll());
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {

@@ -42,6 +42,18 @@ function possibleActions(MV, g) {
 function special(MV, g) {
   const U = MV.U, p = g.p;
   if (p.prison || p.age < 14) return;
+  if (U.chance(0.15)) {
+    // Memoria y acoso: presta, insulta, da dinero y corta con la gente, como haría alguien con vida social.
+    const want = ['prestar', 'insultar', 'dar_dinero', 'romper', 'divorcio'];
+    const opts = [];
+    MV.rels(g).forEach(({ r: rel, n }) => {
+      rel.acts = rel.acts || {};
+      MV.sys.rels.actions(g, rel, n).forEach((a) => { if (want.includes(a.id) && !a.opts) opts.push({ a, scope: rel.acts }); });
+    });
+    const x = U.pick(opts);
+    if (x) MV.doAction(g, x.a, undefined, x.scope);
+    return;
+  }
   const r = U.rand();
   if (r < 0.15 && p.age >= 14) {
     const pool = MV.JOBS.concat(MV.PARTTIME).filter((J) => MV.sys.career.meets(g, J).ok);

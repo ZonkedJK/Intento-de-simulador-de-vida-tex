@@ -1097,3 +1097,63 @@ test('un recuerdo en cola no llega a quien se volvió acosador', () => {
   MV.EV.push(g, 'mem_favor', { target: pet.id, k: 'prestamo', a: 24, v: 'regalo' });
   assert.ok(!MV.EV.view(g));
 });
+
+// ---- Tarea 8: heredero, partidas guardadas y jugador automático ----
+test('el heredero empieza sin recuerdos', () => {
+  const MV = load({ seed: 30000 }); const g = game(MV, 30000, 70); g.p.money = 50000; g.p.loans = [];
+  const kids = [];
+  for (let i = 0; i < 2; i++) { const k = MV.newNPC(g, { age: 40 + i, last: g.p.last }); MV.addRel(g, k, 'hijo', 80); kids.push(k); }
+  const sp = person(MV, g, 'conyuge', 'f'); const am = person(MV, g, 'amigo');
+  const marked = [...kids.map((k) => MV.relOf(g, k.id)), sp.r, am.r];
+  marked.forEach((r) => { r.mem = [{ k: 'prestamo', a: 60, v: 2, d: 1000 }]; r.memNext = 75; r.stalk = { stage: 2, since: 65 }; });
+  g.p.counters.acosadores = 2;
+  MV.sys.legacy.die(g, 'una prueba');
+  const ng = MV.sys.legacy.continueAs(g, kids[0].id);
+  assert.ok(ng.p.rels.length > 0);
+  ng.p.rels.forEach((r) => { assert.ok(!('mem' in r) && !('memNext' in r) && !('stalk' in r), r.type); });
+  assert.ok(!ng.p.counters.acosadores);
+  assert.ok(!MV.rels(ng, 'acosador').length);
+  assert.doesNotThrow(() => { MV.ageUp(ng); });
+});
+
+test('la partida guardada conserva todo', () => {
+  const MV = load({ seed: 30100 }); const g = game(MV, 30100, 30);
+  const a = person(MV, g, 'amigo'); a.r.mem = [{ k: 'prestamo', a: 20, v: 2, d: 5000, done: true }]; a.r.memNext = 40;
+  const s = person(MV, g, 'amigo', 'f'); assert.strictEqual(MEM(MV).makeStalker(g, s.n, 'noche'), true);
+  const copy = JSON.parse(JSON.stringify(g));
+  const ra = MV.relOf(copy, a.n.id), rs = MV.relOf(copy, s.n.id);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(ra.mem)), [{ k: 'prestamo', a: 20, v: 2, d: 5000, done: true }]);
+  assert.strictEqual(ra.memNext, 40);
+  assert.strictEqual(rs.type, 'acosador'); assert.deepStrictEqual(JSON.parse(JSON.stringify(rs.stalk)), JSON.parse(JSON.stringify(MV.relOf(g, s.n.id).stalk)));
+  assert.strictEqual(copy.p.counters.acosadores, 1);
+  assert.doesNotThrow(() => { MEM(MV).yearly(copy); MEM(MV).stalkYearly(copy); MV.ageUp(copy); });
+  // Una partida de antes, sin esos campos.
+  const old2 = JSON.parse(JSON.stringify(game(MV, 30101, 30)));
+  old2.p.rels.forEach((r) => { delete r.mem; delete r.memNext; delete r.stalk; });
+  assert.doesNotThrow(() => { MEM(MV).yearly(old2); MV.ageUp(old2); });
+});
+
+test('el jugador automático vive 30 vidas con memoria', () => {
+  const { live } = require('./agent');
+  let back = 0;
+  for (let seed = 600; seed < 630; seed++) {
+    const MV = load({ seed }); const g = MV.newGame({ seed });
+    live(MV, g, { acts: 4 });
+    assert.ok(g.over, `seed ${seed}`);
+    if (Object.keys(g.evDone || {}).some((k) => /^mem_/.test(k))) back++;
+  }
+  console.log('vidas con un recuerdo que volvió:', back, 'de 30');
+  assert.ok(back > 0, 'nunca volvió un recuerdo');
+});
+
+test('en 40 vidas hay algún acosador', () => {
+  const { live } = require('./agent');
+  let n = 0;
+  for (let seed = 700; seed < 740; seed++) {
+    const MV = load({ seed }); const g = MV.newGame({ seed });
+    live(MV, g, { acts: 4 });
+    if (g.p.counters.acosadores) n++;
+  }
+  console.log('vidas con acosador:', n, 'de 40');
+  assert.ok(n > 0, 'ninguna vida tuvo un acosador');
+});
