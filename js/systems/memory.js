@@ -54,6 +54,11 @@
       return ok.length ? MV.U.pick(ok).id : null;
     },
 
+    /** Las venganzas de MV.MEMORY_REVENGES que encajan con tu situación ahora. `chismes` siempre está. */
+    revengesFor(g, r, n) {
+      return (MV.MEMORY_REVENGES || []).filter((x) => { try { return x.when(g, r, n); } catch (e) { return false; } }).map((x) => x.id);
+    },
+
     /** "hace 3 años". */
     ago(g, m) {
       const y = g.p.age - m.a;

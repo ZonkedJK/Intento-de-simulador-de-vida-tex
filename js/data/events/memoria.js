@@ -203,4 +203,97 @@
         } }
     ]
   });
+  // ——— Te la tenía guardada: alguien a quien le hiciste algo malo te lo cobra ———
+  const firstCar = (g) => (g.p.assets || []).find((a) => a && a.type === 'auto') || null;
+  const otherPartner = (g, n) => MV.rels(g, ['conyuge', 'pareja']).find((x) => x.n.id !== n.id) || null;
+  /** Las venganzas: ninguna toca el dinero. `hit` aplica el daño y cuenta qué pasó. */
+  MV.MEMORY_REVENGES = [
+    { id: 'pareja', when: (g, r, n) => !!otherPartner(g, n),
+      hit: (g, r, n) => {
+        const x = otherPartner(g, n);
+        if (x) x.r.rel = U.clamp(x.r.rel - 15, 0, 100);
+        return `${n.first} le contó a ${x ? x.n.first : 'tu pareja'} todo lo que sabe de ti. En casa el ambiente se enfrió.`;
+      } },
+    { id: 'jefe', when: (g) => !!g.p.job,
+      hit: (g, r, n) => {
+        const job = g.p.job;
+        if (job && typeof job.perf === 'number') job.perf = U.clamp(job.perf - 15, 0, 100);
+        const b = MV.sys.workplace.boss(g);
+        if (b) b.r.rel = U.clamp(b.r.rel - 10, 0, 100);
+        return `${n.first} habló mal de ti con gente de tu trabajo. En la oficina te miran distinto, y no para bien.`;
+      } },
+    { id: 'auto', when: (g) => !!firstCar(g),
+      hit: (g, r, n) => {
+        const a = firstCar(g);
+        if (a) a.cond = U.clamp((typeof a.cond === 'number' ? a.cond : 100) - 20, 0, 100);
+        return `${n.first} le dejó el auto hecho un desastre: ${a && a.name ? a.name : 'tu auto'} amaneció rayado y con un espejo colgando.`;
+      } },
+    { id: 'escrache', when: (g) => (g.p.fame || 0) >= 20,
+      hit: (g, r, n) => {
+        fx.stat(g, 'fame', -5); fx.stat(g, 'happy', -6);
+        return `${n.first} publicó tu historia con nombre y apellido. Se compartió bastante más de lo que quisieras.`;
+      } },
+    { id: 'fiesta', when: (g) => g.p.housing === 'propia',
+      hit: (g, r, n) => {
+        fx.stat(g, 'happy', -8);
+        return `${n.first} montó una fiesta ruidosa frente a tu casa, con parlantes y todo, hasta que amaneció.`;
+      } },
+    { id: 'chismes', when: () => true,
+      hit: (g, r, n) => {
+        fx.stat(g, 'happy', -5);
+        return `${n.first} fue contándole a todo el mundo lo que le hiciste. Los rumores llegaron antes que tú.`;
+      } }
+  ];
+
+  const revengeOf = (ctx) => MV.MEMORY_REVENGES.find((x) => x.id === ctx.v) || MV.MEMORY_REVENGES[MV.MEMORY_REVENGES.length - 1];
+  /** Lo que hace la persona, para el texto. */
+  const DOING = {
+    pareja: (g, n) => `Está por contarle a tu pareja todo lo que sabe de ti.`,
+    jefe: () => `Está hablando mal de ti con gente de tu trabajo.`,
+    auto: (g, n) => `Anda rondando tu auto con cara de pocos amigos y una llave en la mano.`,
+    escrache: () => `Está armando una publicación con tu nombre para que todos se enteren.`,
+    fiesta: (g, n) => `Está organizando una fiesta a todo volumen frente a tu casa.`,
+    chismes: () => `Está contándole tu historia a todo el que quiera escuchar.`
+  };
+
+  ev({
+    id: 'mem_venganza', pushOnly: true, icon: '😠', scene: 'hogar', title: 'Te la tenía guardada',
+    when: (g, ctx) => !!ctx && !!MV.relOf(g, ctx.target),
+    text: (g, ctx) => {
+      const n = nobody(g, ctx);
+      return `${n.first} no se olvidó de lo que hiciste: ${deed(g, n, ctx)}. ${(DOING[ctx.v] || DOING.chismes)(g, n)}`;
+    },
+    choices: [
+      { t: 'Disculparte',
+        eff: (g, ctx) => {
+          const n = nobody(g, ctx), r = MV.relOf(g, ctx.target);
+          if (U.chance(0.4)) {
+            if (r) r.rel = U.clamp(r.rel + 10, 0, 100);
+            return `Le pediste perdón a ${n.first} sin excusas. ${U.gw(n.gender, 'Lo', 'La')} pensó un buen rato y aceptó: lo dejó pasar.`;
+          }
+          return `${n.first} escuchó tu disculpa y no la creyó. ${revengeOf(ctx).hit(g, r, n)}`;
+        } },
+      { t: 'Devolver el golpe',
+        eff: (g, ctx) => {
+          const n = nobody(g, ctx), r = MV.relOf(g, ctx.target);
+          const out = revengeOf(ctx).hit(g, r, n);
+          fx.stat(g, 'happy', 3);
+          M().remember(g, n.id, 'revancha');
+          let tail = '';
+          if (r) {
+            r.rel = U.clamp(r.rel - 25, 0, 100);
+            if (!MV.FAMILY.includes(r.type) && !['pareja', 'conyuge', 'amante'].includes(r.type)) {
+              r.type = 'enemigo';
+              tail = ` Ahora ${n.first} es ${U.gw(n.gender, 'tu enemigo', 'tu enemiga')}.`;
+            }
+          }
+          return `Le respondiste a ${n.first} con la misma moneda. ${out}${tail}`;
+        } },
+      { t: 'Ignorarlo',
+        eff: (g, ctx) => {
+          const n = nobody(g, ctx);
+          return `Hiciste como que no pasaba nada. ${revengeOf(ctx).hit(g, MV.relOf(g, ctx.target), n)}`;
+        } }
+    ]
+  });
 })(window.MV = window.MV || {});

@@ -518,3 +518,136 @@ test('los textos de las vueltas y el perdón nombran a la persona, el hecho y lo
   assert.strictEqual(s.MV.EV.byId.mem_vuelta.when(s.g, undefined), false);
   assert.strictEqual(s.MV.EV.byId.mem_perdon.when(s.g, undefined), false);
 });
+
+// ——— Venganzas ———
+const REVENGES = ['pareja', 'jefe', 'auto', 'escrache', 'fiesta', 'chismes'];
+function venganza(MV, g, n, k, d, v) {
+  g.queue = [];
+  MV.EV.push(g, 'mem_venganza', { target: n.id, k, a: g.p.age - 15, d, v }, true);
+  return MV.EV.view(g);
+}
+/** Partida "sana" con todo lo que una venganza puede tocar: pareja, jefe, auto, fama y casa propia. */
+function vengeful(seed, gender) {
+  const s = calm(seed, gender);
+  const { MV, g, p } = s;
+  p.housing = 'propia'; p.fame = 30; p.job.type = 'full';
+  p.assets = (p.assets || []).filter((a) => a.type !== 'auto');
+  p.assets.push({ id: 'a_test', type: 'auto', kind: 'sedan', icon: '🚗', name: 'Sedán de prueba', value: 9000, price: 9000, cond: 80 });
+  s.mate = person(MV, g, 'pareja', 'f');
+  s.mate.r.rel = 60;
+  const b = MV.sys.workplace.boss(g);
+  if (!b) {
+    const bn = MV.newNPC(g, { gender: 'm', age: 45 }); g.people[bn.id] = bn;
+    s.boss = MV.addRel(g, bn, 'jefe', 60);
+    p.job.boss = { id: bn.id, kind: Object.keys(MV.BOSS_KINDS)[0] };
+  } else s.boss = b.r;
+  s.boss.rel = 60;
+  return s;
+}
+
+test('cada venganza encaja con tu situación', () => {
+  let s = vengeful(300);
+  assert.deepStrictEqual([...MEM(s.MV).revengesFor(s.g, s.r, s.n)].sort(), REVENGES.slice().sort());
+  assert.deepStrictEqual([...s.MV.MEMORY_REVENGES.map((x) => x.id)].sort(), REVENGES.slice().sort());
+  s = vengeful(301); s.p.job = null; s.p.housing = 'alquiler'; s.p.fame = 0;
+  s.p.assets = s.p.assets.filter((a) => a.type !== 'auto'); s.mate.r.type = 'amigo';
+  assert.deepStrictEqual([...MEM(s.MV).revengesFor(s.g, s.r, s.n)], ['chismes']);
+  // la pareja que es esta persona no cuenta
+  s = vengeful(302); s.r.type = 'pareja'; s.mate.r.type = 'amigo';
+  assert.ok(!MEM(s.MV).revengesFor(s.g, s.r, s.n).includes('pareja'));
+  // fama 19 no alcanza
+  s = vengeful(303); s.p.fame = 19;
+  assert.ok(!MEM(s.MV).revengesFor(s.g, s.r, s.n).includes('escrache'));
+
+  const hit = (s, id) => s.MV.MEMORY_REVENGES.find((x) => x.id === id).hit(s.g, s.r, s.n);
+  // pareja
+  s = vengeful(304); let t = hit(s, 'pareja');
+  assert.strictEqual(s.mate.r.rel, 45); assert.ok(t && !BAD_TEXT.test(t), t);
+  s.mate.r.rel = 10; hit(s, 'pareja'); assert.strictEqual(s.mate.r.rel, 0);
+  // jefe
+  s = vengeful(305); s.p.job.perf = 60; t = hit(s, 'jefe');
+  assert.strictEqual(s.p.job.perf, 45); assert.strictEqual(s.boss.rel, 50); assert.ok(!BAD_TEXT.test(t), t);
+  s.p.job.perf = 5; hit(s, 'jefe'); assert.strictEqual(s.p.job.perf, 0);
+  s = vengeful(306); s.p.job.boss = null; s.p.job.perf = 60; t = hit(s, 'jefe');
+  assert.strictEqual(s.p.job.perf, 45); assert.ok(!BAD_TEXT.test(t), t);
+  s = vengeful(307); s.p.job.perf = undefined; t = hit(s, 'jefe');
+  assert.ok(!BAD_TEXT.test(t), t);
+  // auto
+  s = vengeful(308); t = hit(s, 'auto');
+  assert.strictEqual(s.p.assets.find((a) => a.type === 'auto').cond, 60); assert.ok(!BAD_TEXT.test(t), t);
+  s.p.assets.find((a) => a.type === 'auto').cond = 12; hit(s, 'auto');
+  assert.strictEqual(s.p.assets.find((a) => a.type === 'auto').cond, 0);
+  // escrache
+  s = vengeful(309); s.p.fame = 30; s.p.stats.happy = 50; t = hit(s, 'escrache');
+  assert.strictEqual(s.p.fame, 25); assert.strictEqual(s.p.stats.happy, 44); assert.ok(!BAD_TEXT.test(t), t);
+  // fiesta
+  s = vengeful(310); s.p.stats.happy = 50; t = hit(s, 'fiesta');
+  assert.strictEqual(s.p.stats.happy, 42); assert.ok(!BAD_TEXT.test(t), t);
+  // chismes
+  s = vengeful(311); s.p.stats.happy = 50; t = hit(s, 'chismes');
+  assert.strictEqual(s.p.stats.happy, 45); assert.ok(!BAD_TEXT.test(t), t);
+});
+
+test('las tres respuestas', () => {
+  let ok = 0, bad = 0;
+  for (let seed = 400; seed < 700; seed++) {
+    const s = vengeful(seed); s.p.stats.happy = 50; s.r.rel = 50;
+    const v = venganza(s.MV, s.g, s.n, 'insulto', 'es un inútil', 'chismes');
+    const res = pick(s.MV, s.g, v, /Disculparte/)();
+    assert.ok(res.msg && !BAD_TEXT.test(res.msg), res.msg);
+    if (s.r.rel === 60 && s.p.stats.happy === 50) ok++;
+    else { bad++; assert.strictEqual(s.p.stats.happy, 45); assert.strictEqual(s.r.rel, 50); }
+  }
+  assert.ok(ok >= 90 && ok <= 150, 'aceptadas ' + ok); assert.strictEqual(ok + bad, 300);
+  for (let seed = 700; seed < 720; seed++) {
+    const s = vengeful(seed); s.p.stats.happy = 50;
+    const res = pick(s.MV, s.g, venganza(s.MV, s.g, s.n, 'golpe', undefined, 'chismes'), /Ignorarlo/)();
+    assert.strictEqual(s.p.stats.happy, 45); assert.ok(res.msg && !BAD_TEXT.test(res.msg), res.msg);
+  }
+});
+
+test('devolver el golpe', () => {
+  let s = vengeful(720); s.p.stats.happy = 50; s.r.rel = 60;
+  let res = pick(s.MV, s.g, venganza(s.MV, s.g, s.n, 'insulto', 'es un inútil', 'chismes'), /Devolver/)();
+  assert.strictEqual(s.r.type, 'enemigo'); assert.strictEqual(s.r.rel, 35);
+  assert.strictEqual(s.p.stats.happy, 48); has(s.r, 'revancha', Math.sign(memOf(s.r, 'revancha').v));
+  assert.ok(res.msg && !BAD_TEXT.test(res.msg), res.msg);
+  for (const type of ['hermano', 'conyuge']) {
+    s = vengeful(721); s.r.type = type; s.r.rel = 60;
+    pick(s.MV, s.g, venganza(s.MV, s.g, s.n, 'golpe', undefined, 'fiesta'), /Devolver/)();
+    assert.strictEqual(s.r.type, type); assert.strictEqual(s.r.rel, 35);
+    assert.ok(memOf(s.r, 'revancha'), 'revancha ' + type);
+  }
+});
+
+test('una venganza nunca quita dinero ni mata', () => {
+  for (const money of [-500, 0, 100000]) for (const id of REVENGES) for (const re of [/Disculparte/, /Devolver/, /Ignorarlo/]) {
+    for (let seed = 800; seed < 806; seed++) {
+      const s = vengeful(seed); s.p.money = money; s.p.loans = [];
+      const v = venganza(s.MV, s.g, s.n, 'golpe', undefined, id);
+      assert.strictEqual(v.id, 'mem_venganza');
+      const res = pick(s.MV, s.g, v, re)();
+      assert.strictEqual(s.p.money, money, `${id} ${re}`);
+      assert.ok(s.p.alive !== false && !s.g.dead, 'vivo'); assert.ok(!s.p.prison, 'sin cárcel');
+      assert.ok(!s.g.queue.some((q) => q.id === 'juicio'), 'sin juicio');
+      assert.ok(res.msg && !BAD_TEXT.test(res.msg), res.msg);
+    }
+  }
+});
+
+test('los textos de las venganzas nombran a la persona, el hecho y los años', () => {
+  for (const gender of ['m', 'f']) for (const pg of ['m', 'f']) for (const d of [undefined, 5000]) {
+    const s = vengeful(900, gender); s.p.gender = pg;
+    for (const id of REVENGES.concat(['zzz'])) for (const k of ['golpe', 'insulto', 'infidelidad']) {
+      const v = venganza(s.MV, s.g, s.n, k, d, id);
+      const mm = { k, a: s.p.age - 15, d };
+      assert.ok(v.text.includes(s.n.first), v.text);
+      assert.ok(v.text.includes(MEM(s.MV).said(s.g, s.n, mm)), v.text);
+      assert.ok(v.text.includes(MEM(s.MV).ago(s.g, mm)), v.text);
+      assert.ok(!BAD_TEXT.test(v.text), v.text);
+    }
+  }
+  const s = vengeful(901);
+  assert.strictEqual(s.MV.EV.byId.mem_venganza.when(s.g, undefined), false);
+  assert.strictEqual(s.MV.EV.byId.mem_venganza.title, 'Te la tenía guardada');
+});
