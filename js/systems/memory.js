@@ -41,6 +41,12 @@
     /** Lo que le hiciste, en pasado y en segunda persona: "le prestaste $5.000". */
     said(g, n, m) { return MV.MEMORY_KINDS[m.k].did(n, m.d); },
 
+    /** El favor que te devuelve esta persona: el primero de MV.MEMORY_FAVORS cuya condición se cumple. */
+    favorFor(g, r, n, ctx) {
+      const f = (MV.MEMORY_FAVORS || []).find((x) => { try { return x.when(g, r, n, ctx || {}); } catch (e) { return false; } });
+      return f ? f.id : 'regalo';
+    },
+
     /** "hace 3 años". */
     ago(g, m) {
       const y = g.p.age - m.a;

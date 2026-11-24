@@ -22,6 +22,18 @@
   MV.RENTALS = RENTALS;
 
   const money = {
+    /** Cuotas de préstamos de este año: lo que hay que pagar. */
+    dues(g) {
+      const p = g.p;
+      return U.sum((p.loans || []).filter((l) => l.start <= p.age && l.left > 0), (l) => Math.min(l.pay || 0, l.left));
+    },
+
+    /** Lo que entra en el año: sueldo más pensión. */
+    income(g) {
+      const p = g.p;
+      return (p.job ? p.job.salary || 0 : 0) + (p.pension || 0);
+    },
+
     tax(gross) {
       if (gross <= 20000) return gross * 0.08;
       if (gross <= 80000) return 1600 + (gross - 20000) * 0.22;

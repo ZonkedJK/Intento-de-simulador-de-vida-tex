@@ -265,3 +265,136 @@ test('los efectos de siempre no cambian', () => {
   });
   assert.ok(rels.ok && rels.ko, JSON.stringify(rels));
 });
+
+// ——— Tarea 3: favores ———
+/** Encola mem_favor para esa persona y devuelve la vista. */
+function favor(MV, g, n, k, d, v) {
+  g.queue = [];
+  MV.EV.push(g, 'mem_favor', { target: n.id, k, a: g.p.age - 15, d, v }, true);
+  return MV.EV.view(g);
+}
+const accept = (MV, g, v) => MV.EV.choose(g, v.choices.find((c) => /Aceptar/.test(c.label)).i);
+/** Partida "sana": sin trabajo imposible, salud alta, sin deudas ni pareja, con trabajo, para que solo falle lo que se arme. */
+function calm(seed, gender) {
+  const MV = load({ seed }); MV.rng.seed(seed);
+  const g = game(MV, seed, 30);
+  const p = g.p; p.money = 50000; p.loans = []; p.conds = []; p.prison = null; p.retired = false;
+  p.stats.health = 80; p.edu.stage = null;
+  p.job = { id: 'cajero', level: 0, salary: 30000, perf: 60, years: 1 };
+  const x = person(MV, g, 'amigo', gender);
+  return { MV, g, p, n: x.n, r: x.r };
+}
+
+test('cada favor encaja con tu situación', () => {
+  // abogado
+  let s = calm(31); s.p.prison = { left: 4, total: 4, crime: 'Robo', behavior: 50, gang: false, since: 28 };
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'abogado');
+  let v = favor(s.MV, s.g, s.n, 'prestamo', 5000, 'abogado'); accept(s.MV, s.g, v);
+  assert.strictEqual(s.p.prison.left, 3);
+  s = calm(32); s.p.prison = { left: 1, total: 1, crime: 'Robo', behavior: 50, gang: false, since: 28 };
+  v = favor(s.MV, s.g, s.n, 'prestamo', 5000, 'abogado'); accept(s.MV, s.g, v);
+  assert.strictEqual(s.p.prison.left, 1);
+
+  // plata
+  s = calm(33); s.p.money = -700;
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'plata');
+  v = favor(s.MV, s.g, s.n, 'prestamo', 500, 'plata'); accept(s.MV, s.g, v);
+  assert.strictEqual(s.p.money, -700 + 2000);
+  s = calm(34); s.p.money = -700;
+  v = favor(s.MV, s.g, s.n, 'prestamo', 5000, 'plata'); accept(s.MV, s.g, v);
+  assert.strictEqual(s.p.money, -700 + 10000);
+  s = calm(35); s.p.money = -90000;
+  v = favor(s.MV, s.g, s.n, 'prestamo', 5000, 'plata'); accept(s.MV, s.g, v);
+  assert.strictEqual(s.p.money, -90000 + 50000);
+  s = calm(36); s.p.money = 1000; s.p.job = null; s.p.loans = [{ start: 20, left: 90000, pay: 60000 }];
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'plata');
+
+  // entrevista
+  s = calm(37); s.p.job = null;
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'entrevista');
+  v = favor(s.MV, s.g, s.n, 'apoyo', undefined, 'entrevista'); accept(s.MV, s.g, v);
+  const q = s.g.queue[0];
+  assert.strictEqual(q.id, 'oferta_trabajo');
+  const J = s.MV.jobById(q.ctx.job);
+  assert.ok(J && s.MV.sys.career.meets(s.g, J).ok);
+  assert.strictEqual(q.ctx.level, 0);
+  assert.ok(q.ctx.salary >= Math.round(J.pay[0] * 0.9) && q.ctx.salary <= Math.round(J.pay[0] * 1.1));
+
+  // cuidado
+  s = calm(38); s.p.stats.health = 30; s.p.stats.happy = 50; s.p.stress = 50;
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'cuidado');
+  v = favor(s.MV, s.g, s.n, 'apoyo', undefined, 'cuidado'); accept(s.MV, s.g, v);
+  assert.strictEqual(s.p.stats.health, 40); assert.strictEqual(s.p.stats.happy, 56); assert.strictEqual(s.p.stress, 45);
+
+  // pareja
+  s = calm(39); const pa = person(s.MV, s.g, 'pareja', 'f'); pa.r.rel = 30;
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'pareja');
+  v = favor(s.MV, s.g, s.n, 'apoyo', undefined, 'pareja'); accept(s.MV, s.g, v);
+  assert.strictEqual(pa.r.rel, 45);
+
+  // regalo
+  s = calm(40);
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'regalo');
+  let trips = 0, cash = 0;
+  for (let i = 0; i < 40; i++) {
+    const t = calm(100 + i); t.p.stats.happy = 50; t.p.stress = 50;
+    const m0 = t.p.money, v0 = t.p.counters.viajes || 0;
+    accept(t.MV, t.g, favor(t.MV, t.g, t.n, 'apoyo', undefined, 'regalo'));
+    if ((t.p.counters.viajes || 0) === v0 + 1) {
+      trips++; assert.strictEqual(t.p.stats.happy, 60); assert.strictEqual(t.p.stress, 42); assert.strictEqual(t.p.money, m0);
+    } else {
+      cash++; const dm = t.p.money - m0;
+      assert.ok(dm >= 300 && dm <= 2000, 'dinero ' + dm); assert.strictEqual(t.p.stats.happy, 54);
+    }
+  }
+  assert.ok(trips > 0 && cash > 0, `viajes ${trips}, dinero ${cash}`);
+});
+
+test('el orden de los favores', () => {
+  let s = calm(41); s.p.prison = { left: 4, total: 4, crime: 'Robo', behavior: 50, gang: false, since: 28 }; s.p.money = -500;
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'abogado');
+  s = calm(42); s.p.money = -500; s.p.job = null;
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'plata');
+});
+
+test('el texto nombra a la persona, el hecho y los años', () => {
+  for (const gender of ['m', 'f']) {
+    for (const d of [undefined, 5000]) {
+      const s = calm(50, gender); s.p.money = -300;
+      const v = favor(s.MV, s.g, s.n, 'prestamo', d, 'plata');
+      const mm = { k: 'prestamo', a: s.p.age - 15, d };
+      assert.ok(v.text.includes(s.n.first), v.text);
+      assert.ok(v.text.includes(MEM(s.MV).said(s.g, s.n, mm)), v.text);
+      assert.ok(v.text.includes(MEM(s.MV).ago(s.g, mm)), v.text);
+      assert.ok(!BAD_TEXT.test(v.text), v.text);
+    }
+  }
+  for (const id of ['abogado', 'plata', 'entrevista', 'cuidado', 'pareja', 'regalo']) {
+    const s = calm(51, 'f'); const v = favor(s.MV, s.g, s.n, 'apoyo', undefined, id);
+    assert.ok(!BAD_TEXT.test(v.text) && v.text.includes(s.n.first), id + ': ' + v.text);
+  }
+});
+
+test('rechazar con orgullo', () => {
+  const s = calm(60); s.p.money = -700; s.r.rel = 60;
+  const before = JSON.stringify([s.p.money, s.p.stats, s.p.stress, s.p.job, s.g.queue]);
+  const v = favor(s.MV, s.g, s.n, 'prestamo', 500, 'plata');
+  const res = s.MV.EV.choose(s.g, v.choices.find((c) => /Rechazarlo/.test(c.label)).i);
+  assert.ok(res.msg && !BAD_TEXT.test(res.msg));
+  assert.strictEqual(s.r.rel, 58);
+  assert.strictEqual(JSON.stringify([s.p.money, s.p.stats, s.p.stress, s.p.job, s.g.queue]), before.replace(/\[\]$/, '[]'));
+});
+
+test('el favor también llega a la cárcel', () => {
+  const s = calm(70); s.p.prison = { left: 4, total: 4, crime: 'Robo', behavior: 50, gang: false, since: 28 };
+  const v = favor(s.MV, s.g, s.n, 'prestamo', 500, 'abogado');
+  assert.ok(v && v.id === 'mem_favor');
+});
+
+test('el riesgo de deudas del gato no cambia', () => {
+  const s = calm(80);
+  s.p.loans = [{ start: 20, left: 5000, pay: 8000 }, { start: 99, left: 100, pay: 100 }];
+  assert.strictEqual(s.MV.sys.money.dues(s.g), 5000);
+  s.p.pension = 200; assert.strictEqual(s.MV.sys.money.income(s.g), 30200);
+  s.p.job = null; assert.strictEqual(s.MV.sys.money.income(s.g), 200);
+});

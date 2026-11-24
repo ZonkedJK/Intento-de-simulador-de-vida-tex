@@ -81,8 +81,7 @@
       const grave = (p.conds || []).map((c) => MV.CONDITIONS[c.id]).find((C) => C && (C.drain[1] >= 8 || C.urgent));
       if (p.stats.health < 35 || grave) return { id: 'salud', d: { cond: grave ? grave.name.toLowerCase() : null } };
       // Deudas: estás en rojo, o las cuotas de este año superan tu efectivo más lo que ganas en el año.
-      const dues = U.sum((p.loans || []).filter((l) => l.start <= p.age && l.left > 0), (l) => Math.min(l.pay || 0, l.left));
-      const income = (p.job ? p.job.salary || 0 : 0) + (p.pension || 0);
+      const dues = MV.sys.money.dues(g), income = MV.sys.money.income(g);
       if (p.money < 0 || dues > p.money + income) return { id: 'deudas', d: { amount: dues + Math.max(0, -p.money) } };
       if (p.dirty > 50000) return { id: 'sucio', d: { amount: p.dirty } };
       const x = MV.partner(g);
