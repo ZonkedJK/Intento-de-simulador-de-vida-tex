@@ -979,15 +979,25 @@ test('su ficha', () => {
   const ids = list.map((a) => a.id);
   assert.deepStrictEqual([...ids], ['acoso_hablar', 'acoso_bloquear', 'acoso_policia', 'acoso_orden', 'acoso_mudarte']);
   for (const a of list) assert.strictEqual(a.limit, 1);
-  // Solo una por año.
-  t.r.acts = {};
-  const first = t.MV.doAction(t.g, list[2], null, t.r.acts);
-  assert.ok(!first.blocked && first.msg && !BAD_TEXT.test(first.msg));
-  if (t.MV.relOf(t.g, t.n.id)) {
-    assert.strictEqual(t.r.stalk.acted, t.g.p.age);
-    const second = t.MV.doAction(t.g, list[0], null, t.r.acts);
-    assert.ok(second.blocked); assert.ok(t.MV.relOf(t.g, t.n.id));
+  // Una sola por año: `acted` (la ficha) o `ev` (el evento) bloquean; sin ninguno, no.
+  for (const key of [null, 'acted', 'ev']) {
+    const w = stalked(18003, 'f', 1); w.g.p.money = 100000;
+    if (key) w.r.stalk[key] = w.g.p.age;
+    w.r.acts = {};
+    const a = w.MV.sys.rels.actions(w.g, w.r, w.n).find((x) => x.id === 'acoso_hablar');
+    const res = w.MV.doAction(w.g, a, null, w.r.acts);
+    assert.strictEqual(!!res.blocked, !!key, 'bloqueo con ' + key);
+    if (key) assert.ok(w.MV.relOf(w.g, w.n.id) && !w.g.p.yearActs.acoso_hablar);
+    else assert.strictEqual(w.r.stalk.acted, w.g.p.age);
   }
+  // La segunda del mismo año, tras usar la primera (se fuerza que no termine).
+  const sec = stalked(18004, 'f', 1); sec.g.p.money = 100000; sec.r.acts = {};
+  const al = sec.MV.sys.rels.actions(sec.g, sec.r, sec.n);
+  sec.MV.rng.seed(1);
+  sec.MV.doAction(sec.g, al.find((x) => x.id === 'acoso_hablar'), null, sec.r.acts);
+  sec.r.type = 'acosador'; if (!sec.MV.relOf(sec.g, sec.n.id)) sec.g.p.rels.push(sec.r);
+  assert.strictEqual(sec.r.stalk.acted, sec.g.p.age);
+  assert.ok(sec.MV.doAction(sec.g, al.find((x) => x.id === 'acoso_policia'), null, sec.r.acts).blocked);
   // Etapa 2: ya no hay bloquear. Sin plata: ni orden ni mudanza.
   const u = stalked(18001, 'm', 2); u.g.p.money = 4999;
   assert.deepStrictEqual([...u.MV.sys.rels.actions(u.g, u.r, u.n).map((a) => a.id)], ['acoso_hablar', 'acoso_policia', 'acoso_mudarte']);
@@ -1058,4 +1068,32 @@ test('los textos', () => {
   const q = setupS(20200); q.g.queue = []; q.MV.EV.push(q.g, 'acoso', { target: q.n.id }, true);
   assert.strictEqual(q.MV.EV.view(q.g), null);
   assert.doesNotThrow(() => q.MV.EV.byId.acoso.when(q.g));
+});
+
+test('los menores no tienen acosador', () => {
+  for (const [pa, na] of [[16, 16], [30, 16], [16, 30], [17, 40]]) {
+    const MV = sh(21000 + pa + na); const g = game(MV, 21000, pa);
+    const x = person(MV, g, 'ex'); x.n.age = na;
+    assert.strictEqual(MEM(MV).makeStalker(g, x.n, 'ruptura'), false, `${pa}/${na}`);
+    assert.strictEqual(MV.relOf(g, x.n.id).type, 'ex'); assert.ok(!g.p.counters.acosadores);
+  }
+  const MV = sh(21100); const g = game(MV, 21100, 18); const x = person(MV, g, 'ex'); x.n.age = 18;
+  assert.strictEqual(MEM(MV).makeStalker(g, x.n, 'ruptura'), true);
+});
+
+test('un recuerdo en cola no llega a quien se volvió acosador', () => {
+  for (const [ev, ctx] of [['mem_venganza', { k: 'insulto', a: 24, v: 'chismes' }], ['mem_favor', { k: 'prestamo', a: 24, v: 'regalo' }],
+    ['mem_vuelta', { k: 'prestamo', a: 24, v: 'devuelve' }], ['mem_perdon', { k: 'insulto', a: 24 }]]) {
+    const MV = sh(22000); const g = game(MV, 22000, 30);
+    const s = old(MV, g, ctx.k, ctx.v === undefined || ev === 'mem_venganza' ? -2 : 2, 6, 60, 'ex');
+    MV.EV.push(g, ev, Object.assign({ target: s.n.id }, ctx));
+    assert.strictEqual(MEM(MV).makeStalker(g, s.n, 'ruptura'), true);
+    let v; assert.doesNotThrow(() => { v = MV.EV.view(g); }, ev);
+    assert.ok(!v || !MEMEV.includes(v.id), ev);
+  }
+  // Una mascota tampoco.
+  const MV = sh(22100); const g = game(MV, 22100, 30);
+  const pet = MV.newPet(g, 'gato', { age: 3 }); MV.addRel(g, pet, 'mascota', 70);
+  MV.EV.push(g, 'mem_favor', { target: pet.id, k: 'prestamo', a: 24, v: 'regalo' });
+  assert.ok(!MV.EV.view(g));
 });

@@ -109,7 +109,7 @@
     /** Una persona se vuelve acosadora: solo uno a la vez y dos por vida. `from`: noche, ruptura o fan. */
     makeStalker(g, n, from) {
       const p = g.p;
-      if (!p.alive || !n || !n.alive || n.species !== 'humano') return false;
+      if (!p.alive || p.age < 18 || !n || !n.alive || n.age < 18 || n.species !== 'humano') return false;
       if (memory.stalker(g) || (p.counters.acosadores || 0) >= 2) return false;
       const old = MV.relOf(g, n.id);
       if (old && (MV.FAMILY.includes(old.type) || old.type === 'mascota')) return false;

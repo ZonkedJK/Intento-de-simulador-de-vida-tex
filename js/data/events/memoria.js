@@ -3,6 +3,8 @@
   'use strict';
   const U = MV.U, ev = MV.ev, fx = MV.fx;
   const M = () => MV.sys.memory;
+  /** La relación existe y puede guardar recuerdos: ni acosadores ni mascotas. */
+  const remembers = (g, ctx) => { const r = !!ctx && MV.relOf(g, ctx.target); return !!r && !['acosador', 'mascota'].includes(r.type); };
 
   /** El primer trabajo para el que cumples requisitos, o null. */
   const hireable = (g) => (MV.JOBS || []).find((J) => J && J.pay && MV.sys.career.meets(g, J).ok) || null;
@@ -78,7 +80,7 @@
   // ——— Un favor de vuelta (lo encola el motor de memoria cuando alguien te debe una) ———
   ev({
     id: 'mem_favor', pushOnly: true, prison: 'any', icon: '🤝', scene: 'hogar', title: 'Un favor de vuelta',
-    when: (g, ctx) => !!ctx && !!MV.relOf(g, ctx.target),
+    when: remembers,
     text: (g, ctx) => {
       const n = MV.person(g, ctx.target) || { first: 'Alguien', gender: 'm' };
       const m = { k: ctx.k, a: ctx.a, d: ctx.d };
@@ -163,7 +165,7 @@
   // ——— Una vuelta de la vida (la encola el motor de memoria) ———
   ev({
     id: 'mem_vuelta', pushOnly: true, icon: '🔄', scene: 'hogar', title: 'Vueltas de la vida',
-    when: (g, ctx) => !!ctx && !!MV.relOf(g, ctx.target),
+    when: remembers,
     text: (g, ctx) => {
       const n = nobody(g, ctx);
       return `${n.first} no se olvidó de lo que hiciste: ${deed(g, n, ctx)}. ${(BRINGS[ctx.v] || BRINGS.recomienda)(g, n)}`;
@@ -182,7 +184,7 @@
   // ——— Ya te perdoné: alguien a quien le hiciste algo malo lo dejó atrás ———
   ev({
     id: 'mem_perdon', pushOnly: true, prison: 'any', icon: '🕊️', scene: 'hogar', title: 'Ya te perdoné',
-    when: (g, ctx) => !!ctx && !!MV.relOf(g, ctx.target),
+    when: remembers,
     text: (g, ctx) => {
       const n = nobody(g, ctx);
       return `${n.first} te buscó por algo que sigue en el aire: ${deed(g, n, ctx)}. "Ya lo superé", te dice. "Ya te perdoné. Cargar con eso pesaba demasiado."`;
@@ -258,7 +260,7 @@
 
   ev({
     id: 'mem_venganza', pushOnly: true, icon: '😠', scene: 'hogar', title: 'Te la tenía guardada',
-    when: (g, ctx) => !!ctx && !!MV.relOf(g, ctx.target),
+    when: remembers,
     text: (g, ctx) => {
       const n = nobody(g, ctx);
       return `${n.first} no se olvidó de lo que hiciste: ${deed(g, n, ctx)}. ${(DOING[ctx.v] || DOING.chismes)(g, n)}`;
