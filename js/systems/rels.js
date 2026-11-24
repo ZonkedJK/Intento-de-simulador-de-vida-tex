@@ -61,6 +61,7 @@
       const r = MV.relOf(g, n.id);
       if (!r) return '';
       rels.makeEx(g, r); r.rel = U.clamp(r.rel - 30, 0, 100);
+      if (!theyLeft) MV.sys.memory.remember(g, n.id, 'divorcio');
       g.p.counters.divorcios = (g.p.counters.divorcios || 0) + 1;
       MV.fx.stat(g, 'happy', -15);
       let lost = 0;
@@ -130,6 +131,7 @@
       const r = MV.relOf(g, n.id);
       if (!r) return '';
       rels.makeEx(g, r); r.rel = U.clamp(r.rel - 25, 0, 100);
+      MV.sys.memory.remember(g, n.id, 'ruptura');
       MV.fx.stat(g, 'happy', -6);
       return `Terminaste con ${n.first}. ${U.pick(['Lloró en tu cara.', 'Te devolvió tu buzo, sin lavar.', 'Dijo "ya lo veía venir".', 'Cambió su estado a "liberad' + U.gw(n.gender, 'o', 'a') + '".'])}`;
     },
@@ -183,7 +185,10 @@
       // Infidelidad descubierta
       const lover = MV.rels(g, 'amante')[0];
       const cur = MV.partner(g);
-      if (lover && cur && U.chance(0.2)) MV.EV.push(g, 'infiel_descubierto', { target: cur.n.id, lover: lover.n.first });
+      if (lover && cur && U.chance(0.2)) {
+        MV.sys.memory.remember(g, cur.n.id, 'infidelidad', lover.n.first);
+        MV.EV.push(g, 'infiel_descubierto', { target: cur.n.id, lover: lover.n.first });
+      }
       // Bebé en camino
       if (p.flags.buscandoBebe && cur && rels.fertile(g, cur.n)) {
         if (U.chance(0.45)) { delete p.flags.buscandoBebe; MV.EV.info(g, { title: '¡Bebé!', text: rels.birth(g, cur.n), icon: '👶', scene: 'hospital' }); }
@@ -208,6 +213,7 @@
       const base = 3 + Math.log10(gift.price + 1) * 3 * (n.traits.includes('tacaño') ? 1.3 : 1);
       const d = react === 'hate' ? -U.int(5, 12) : Math.round(react === 'love' ? base * 1.6 + 3 : react === 'like' ? base : base * 0.5);
       r.rel = U.clamp(r.rel + d, 0, 100);
+      MV.sys.memory.remember(g, n.id, 'regalo', gift.name, gift.price >= 500 ? 2 : 1);
       let extra = '';
       if (gift.special === 'pet' && react !== 'hate') {
         const home = r.type === 'conyuge' || g.p.flags.convive === n.id || (r.type === 'hijo' && n.age < 18) || (r.type === 'padre' && g.p.age < 18);
@@ -265,7 +271,7 @@
         if (n.age >= 5) A({ id: 'castigar', icon: '🚫', label: 'Castigar', sub: 'Disciplina', limit: 1, run: (g) => { r.rel = U.clamp(r.rel - U.int(5, 12), 0, 100); n.smarts = U.clamp(n.smarts + 1, 0, 100); return `Castigaste a ${n.first} sin pantallas. ${U.pick(['Te dijo que eres el peor padre/madre del universo.', 'Lloró tres horas.', 'Se encerró en su cuarto a componer una canción sobre ti.'])}`; } });
         A({ id: 'dar_dinero', icon: '💵', label: 'Darle dinero', sub: 'Ayuda económica', limit: 1,
           opts: () => [{ id: 50, icon: '🪙', label: '$50' }, { id: 1000, icon: '💵', label: '$1.000' }, { id: 20000, icon: '💰', label: '$20.000' }].filter((o) => p.money >= o.id),
-          run: (g, amt) => { amt = +amt || 50; MV.fx.money(g, -amt); n.money += amt; r.rel = U.clamp(r.rel + Math.round(3 + Math.log10(amt) * 2), 0, 100); return `Le diste ${U.money(amt)} a ${n.first}.`; } });
+          run: (g, amt) => { amt = +amt || 50; MV.fx.money(g, -amt); n.money += amt; MV.sys.memory.remember(g, n.id, 'dinero', amt); r.rel = U.clamp(r.rel + Math.round(3 + Math.log10(amt) * 2), 0, 100); return `Le diste ${U.money(amt)} a ${n.first}.`; } });
         A({ id: 'heredero', icon: '📜', label: p.heirId === n.id ? 'Ya es tu heredero' : 'Nombrar heredero', sub: 'Heredará casi todo', limit: 1, run: (g) => { p.heirId = n.id; r.rel = U.clamp(r.rel + 5, 0, 100); return `Nombraste a ${n.first} como heredero principal en tu testamento. Tus otros hijos aún no lo saben.`; } });
       }
       if (t === 'padre' && p.age >= 4 && p.age <= 12) A({ id: 'pedir_mascota', icon: '🐶', label: 'Pedir una mascota', sub: 'Insistir mucho', limit: 1,
@@ -334,7 +340,7 @@
         } });
         A({ id: 'espiar_celular', icon: '🔍', label: 'Revisar su celular', sub: 'Arriesgado', limit: 1, run: (g) => {
           MV.fx.stat(g, 'karma', -2);
-          if (U.chance(0.3)) { bump(-25, -15); return `${n.first} te descubrió revisando su celular. Discusión monumental.`; }
+          if (U.chance(0.3)) { bump(-25, -15); MV.sys.memory.remember(g, n.id, 'espiar'); return `${n.first} te descubrió revisando su celular. Discusión monumental.`; }
           if (U.chance(0.2)) { bump(-10, -5); MV.fx.stat(g, 'happy', -8); return `Encontraste mensajes sospechosos de ${n.first} con alguien llamado "Mecánico 2". Ahora no duermes.`; }
           MV.fx.stat(g, 'stress', -2); return 'Revisaste su celular. Solo había memes, fotos de comida y 400 capturas de pantalla de recetas.';
         } });
@@ -345,9 +351,9 @@
         A({ id: 'cine_juntos', icon: '🍿', label: 'Ir al cine juntos', sub: '+relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'happy', 2); return `Fueron al cine con ${n.first}. ${U.pick(['Se durmió a la mitad.', 'Lloraron los dos y fingieron que no.', 'Comentó toda la película. Toda.'])}`; } });
         A({ id: 'gym_juntos', icon: '🏋️', label: 'Ir al gimnasio juntos', sub: '+salud, +relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'health', 2); n.health = U.clamp(n.health + 2, 0, 100); return `Entrenaron juntos con ${n.first}. Se motivaron mutuamente (y se quejaron mutuamente).`; } });
         A({ id: 'consejo', icon: '🧭', label: 'Pedir un consejo', sub: '+felicidad', limit: 1, run: (g) => { bump(2, 5); MV.fx.stat(g, 'happy', 3); MV.fx.stat(g, 'stress', -4); return `Le pediste consejo a ${n.first}. ${U.pick(['Te dijo justo lo que necesitabas escuchar.', 'Te contó una historia larguísima que, al final, tenía sentido.', 'Su consejo fue "hacé lo que sientas". Gracias.'])}`; } });
-        A({ id: 'escuchar', icon: '👂', label: 'Escuchar sus problemas', sub: '+relación, +karma', limit: 1, run: (g) => { bump(5, 10); MV.fx.stat(g, 'karma', 2); MV.fx.skill(g, 'carisma', 1); return `Escuchaste a ${n.first} durante horas. Se sintió mucho mejor. Tú también.`; } });
+        A({ id: 'escuchar', icon: '👂', label: 'Escuchar sus problemas', sub: '+relación, +karma', limit: 1, run: (g) => { bump(5, 10); MV.fx.stat(g, 'karma', 2); MV.fx.skill(g, 'carisma', 1); MV.sys.memory.remember(g, n.id, 'apoyo'); return `Escuchaste a ${n.first} durante horas. Se sintió mucho mejor. Tú también.`; } });
         if (p.age >= 18) A({ id: 'prestar', icon: '🤝', label: 'Prestarle dinero', sub: '$1.000', limit: 1, when: () => p.money >= 1000, run: (g) => {
-          MV.fx.money(g, -1000); n.money = (n.money || 0) + 1000; bump(5, 10);
+          MV.fx.money(g, -1000); n.money = (n.money || 0) + 1000; bump(5, 10); MV.sys.memory.remember(g, n.id, 'prestamo', 1000);
           if (U.chance(0.5)) { MV.EV.later(g, 'amigo_devuelve', U.int(1, 3), { target: n.id }); return `Le prestaste $1.000 a ${n.first}. Juró devolverlo "la semana que viene".`; }
           return `Le prestaste $1.000 a ${n.first}. Los dos saben que no lo vas a volver a ver.`;
         } });
@@ -378,11 +384,17 @@
       } });
       // Conflicto
       A({ id: 'discutir', icon: '😤', label: 'Discutir', sub: '-relación', limit: 1, run: (g) => { r.rel = U.clamp(r.rel - U.int(5, 12), 0, 100); MV.fx.stat(g, 'stress', 3); return U.pick([`Discutiste con ${n.first} por ${U.pick(['política', 'quién lava los platos', 'una deuda de hace años', 'el final de una serie', 'nada en particular'])}.`, `Le gritaste a ${n.first}. Te gritó más fuerte.`]); } });
-      A({ id: 'insultar', icon: '🤬', label: 'Insultar', sub: '-relación, -karma', limit: 1, run: (g) => { r.rel = U.clamp(r.rel - U.int(10, 20), 0, 100); MV.fx.stat(g, 'karma', -2); return `Le dijiste a ${n.first} que ${U.pick(['tiene cara de papa hervida', 'su comida sabe a cartón', 'nadie lo soporta', 'se viste como un sillón viejo'])}. Silencio incómodo.`; } });
-      A({ id: 'broma', icon: '🃏', label: 'Hacerle una broma', sub: 'Puede salir mal', limit: 1, run: (g) => { if (U.chance(0.55)) { r.rel = U.clamp(r.rel + 3, 0, 100); MV.fx.stat(g, 'happy', 4); return `Le pusiste sal al café de ${n.first}. Se rió (después de escupir).`; } r.rel = U.clamp(r.rel - 8, 0, 100); return `Tu broma a ${n.first} salió fatal. Ahora planea venganza.`; } });
+      A({ id: 'insultar', icon: '🤬', label: 'Insultar', sub: '-relación, -karma', limit: 1, run: (g) => {
+          r.rel = U.clamp(r.rel - U.int(10, 20), 0, 100); MV.fx.stat(g, 'karma', -2);
+          const said = U.pick(['tiene cara de papa hervida', 'su comida sabe a cartón', 'nadie lo soporta', 'se viste como un sillón viejo']);
+          MV.sys.memory.remember(g, n.id, 'insulto', said);
+          return `Le dijiste a ${n.first} que ${said}. Silencio incómodo.`;
+        } });
+      A({ id: 'broma', icon: '🃏', label: 'Hacerle una broma', sub: 'Puede salir mal', limit: 1, run: (g) => { if (U.chance(0.55)) { r.rel = U.clamp(r.rel + 3, 0, 100); MV.fx.stat(g, 'happy', 4); return `Le pusiste sal al café de ${n.first}. Se rió (después de escupir).`; } r.rel = U.clamp(r.rel - 8, 0, 100); MV.sys.memory.remember(g, n.id, 'broma'); return `Tu broma a ${n.first} salió fatal. Ahora planea venganza.`; } });
       if (p.age >= 8) A({ id: 'atacar', icon: '👊', label: 'Atacar', sub: 'Violencia: mala idea', limit: 1, confirm: `¿Atacar a ${n.first}?`,
         run: (g) => {
           r.rel = U.clamp(r.rel - U.int(25, 45), 0, 100); MV.fx.stat(g, 'karma', -8);
+          MV.sys.memory.remember(g, n.id, 'golpe');
           const win = U.chance(0.45 + p.skills.deporte / 200 + (p.stats.health - n.health) / 300);
           if (win) n.health = U.clamp(n.health - U.int(10, 30), 0, 100); else MV.fx.stat(g, 'health', -U.int(8, 20));
           if (adult && U.chance(0.3)) { MV.sys.crime.arrest(g, 'Agresión', 2); return `Atacaste a ${n.first} y alguien llamó a la policía.`; }

@@ -151,6 +151,7 @@
           return `${who} escuchó a ${t} desde atrás de una maceta: dice que no te soporta y que cocinas peor. Ahora lo sabes.`;
         }
         x.r.rel = U.clamp(x.r.rel - 12, 0, 100); MV.fx.stat(g, 'happy', -2);
+        MV.sys.memory.remember(g, x.n.id, 'espiar');
         return `${t} encontró a ${who} adentro de su bolso y a ti detrás de la cortina. No hubo forma de explicarlo.`;
       }
       return `${who} no entendió el plan. Tú tampoco.`;

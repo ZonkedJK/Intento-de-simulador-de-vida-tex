@@ -160,7 +160,7 @@
     choices: [
       { t: (g) => `Reclamar ante ${elJ(g)}`, sub: (g) => `Depende de cuánto te quiera ${tj(g)}`,
         eff: (g) => { const x = mate(g, 'rival');
-          if (U.chance(boss(g).r.rel / 100)) { perf(g, 8); x.r.rel = U.clamp(x.r.rel - 10, 0, 100); return `Mostraste tus borradores. ${elJefe(g)} te dio la razón y ${x.n.first} se puso del color de un tomate.`; }
+          if (U.chance(boss(g).r.rel / 100)) { perf(g, 8); x.r.rel = U.clamp(x.r.rel - 10, 0, 100); MV.sys.memory.remember(g, x.n.id, 'humillacion'); return `Mostraste tus borradores. ${elJefe(g)} te dio la razón y ${x.n.first} se puso del color de un tomate.`; }
           bumpBoss(g, -5); return `${elJefe(g)} dijo que "lo importante es el equipo". Traducción: no te creyó.`; } },
       { t: 'Dejarlo pasar', sub: 'Tragarte el orgullo', eff: (g) => { fx.stat(g, 'happy', -4); return 'Sonreíste y aplaudiste también. Por dentro, escribiste un discurso de venganza que nunca vas a dar.'; } },
       { t: 'Vengarte', sub: (g) => `Karma en contra; ${tj(g)} podría enterarse`,
@@ -223,7 +223,7 @@
         eff: (g) => { perf(g, -10); const k = boss(g).kind; const good = k === 'buenazo' || k === 'ausente'; bumpBoss(g, good ? 5 : -5);
           return good ? `Confesaste. ${TJ(g)} valoró la honestidad y recuperaron casi todo de una copia de seguridad.` : `Confesaste. ${TJ(g)} respiró hondo por la nariz durante un minuto entero.`; } },
       { t: 'Culpar a un compañero', sub: 'Karma en contra; te pueden descubrir', when: (g) => allMates(g).length > 0,
-        eff: (g) => { const x = U.pick(allMates(g)); fx.stat(g, 'karma', -6);
+        eff: (g) => { const x = U.pick(allMates(g)); fx.stat(g, 'karma', -6); MV.sys.memory.remember(g, x.n.id, 'humillacion');
           if (U.chance(0.6)) { x.r.type = 'enemigo'; return `Le echaste la culpa a ${x.n.first}. Te creyeron. ${x.n.first} sabe que fuiste tú.`; }
           perf(g, -20); bumpBoss(g, -15); return `Culpaste a ${x.n.first}, pero las cámaras de seguridad no mienten. Quedaste peor que el archivo borrado.`; } },
       { t: 'Esconderlo', sub: 'Mitad y mitad: nadie se entera… o se entera el año que viene',
