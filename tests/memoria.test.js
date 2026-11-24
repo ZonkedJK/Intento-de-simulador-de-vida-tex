@@ -398,3 +398,12 @@ test('el riesgo de deudas del gato no cambia', () => {
   s.p.pension = 200; assert.strictEqual(s.MV.sys.money.income(s.g), 30200);
   s.p.job = null; assert.strictEqual(s.MV.sys.money.income(s.g), 200);
 });
+
+test('el favor del abogado concuerda con el género de la jugadora', () => {
+  const s = calm(90); s.p.gender = 'f'; s.p.prison = { left: 4, total: 4, crime: 'Robo', behavior: 50, gang: false, since: 28 };
+  const v = favor(s.MV, s.g, s.n, 'prestamo', 500, 'abogado');
+  assert.ok(/presa/.test(v.text) && !/preso/.test(v.text), v.text);
+  const t = calm(91); t.p.gender = 'm'; t.p.prison = { left: 4, total: 4, crime: 'Robo', behavior: 50, gang: false, since: 28 };
+  const w = favor(t.MV, t.g, t.n, 'prestamo', 500, 'abogado');
+  assert.ok(/preso/.test(w.text) && !/presa/.test(w.text), w.text);
+});

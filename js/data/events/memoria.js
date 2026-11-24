@@ -67,12 +67,12 @@
   const favorOf = (ctx) => MV.MEMORY_FAVORS.find((f) => f.id === ctx.v) || MV.MEMORY_FAVORS[MV.MEMORY_FAVORS.length - 1];
   /** Lo que te ofrece cada favor, para el texto. */
   const OFFER = {
-    abogado: (n) => `Se enteró de que estás preso y te ofrece pagarte un abogado.`,
-    plata: (n) => `Se enteró de que andas mal de plata y te ofrece una mano con el dinero.`,
-    entrevista: (n) => `Se enteró de que no tienes trabajo y te ofrece conseguirte una entrevista.`,
-    cuidado: (n) => `Se enteró de que no andas bien de salud y te ofrece cuidarte unos días.`,
-    pareja: (n) => `Se enteró de que las cosas con tu pareja andan frías y te ofrece hablar con ${U.gw(n.gender, 'él', 'ella')}.`,
-    regalo: (n) => `No necesitas nada, pero quiere devolverte la mano con un regalo.`
+    abogado: (g) => `Se enteró de que estás ${U.gw(g.p.gender, 'preso', 'presa')} y te ofrece pagarte un abogado.`,
+    plata: () => `Se enteró de que andas mal de plata y te ofrece una mano con el dinero.`,
+    entrevista: () => `Se enteró de que no tienes trabajo y te ofrece conseguirte una entrevista.`,
+    cuidado: () => `Se enteró de que no andas bien de salud y te ofrece cuidarte unos días.`,
+    pareja: (g, n) => `Se enteró de que las cosas con tu pareja andan frías y te ofrece hablar con ${U.gw(n.gender, 'él', 'ella')}.`,
+    regalo: () => `No necesitas nada, pero quiere devolverte la mano con un regalo.`
   };
 
   // ——— Un favor de vuelta (lo encola el motor de memoria cuando alguien te debe una) ———
@@ -83,7 +83,7 @@
       const n = MV.person(g, ctx.target) || { first: 'Alguien', gender: 'm' };
       const m = { k: ctx.k, a: ctx.a, d: ctx.d };
       const did = M().said(g, n, m), ago = M().ago(g, m);
-      const offer = (OFFER[ctx.v] || OFFER.regalo)(n);
+      const offer = (OFFER[ctx.v] || OFFER.regalo)(g, n);
       return `${n.first} no se olvidó de lo que hiciste: ${ago}, ${did}. ${offer}`;
     },
     choices: [
