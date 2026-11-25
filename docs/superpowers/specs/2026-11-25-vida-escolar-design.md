@@ -142,6 +142,26 @@ adultos → publicación.
 - Si una de esas relaciones pasa a otro tipo, deja el curso y conserva su nuevo tipo: si te pones de novio con quien te
   gusta, o si el rival se vuelve tu enemigo.
 
+**Dónde vive cada papel** (decisión mía):
+- El papel se guarda en `p.edu.class`, igual que el trabajo guarda los suyos en `p.job.mates`. Ahí van el tutor y una
+  lista de compañeros, cada uno con su id y su papel.
+- Si tu mejor amigo o amiga baja de 30 de relación, o rompes la amistad en un evento, pierde el papel y queda como
+  compañero de curso común.
+- En el año escolar siguiente, el compañero de mejor relación que no sea rival ni abusón pasa a ser tu mejor amigo. Si
+  no hay ninguno, llega alguien nuevo al curso.
+- El curso se completa así cada año escolar: el papel que falte se llena.
+
+**En la cárcel o el centro de menores** (decisión mía): el curso se congela. No hay eventos ni cambios de
+popularidad, y nadie sale de tu vida. Si al salir sigues en la misma etapa, el curso sigue donde estaba.
+
+**"Hacer amigos"** (decisión mía):
+- Sigue creando amigos nuevos de otros cursos, con tipo `amigo`, como hoy, y además suma popularidad +3.
+- Los amigos de otros cursos no son parte del curso, así que no les toca la regla de cuando termina el curso.
+
+**Romance** (decisión mía):
+- El tipo `curso` se suma a los tipos que pueden "Coquetear" en `rels.js`, siempre con las reglas de `canRomance`.
+- Si la persona que te gusta pasa a ser tu pareja, deja el curso y queda como pareja.
+
 **Cuando termina el curso** (al egresar de primaria o secundaria, al abandonar o al repetir y cambiar de grupo):
 - Los compañeros con relación 60 o más quedan como amigos y el resto sale de tu vida.
 - El tutor con relación 80 o más queda como amigo y el resto sale.
@@ -150,7 +170,12 @@ adultos → publicación.
 ### 2. Popularidad
 
 - `p.edu.pop`, de 0 a 100. Se ve con una barra en la ficha de Estudios.
-- **Al armar cada curso:** `clamp(30 + looks × 0,2 + carisma × 0,3, 15, 75)`.
+- **Al armar el primer curso**, o cuando no hay barra (partidas viejas): `clamp(30 + looks × 0,2 + carisma × 0,3,
+  15, 75)`.
+- **La barra pasa de un curso al siguiente** (decisión mía), así lo que ganaste no se borra:
+  - de primaria a secundaria queda el promedio entre la que tenías y la de la fórmula;
+  - si repites el año, la tuya −5;
+  - si te expulsan, la tuya −10.
 - **Cada año escolar:**
   - +2 por cada club o equipo en el que estés;
   - −4 si faltaste a clases 2 veces o más ese año;
@@ -205,6 +230,19 @@ Hay acciones nuevas de estudiante mientras tienes compañeros, con un uso por a�
 - Al mejor amigo o amiga no lo puedes elegir de víctima. Si quieres hacerlo, primero tiene que dejar de ser tu mejor
   amigo.
 - Lo que más pesa está en la A1: la víctima guarda el recuerdo y años después, ya de adulto, te lo puede cobrar.
+- **Equilibrio** (decisión mía): los números de esta sección y de la popularidad son un punto de partida, y el
+  constructor puede ajustarlos. Una prueba con el jugador automático compara dos formas de jugar la escuela durante
+  muchas vidas:
+  - una "amable", que hace amigos, se une a clubes y estudia;
+  - una "abusona", que molesta todo lo que puede.
+- La abusona no puede egresar con más popularidad promedio que la amable, y tiene que terminar con menos karma y con
+  suspensiones.
+
+**El abusón de hoy y el del curso** (decisión mía):
+- Si el curso tiene abusón, la bandera `p.flags.abuson` guarda su id. "Enfrentar al abusón" va contra esa persona: si
+  ganas, la relación queda como está y deja de molestarte; si pierdes, baja 5.
+- El evento `abuson` de hoy sale solo cuando el curso no tiene abusón, o cuando no hay curso. Ahí es "un abusón de otro
+  grado", sin nombre, y la bandera queda en `true` como hoy.
 
 ### 4. Notas que importan después
 
