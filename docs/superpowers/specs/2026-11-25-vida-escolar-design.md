@@ -43,13 +43,17 @@ adultos → publicación.
 - Todos los compañeros son menores de edad. Nada sexual, nunca.
 - El romance escolar sigue las reglas que ya existen: 14 años o más y como mucho 2 años de diferencia, siempre entre
   menores.
+- **El tutor y los profesores de la primaria y la secundaria nunca pueden ser romance**, tampoco si el alumno cumple
+  18 en la escuela. No se puede coquetear con ellos, no hay eventos de romance con ellos y nada lo sugiere. El usuario
+  pidió romance con profesores también en la secundaria, y se rechazó por esto. Queda solo la universidad (sección 9),
+  porque ahí los dos son adultos.
 - El bullying es burla, exclusión, bromas pesadas, quitar la merienda y rumores. Nada de golpes descritos con detalle,
   heridas, armas ni autolesiones.
 - Nada de fotos íntimas ni nada parecido. Una "foto vergonzosa" es algo como dormirte con la boca abierta en clase.
 
 **No es:**
 - No hay compañeros en la universidad, la técnica, el posgrado ni la escuela nocturna para adultos. El curso es solo de
-  primaria y secundaria comunes.
+  primaria y secundaria comunes. Lo único nuevo en los estudios superiores es el romance con un profesor (sección 9).
 - No hay notas por materia, ni boletín anual con premio o castigo de los padres.
 - Las notas no pesan en el primer trabajo.
 - No hay cambio de escuela a mitad de etapa por mudanza.
@@ -160,6 +164,8 @@ popularidad, y nadie sale de tu vida. Si al salir sigues en la misma etapa, el c
 
 **Romance** (decisión mía):
 - El tipo `curso` se suma a los tipos que pueden "Coquetear" en `rels.js`, siempre con las reglas de `canRomance`.
+- El tipo `profe` de la escuela nunca puede coquetear ni ser pareja: `canRomance` lo rechaza siempre, cualquiera sea la
+  edad.
 - Si la persona que te gusta pasa a ser tu pareja, deja el curso y queda como pareja.
 
 **Cuando termina el curso** (al egresar de primaria o secundaria, al abandonar o al repetir y cambiar de grupo):
@@ -313,6 +319,44 @@ Las acciones de abusón van con las de estudiante. En Relaciones salen los dos g
   - En 30 vidas, alguna vida termina la secundaria con curso y `gpa`, y alguna usa una acción de abusón.
   - Ninguna vida tiene errores.
 - **El README** suma la fila de "Vida escolar" y las cantidades reales de eventos y logros.
+
+### 9. Romance con un profesor en la universidad
+
+Lo pidió el usuario y aprobó esta forma.
+
+**Cuándo:**
+- Solo mientras cursas la universidad, la técnica o el posgrado, con 18 años o más.
+- El profesor o la profesora es una persona adulta nueva, de 28 a 60 años, cuyo género sigue tu atracción.
+- Nunca es el tutor ni un profesor de la escuela.
+
+**Cómo empieza:**
+- Un evento al azar: tu profesor o profesora de una materia de tu carrera te invita a tomar un café después de
+  clase.
+- Sale una vez por etapa de estudios, y solo si tu aspecto o tu carisma es 50 o más y `canRomance` lo permite.
+- Opciones:
+  - **Aceptar:** empiezan una relación en secreto. Si no tienes pareja, la persona entra como `pareja`. Si ya tienes
+    pareja o cónyuge, entra como `amante`, y valen las reglas de infidelidad de hoy, también los recuerdos de la A1.
+  - **Rechazar con amabilidad:** no pasa nada más.
+  - **Contárselo a la facultad:** al profesor lo sancionan y no vuelve a salir. Karma +1.
+
+**Mientras dura y sigues en esa etapa de estudios:**
+- La relación lleva una marca de que es con tu profesor (`r.prof`).
+- Cada año hay un 25 % de que salga a la luz. Entonces llega una decisión del comité de ética:
+  - al profesor lo suspenden, y su trabajo en la ficha pasa a "Profesor suspendido" o "Profesora suspendida";
+  - tu rendimiento baja 10, porque tus notas quedan bajo sospecha;
+  - y eliges una de tres:
+    - **seguir juntos:** la relación sigue y puede volver a salir a la luz cada año;
+    - **terminar:** pasa a ex;
+    - **pedir cambio de cátedra:** recuperas 5 de rendimiento y la relación sigue sin más riesgo.
+
+**Al terminar o dejar esa etapa:** la marca se borra y queda como una relación normal.
+
+**Tono:** drama y humor. Nada explícito: como mucho un fundido a negro.
+
+**Pruebas:**
+- Con un jugador de 17 en la universidad, o con un profesor de la escuela, nunca hay romance.
+- Con 18 o más en la universidad, el evento puede salir.
+- Las tres opciones del comité hacen su efecto.
 
 ## Lo que queda al constructor
 
