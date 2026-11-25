@@ -64,7 +64,13 @@
   ev({ id: 'fan_obsesivo', age: [16, 110], when: (g) => g.p.fame >= 35, icon: '💌', title: 'Fan número uno',
     text: 'Un fan te manda cartas todos los días. La última incluía un mechón de pelo.',
     choices: [
-      { t: 'Responderle con amabilidad', eff: { karma: 2, p: 0.7, ok: { msg: 'Le respondiste. Lloró de emoción y prometió respetar tu espacio.' }, ko: { stress: 10, msg: 'Le respondiste. Ahora acampa en tu puerta.' } } },
+      { t: 'Responderle con amabilidad', eff: (g) => {
+        fx.stat(g, 'karma', 2);
+        if (U.chance(0.7)) return 'Le respondiste. Lloró de emoción y prometió respetar tu espacio.';
+        fx.stat(g, 'stress', 10);
+        if (U.chance(0.3)) MV.sys.memory.makeStalker(g, MV.newNPC(g, { age: U.int(18, 45) }), 'fan');
+        return 'Le respondiste. Ahora acampa en tu puerta.';
+      } },
       { t: 'Ignorar', eff: { stress: 3, msg: 'Lo ignoraste. Las cartas siguen llegando, ahora con dibujos.' } },
       { t: 'Llamar a la policía', eff: { stress: -3, msg: 'La policía le pidió que se alejara. Ahora te manda correos.' } }
     ] });
@@ -197,7 +203,7 @@
       { t: 'No me interesa', eff: { msg: 'Lo rechazaste. Seguirás jugando los domingos con tus amigos.' } }
     ] });
   ev({ id: 'documento_falso_cae', manual: true, icon: '🚔', text: 'La policía te encontró el documento falso en un control. Multa de {amount} y una llamada a tus padres.', auto: { money: [-300, -100], happy: -6, then: (g) => { MV.rels(g, 'padre').forEach((x) => { x.r.rel = U.clamp(x.r.rel - 10, 0, 100); }); } } });
-  ev({ id: 'amigo_devuelve', manual: true, icon: '🤝', text: (g, ctx) => { const n = H.t(g, ctx); return n && n.alive ? `${n.first} te devolvió el préstamo. ¡Existen los milagros!` : 'Nunca te devolvieron aquel préstamo.'; }, auto: (g, ctx) => { const n = H.t(g, ctx); if (n && n.alive && U.chance(0.6)) { fx.money(g, 1000); H.bump(g, ctx, 6); return '+$1.000.'; } H.bump(g, ctx, -15); return 'Bueno... en realidad no. Inventó una excusa con su abuela. Otra vez.'; } });
+  ev({ id: 'amigo_devuelve', manual: true, icon: '🤝', text: (g, ctx) => { const n = H.t(g, ctx); return n && n.alive ? `${n.first} te devolvió el préstamo. ¡Existen los milagros!` : 'Nunca te devolvieron aquel préstamo.'; }, auto: (g, ctx) => { const n = H.t(g, ctx); if (n && n.alive && U.chance(0.6)) { fx.money(g, 1000); H.bump(g, ctx, 6); const lr = MV.relOf(g, n.id); (lr && lr.mem || []).forEach((m) => { if (m.k === 'prestamo') m.done = true; }); return '+$1.000.'; } H.bump(g, ctx, -15); return 'Bueno... en realidad no. Inventó una excusa con su abuela. Otra vez.'; } });
   ev({ id: 'venganza_mafia', manual: true, icon: '🐟', title: 'Un mensaje',
     text: 'Encontraste un pescado envuelto en papel de diario en tu puerta. La familia no olvida.',
     choices: [

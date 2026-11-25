@@ -32,6 +32,7 @@
     MV.sys.dirty.yearly(g);
     MV.sys.rels.yearly(g);
     MV.sys.talkcat.yearly(g);
+    MV.sys.memory.yearly(g);
     MV.sys.legacy.yearly(g);
     MV.sys.challenge.yearly(g);
     MV.sys.history.record(g);

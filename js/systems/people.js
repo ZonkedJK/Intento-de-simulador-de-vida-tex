@@ -106,6 +106,10 @@
         MV.EV.info(g, { title: 'Adiós, compañero', text: `Tu ${label} ${n.first} murió a los ${n.age} años. ${U.pick(['Era el mejor.', 'Se fue a la granja de verdad.', 'Te dejó pelos en todos los sillones para que lo recuerdes.'])}`, icon: '🌈', scene: 'cementerio' });
         return;
       }
+      if (r.type === 'acosador') {
+        MV.log(g, `${MV.fullName(n)}, quien te acosaba, murió por ${cause}. Sentiste un alivio incómodo.`, '🕯️');
+        return;
+      }
       if (r.type === 'enemigo' || r.type === 'ex') {
         MV.log(g, `Tu ${label} ${MV.fullName(n)} murió por ${cause}. ${r.type === 'enemigo' ? 'No vas a mentir: sonreíste un poquito.' : 'Fue raro enterarte por redes sociales.'}`, '🕯️');
         if (r.type === 'enemigo') MV.fx.stat(g, 'happy', 3);

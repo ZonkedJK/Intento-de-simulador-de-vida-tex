@@ -178,7 +178,7 @@
       }
       if (d.manual) return true;
       if (!!d.prison !== !!g.p.prison && d.prison !== 'any') return false;
-      try { return !d.when || !!d.when(g); } catch (e) { return false; }
+      try { return !d.when || !!d.when(g, ctx); } catch (e) { return false; }
     },
 
     /** Resuelve la decisión `i` del primer elemento de la cola. */

@@ -53,7 +53,11 @@
   ev({ id: 'inversion_amigo', age: [22, 65], when: (g) => g.p.money >= 5000 && MV.rels(g, 'amigo').length > 0, target: H.rel('amigo'), icon: '💡', title: 'Una idea brillante',
     text: (g) => `{t} te ofrece invertir $5.000 en su negocio de ${U.pick(['comida para perros veganos', 'paraguas inteligentes', 'cursos de cómo hacer cursos', 'una app para encontrar el control remoto', 'cerveza artesanal de pepino'])}.`,
     choices: [
-      { t: 'Invertir $5.000', eff: { money: -5000, p: 0.3, ok: { money: [8000, 40000], happy: 10, rel: 10, msg: '¡El negocio funcionó! Recuperaste {amount}. {t} te invita a cenar de por vida.' }, ko: { happy: -6, rel: -5, msg: 'El negocio fracasó en dos meses. {t} se mudó a otra provincia. Tu dinero también.' } } },
+      { t: 'Invertir $5.000', eff: (g, ctx) => {
+        MV.sys.memory.remember(g, ctx.target, 'inversion', 5000);
+        fx.money(g, -5000);
+        return MV.fx.apply(g, { p: 0.3, ok: { money: [8000, 40000], happy: 10, rel: 10, msg: '¡El negocio funcionó! Recuperaste {amount}. {t} te invita a cenar de por vida.' }, ko: { happy: -6, rel: -5, msg: 'El negocio fracasó en dos meses. {t} se mudó a otra provincia. Tu dinero también.' } }, ctx);
+      } },
       { t: 'No, gracias', eff: { rel: -3, msg: 'Le dijiste que no a {t}. Se ofendió un poco. Tu billetera está tranquila.' } }
     ] });
   ev({ id: 'choque_auto', age: [18, 85], w: 0.8, when: (g) => g.p.assets.some((a) => a.type === 'auto'), icon: '💥', scene: 'ciudad', title: 'Choque',
@@ -92,7 +96,12 @@
   ev({ id: 'discurso_boda', age: [22, 55], when: H.has('amigo', (n) => n.age >= 22), target: H.rel('amigo', (n) => n.age >= 22), icon: '🥂', scene: 'boda', title: 'El discurso',
     text: '{t} se casa y te pide que des el discurso en la fiesta.',
     choices: [
-      { t: 'Discurso emotivo', eff: { p: (g) => 0.4 + g.p.skills.carisma / 100, ok: { rel: 12, happy: 6, skills: { carisma: 3 }, msg: 'Hiciste llorar a 200 personas. {t} te abrazó 10 minutos.' }, ko: { rel: 2, happy: -3, msg: 'Te trabaste, dijiste el nombre de su ex y te sentaste rápido.' } } },
+      { t: 'Discurso emotivo', eff: (g, ctx) => {
+        const out = { p: (gg) => 0.4 + gg.p.skills.carisma / 100, ok: { rel: 12, happy: 6, skills: { carisma: 3 }, msg: 'Hiciste llorar a 200 personas. {t} te abrazó 10 minutos.' }, ko: { rel: 2, happy: -3, msg: 'Te trabaste, dijiste el nombre de su ex y te sentaste rápido.' } };
+        const good = U.chance(out.p(g, ctx));
+        if (good) MV.sys.memory.remember(g, ctx.target, 'discurso');
+        return MV.fx.apply(g, good ? out.ok : out.ko, ctx);
+      } },
       { t: 'Contar anécdotas vergonzosas', eff: { p: 0.5, ok: { rel: 6, happy: 6, msg: 'Todos se rieron con tus anécdotas. Incluso {t}.' }, ko: { rel: -15, msg: 'Contaste LA anécdota. La familia del novio/novia no la conocía. Silencio sepulcral.' } } },
       { t: 'Tomar coraje (líquido) antes', eff: { addic: { alcohol: 5 }, rel: -5, happy: 4, msg: 'Diste el discurso borracho y terminaste cantando una ranchera. Viral en la familia.' } },
       { t: 'Leer un discurso escrito por una inteligencia artificial', eff: { p: 0.5, ok: { rel: 4, msg: 'Nadie notó que lo escribió una máquina. Bueno, solo cuando dijo "estimados seres humanos".' }, ko: { rel: -6, happy: -2, msg: 'El discurso felicitaba a "Novio y Novia Genéricos". {t} todavía no te habla.' } } }
@@ -215,7 +224,7 @@
   ev({ id: 'amigo_prestamo', age: [18, 80], when: (g) => g.p.money >= 1000 && MV.rels(g, 'amigo').length > 0, target: H.rel('amigo'), icon: '🤲', title: 'Un favor',
     text: '{t} te pide prestados $1.000. Jura que te los devuelve el mes que viene.',
     choices: [
-      { t: 'Prestarle', eff: (g, ctx) => { fx.money(g, -1000); MV.EVH.bump(g, ctx, 8); MV.EV.later(g, 'amigo_devuelve', U.int(1, 3), { target: ctx.target }); return 'Le prestaste $1.000 a {t}. Te abrazó. Ya veremos.'; } },
+      { t: 'Prestarle', eff: (g, ctx) => { fx.money(g, -1000); MV.EVH.bump(g, ctx, 8); MV.sys.memory.remember(g, ctx.target, 'prestamo', 1000); MV.EV.later(g, 'amigo_devuelve', U.int(1, 3), { target: ctx.target }); return 'Le prestaste $1.000 a {t}. Te abrazó. Ya veremos.'; } },
       { t: 'Negarte', eff: { rel: -10, msg: 'Le dijiste que no a {t}. Ahora te dice "tacaño/a" en el grupo.' } },
       { t: 'Negociar: le prestas la mitad', eff: (g, ctx) => { fx.money(g, -500); MV.EVH.bump(g, ctx, 3); return 'Le prestaste $500 y le dijiste que el resto lo consiga vendiendo su colección de figuritas. Aceptó con dignidad.'; } }
     ] });

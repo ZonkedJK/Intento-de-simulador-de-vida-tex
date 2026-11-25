@@ -39,9 +39,32 @@ function possibleActions(MV, g) {
   return out;
 }
 
-function special(MV, g) {
+/** Vida social (solo con `social: true`): presta, insulta, da dinero, corta con la gente y sale a conocer a otra. */
+function socialAct(MV, g) {
   const U = MV.U, p = g.p;
   if (p.prison || p.age < 14) return;
+  // Memoria y acoso: presta, insulta, da dinero y corta con la gente, como haría alguien con vida social.
+  const want = ['prestar', 'insultar', 'dar_dinero', 'romper', 'divorcio'];
+  const opts = [];
+  MV.rels(g).forEach(({ r: rel, n }) => {
+    rel.acts = rel.acts || {};
+    MV.sys.rels.actions(g, rel, n).forEach((a) => { if (want.includes(a.id) && !a.opts) opts.push({ a, scope: rel.acts }); });
+  });
+  const ends = opts.filter((o) => o.a.id === 'romper' || o.a.id === 'divorcio');
+  const x = ends.length && U.chance(0.7) ? U.pick(ends) : U.pick(opts);
+  if (x && !(p.age >= 18 && U.chance(0.35))) MV.doAction(g, x.a, undefined, x.scope);
+  else if (p.age >= 18) {
+    // Sale a conocer gente (citas, discoteca) para tener a quién dejar después.
+    const ids = MV.actsFor(g, 'amor').map((a) => a.id);
+    const y = U.pick(possibleActions(MV, g).filter((o) => ids.includes(o.a.id)));
+    if (y) MV.doAction(g, y.a, y.opt, y.scope, y.opt2);
+  }
+}
+
+function special(MV, g, social) {
+  const U = MV.U, p = g.p;
+  if (p.prison || p.age < 14) return;
+  if (social && U.chance(0.4)) { socialAct(MV, g); return; }
   const r = U.rand();
   if (r < 0.15 && p.age >= 14) {
     const pool = MV.JOBS.concat(MV.PARTTIME).filter((J) => MV.sys.career.meets(g, J).ok);
@@ -189,7 +212,7 @@ function live(MV, g, o) {
     if (g.over) break;
     const n = MV.U.int(0, actsPerYear);
     for (let i = 0; i < n && !g.over; i++) {
-      if (MV.U.chance(0.2)) special(MV, g);
+      if (MV.U.chance(0.2)) special(MV, g, o.social);
       else {
         const list = possibleActions(MV, g);
         const x = MV.U.pick(list);
@@ -198,6 +221,7 @@ function live(MV, g, o) {
       resolveQueue(MV, g);
       if (o.check) o.check(g);
     }
+    if (o.social) for (let i = 0; i < 3 && !g.over; i++) { socialAct(MV, g); resolveQueue(MV, g); }
     if (g.over) break;
     resolveQueue(MV, g);
     MV.ageUp(g);

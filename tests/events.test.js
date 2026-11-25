@@ -68,7 +68,8 @@ test('todas las opciones de los eventos aleatorios se pueden ejecutar', () => {
   const MV = load({ seed: 21 });
   let covered = 0, total = 0;
   const uncovered = [];
-  MV.EV.list.filter((d) => d.choices && !d.manual).forEach((d, di) => {
+  // `acoso` solo existe con un acosador: se prueba con su contexto en el test de los manuales.
+  MV.EV.list.filter((d) => d.choices && !d.manual && d.id !== 'acoso').forEach((d, di) => {
     total++;
     const ages = [d.age[0], Math.round((d.age[0] + Math.min(d.age[1], 100)) / 2), Math.min(d.age[1], 100)];
     let found = null;
@@ -130,6 +131,21 @@ test('los eventos manuales funcionan con su contexto', () => {
       assert.doesNotThrow(() => resolveQueue(MV, g), `encadenados de ${id}#${i}`);
     });
   });
+  // El acoso, con un acosador en cada etapa
+  [1, 2, 3].forEach((stage) => MV.EV.byId.acoso.choices.forEach((c, i) => {
+    const g = richGame(MV, 30, 'normal', 6000 + stage * 10 + i);
+    const n = MV.newNPC(g, { age: 30 });
+    assert.ok(MV.sys.memory.makeStalker(g, n, 'fan'));
+    MV.relOf(g, n.id).stalk.stage = stage;
+    MV.EV.push(g, 'acoso', { target: n.id }, true);
+    const v = MV.EV.view(g);
+    assert.ok(v && !BAD_TEXT.test(v.text), 'acoso etapa ' + stage);
+    if (!v.choices.some((x) => x.i === i)) return;
+    let res;
+    assert.doesNotThrow(() => { res = MV.EV.choose(g, i); }, `acoso#${i}`);
+    assert.ok(res.msg && !BAD_TEXT.test(res.msg), `acoso#${i}: ${res.msg}`);
+    assert.doesNotThrow(() => resolveQueue(MV, g), `encadenados de acoso#${i}`);
+  }));
   // Eventos con persona objetivo
   ['boda', 'embarazo_sorpresa', 'infiel_descubierto'].forEach((id) => {
     MV.EV.byId[id].choices.forEach((c, i) => {
