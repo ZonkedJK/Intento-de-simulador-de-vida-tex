@@ -198,7 +198,12 @@ test('cada fuente deja su recuerdo', () => {
   seen = eachSeed(5000, 200, (s) => {
     const x = setup(s, 'conyuge'); const lover = person(x.MV, x.g, 'amante');
     x.g.queue = []; x.MV.sys.rels.yearly(x.g);
-    if (x.g.queue.some((e) => e.id === 'infiel_descubierto')) { has(x.r, 'infidelidad', -1, lover.n.first); return 'visto'; }
+    if (x.g.queue.some((e) => e.id === 'infiel_descubierto')) {
+      // El recuerdo nace cuando tu pareja se queda sabiéndolo, no al descubrirse (A1 final, punto 9).
+      assert.ok(!memOf(x.r, 'infidelidad'));
+      x.MV.EV.choose(x.g, x.MV.EV.view(x.g).choices.find((c) => /amante/.test(c.label)).i);
+      has(x.r, 'infidelidad', -1, lover.n.first); return 'visto';
+    }
     return null;
   });
   assert.ok(seen.visto, JSON.stringify(seen));
@@ -1162,4 +1167,230 @@ test('en las vidas sociales hay acosadores', () => {
   // Cada ruptura o divorcio tiene un 8 % de dejar un acosador: con tantas, nunca debería quedar en cero.
   assert.ok(entries >= 100, `pocas rupturas y divorcios: ${entries}`);
   assert.ok(lives >= 1, `ninguna vida con acosador en ${N} (${entries} rupturas y divorcios)`);
+});
+
+// ---- Revisión final de A1: correcciones ----
+const SEEDS = (a, n) => Array.from({ length: n }, (_, i) => a + i);
+const PRISON = (left) => ({ left, total: left, crime: 'Robo', behavior: 50, gang: false, since: 28 });
+/** Partida con pareja (o cónyuge) y amante, con el evento de infidelidad al frente. */
+function infiel(seed, type, rel) {
+  const MV = sh(seed); const g = game(MV, seed, 30); g.p.money = 100000;
+  const par = person(MV, g, type || 'pareja', 'f'); const lov = person(MV, g, 'amante', 'm');
+  par.r.rel = rel == null ? 50 : rel;
+  MV.EV.push(g, 'infiel_descubierto', { target: par.n.id, lover: lov.n.first }, true);
+  return { MV, g, par, lov, v: MV.EV.view(g) };
+}
+
+test('F1: quien te deja por una infidelidad no guarda "ruptura" ni se vuelve acosador', () => {
+  let dumped = 0;
+  for (const seed of SEEDS(20000, 400)) {
+    const x = infiel(seed, 'pareja', 50);
+    const res = x.MV.EV.choose(x.g, x.v.choices.find((c) => /Negarlo/.test(c.label)).i);
+    const r = x.MV.relOf(x.g, x.par.n.id);
+    if (/primo/.test(res.msg)) continue;
+    dumped++;
+    assert.ok(!/Terminaste con/.test(res.msg), res.msg);
+    assert.ok(/te dej/i.test(res.msg), res.msg);
+    assert.ok(!memOf(r, 'ruptura'), 'ruptura falsa');
+    assert.notStrictEqual(r.type, 'acosador');
+    assert.ok(!x.g.p.counters.acosadores);
+  }
+  assert.ok(dumped > 100);
+  // terminar tú sigue guardando la ruptura
+  const s = setup(20999, 'pareja', 'f');
+  assert.ok(/Terminaste con/.test(s.MV.sys.rels.breakUp(s.g, s.n)));
+  assert.ok(memOf(s.r, 'ruptura'));
+  // y el perdón fallido también es "te dejó"
+  for (const seed of SEEDS(21000, 100)) {
+    const x = infiel(seed, 'pareja', 0);
+    const res = x.MV.EV.choose(x.g, x.v.choices.find((c) => /perdón/.test(c.label)).i);
+    assert.ok(!memOf(x.MV.relOf(x.g, x.par.n.id), 'ruptura'), res.msg);
+  }
+});
+
+test('F2: la ruptura con acosador no se contradice', () => {
+  let stalkers = 0;
+  for (const seed of SEEDS(22000, 1500)) {
+    const s = setupS(seed, 'pareja', seed % 2 ? 'f' : 'm');
+    const res = s.MV.sys.rels.breakUp(s.g, s.n);
+    if (s.MV.relOf(s.g, s.n.id).type !== 'acosador') continue;
+    stalkers++;
+    assert.ok(/No lo tomó bien/.test(res), res);
+    assert.ok(!/ya lo veía venir|liberad/.test(res), res);
+  }
+  assert.ok(stalkers > 20, 'acosadores: ' + stalkers);
+});
+
+test('F3: la vuelta "médico" solo para quien puede serlo', () => {
+  const can = (type, age, job, gender) => {
+    const s = calm(23000 + age, gender); s.p.job = null;
+    s.r.type = type; s.n.age = age; if (job) s.n.job = job;
+    return MEM(s.MV).twistFor(s.g, s.r, s.n, { k: 'apoyo', a: 20 }) === 'medico';
+  };
+  assert.ok(!can('abuelo', 82), 'abuelo');
+  assert.ok(!can('padre', 50), 'padre');
+  assert.ok(!can('amigo', 70), 'amigo de 70');
+  assert.ok(!can('amigo', 60, 'Jubilado'), 'jubilado');
+  assert.ok(can('amigo', 40));
+  // la ficha coincide: queda como médico o médica
+  for (const gender of ['m', 'f']) {
+    const s = calm(23100, gender); s.n.age = 40; s.n.job = 'Contador';
+    const res = accept(s.MV, s.g, twist(s.MV, s.g, s.n, 'apoyo', undefined, 'medico'));
+    assert.strictEqual(s.n.job, gender === 'm' ? 'Médico' : 'Médica', res.msg);
+  }
+});
+
+test('F4: concordancia de género', () => {
+  // a. "Lo pensó" fijo
+  let seen = 0;
+  for (const seed of SEEDS(24000, 60)) {
+    const s = calm(seed, 'f'); s.r.rel = 40;
+    const v = MV_ev(s, 'mem_venganza', { k: 'insulto', a: 15, d: 'es un inútil', v: 'chismes' });
+    const res = s.MV.EV.choose(s.g, v.choices.find((c) => /Disculparte/.test(c.label)).i);
+    if (/aceptó/.test(res.msg)) { seen++; assert.ok(/Lo pensó/.test(res.msg) && !/La pensó/.test(res.msg), res.msg); }
+  }
+  assert.ok(seen > 0);
+  // b. la oferta de pareja habla del género de tu pareja, no del de quien ofrece
+  for (const [pg, exp] of [['m', 'con él'], ['f', 'con ella']]) {
+    const s = calm(24100, 'f'); const par = person(s.MV, s.g, 'pareja', pg); par.r.rel = 20;
+    const v = favor(s.MV, s.g, s.n, 'apoyo', undefined, 'pareja');
+    assert.ok(v.text.includes('hablar ' + exp), v.text);
+  }
+  // c. la opción "distraído" concuerda contigo
+  for (const [pg, exp] of [['m', 'Hacerte el distraído'], ['f', 'Hacerte la distraída']]) {
+    const s = calm(24200, 'f'); s.p.gender = pg;
+    const v = perdon(s.MV, s.g, s.n, 'golpe');
+    assert.ok(v.choices.some((c) => c.label === exp), JSON.stringify(v.choices.map((c) => c.label)));
+  }
+  // d. el insulto se guarda con el género de la persona
+  for (const [gender, exp] of [['f', 'nadie la soporta'], ['m', 'nadie lo soporta']]) {
+    let found = false;
+    for (const seed of SEEDS(24300, 80)) {
+      const s = setup(seed, 'amigo', gender);
+      const res = act(s.MV, s.g, s.r, s.n, 'insultar');
+      const msg = JSON.stringify(res);
+      if (/nadie/.test(msg)) { found = true; assert.ok(msg.includes(exp), msg); assert.strictEqual(memOf(s.r, 'insulto').d, exp); break; }
+    }
+    assert.ok(found);
+  }
+});
+/** Encola un evento de memoria y devuelve su vista. */
+function MV_ev(s, id, ctx) {
+  s.g.queue = []; s.MV.EV.push(s.g, id, Object.assign({ target: s.n.id }, ctx), true);
+  return s.MV.EV.view(s.g);
+}
+
+test('F5: los textos del acosador no suponen que tienes trabajo', () => {
+  for (const gender of ['m', 'f']) {
+    const t = stalked(25000, gender, 2); t.g.p.job = null;
+    const res = MEM(t.MV).stalkRespond(t.g, t.n.id, 'ignorar');
+    assert.ok(!/trabajo/i.test(res) && !BAD_TEXT.test(res), res);
+    const u = stalked(25001, gender, 2); u.g.p.job = null;
+    const v = MV_ev(u, 'acoso', {});
+    assert.ok(!/trabajo/i.test(v.text), v.text);
+    // con trabajo se mantiene
+    const w = stalked(25002, gender, 2); w.g.p.job = { id: 'cajero', level: 0, salary: 30000, perf: 60, years: 1 };
+    assert.ok(/puerta de tu trabajo/.test(MV_ev(w, 'acoso', {}).text));
+    const x = stalked(25003, gender, 2); x.g.p.job = { id: 'cajero', level: 0, salary: 30000, perf: 60, years: 1 };
+    assert.ok(/puerta de tu trabajo/.test(MEM(x.MV).stalkRespond(x.g, x.n.id, 'ignorar')));
+  }
+  // etapa 3 con pareja y sin trabajo
+  const t = stalked(25004, 'm', 3); t.g.p.job = null; person(t.MV, t.g, 'pareja', 'f');
+  assert.ok(!/trabajo/i.test(MEM(t.MV).stalkRespond(t.g, t.n.id, 'ignorar')));
+  const u = stalked(25005, 'm', 3); u.g.p.job = null; person(u.MV, u.g, 'pareja', 'f');
+  assert.ok(!/trabajo/i.test(MV_ev(u, 'acoso', {}).text));
+});
+
+test('F6: el abogado y el último año de condena', () => {
+  let s = calm(26000); s.p.prison = PRISON(1);
+  assert.notStrictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'abogado');
+  s = calm(26001); s.p.prison = PRISON(2);
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, {}), 'abogado');
+  const res = accept(s.MV, s.g, favor(s.MV, s.g, s.n, 'prestamo', 1000, 'abogado'));
+  assert.ok(/te queda 1 año\b/.test(res.msg) && !/quedan/.test(res.msg), res.msg);
+  s = calm(26002); s.p.prison = PRISON(5);
+  assert.ok(/te quedan 4 años/.test(accept(s.MV, s.g, favor(s.MV, s.g, s.n, 'prestamo', 1000, 'abogado')).msg));
+  // liberado antes de elegir
+  s = calm(26003); s.p.prison = PRISON(3);
+  const v = favor(s.MV, s.g, s.n, 'prestamo', 1000, 'abogado'); s.p.prison = null;
+  const r2 = accept(s.MV, s.g, v);
+  assert.ok(r2.msg && !BAD_TEXT.test(r2.msg), r2.msg);
+});
+
+test('F7: preso no hay decisión de acoso en la ficha', () => {
+  const t = stalked(27000, 'f', 2);
+  const ids = () => t.MV.sys.rels.actions(t.g, t.r, t.n).filter((a) => /^acoso_/.test(a.id)).length;
+  assert.ok(ids() > 0);
+  t.g.p.prison = PRISON(3);
+  assert.strictEqual(ids(), 0);
+  t.g.p.prison = null;
+  assert.ok(ids() > 0);
+});
+
+test('F8: un préstamo devuelto no vuelve a devolverse', () => {
+  let paid = 0, unpaid = 0;
+  for (const seed of SEEDS(28000, 60)) {
+    const s = setup(seed, 'amigo', 'm'); s.g.p.money = 5000;
+    MEM(s.MV).remember(s.g, s.n.id, 'prestamo', 1000);
+    s.MV.EV.push(s.g, 'amigo_devuelve', { target: s.n.id });
+    const back = s.g.p.money > 5000;
+    const open = MEM(s.MV).recall(s.g).concat((s.r.mem || []).filter((m) => m.k === 'prestamo' && !m.done).map((m) => ({ m })));
+    if (back) { paid++; assert.ok(!(s.r.mem || []).some((m) => m.k === 'prestamo' && !m.done), 'sigue abierto'); }
+    else { unpaid++; assert.ok(open.length >= 1, 'no devolvió: sigue abierto'); }
+  }
+  assert.ok(paid > 5 && unpaid > 5);
+});
+
+test('F9: una negación que funciona no deja recuerdo de infidelidad', () => {
+  let ok = 0, ko = 0, queued = 0;
+  for (const seed of SEEDS(29000, 300)) {
+    const MV = sh(seed); const g = game(MV, seed, 30); g.p.money = 100000;
+    const par = person(MV, g, 'pareja', 'f'); const lov = person(MV, g, 'amante', 'm'); par.r.rel = 50;
+    for (let i = 0; i < 40 && !g.queue.length; i++) MV.sys.rels.yearly(g);
+    if (!g.queue.length || g.queue[0].id !== 'infiel_descubierto') continue;
+    queued++;
+    assert.ok(!memOf(MV.relOf(g, par.n.id), 'infidelidad'), 'recuerdo antes de decidir');
+    const v = MV.EV.view(g);
+    const res = MV.EV.choose(g, v.choices.find((c) => /Negarlo/.test(c.label)).i);
+    const m = memOf(MV.relOf(g, par.n.id), 'infidelidad');
+    if (/primo/.test(res.msg)) { ok++; assert.ok(!m, 'quedó recuerdo'); } else { ko++; assert.ok(m, 'falta recuerdo'); }
+  }
+  assert.ok(queued > 20 && ok > 0 && ko > 0, `${queued} ${ok} ${ko}`);
+});
+
+test('F10: los niños no hacen cosas imposibles', () => {
+  const kid = (seed, age) => {
+    const s = calm(seed, 'm'); s.r.type = 'hermano'; s.n.age = age;
+    s.p.housing = 'propia'; s.p.fame = 40; s.p.assets = [{ type: 'auto', name: 'Auto', cond: 80 }];
+    person(s.MV, s.g, 'pareja', 'f');
+    return s;
+  };
+  let s = kid(30000, 9);
+  const rv = MEM(s.MV).revengesFor(s.g, s.r, s.n).sort();
+  assert.strictEqual(JSON.stringify(rv), JSON.stringify(['auto', 'chismes']));
+  const adult = kid(30001, 30);
+  assert.ok(MEM(adult.MV).revengesFor(adult.g, adult.r, adult.n).includes('fiesta'));
+  // favores: solo el regalo, sin dinero ni viajes
+  s = kid(30002, 9); s.p.money = -500; s.p.stats.health = 20; s.p.job = null;
+  assert.strictEqual(MEM(s.MV).favorFor(s.g, s.r, s.n, { k: 'prestamo' }), 'regalo');
+  const money = s.p.money, viajes = s.p.counters.viajes || 0, happy = s.p.stats.happy;
+  for (let i = 0; i < 20; i++) {
+    const res = accept(s.MV, s.g, favor(s.MV, s.g, s.n, 'apoyo', undefined, 'regalo'));
+    assert.strictEqual(s.p.money, money); assert.strictEqual(s.p.counters.viajes || 0, viajes);
+    assert.ok(/dibujo|tarjeta/.test(res.msg) && !BAD_TEXT.test(res.msg), res.msg);
+    s.p.stats.happy = happy;
+  }
+  // vueltas: ninguna para un niño, y "recomienda" pide ser adulto
+  s = kid(30003, 9);
+  for (const k of ['prestamo', 'apoyo', 'discurso', 'regalo', 'inversion', 'dinero']) assert.strictEqual(MEM(s.MV).twistFor(s.g, s.r, s.n, { k, d: 1000 }), null);
+  s = kid(30004, 17);
+  assert.strictEqual(MEM(s.MV).twistFor(s.g, s.r, s.n, { k: 'regalo' }), null);
+  s = kid(30005, 18);
+  assert.strictEqual(MEM(s.MV).twistFor(s.g, s.r, s.n, { k: 'regalo' }), 'recomienda');
+});
+
+test('F11: la orden de restricción siempre termina', () => {
+  const t = stalked(31000, 'm', 1); t.g.p.money = 100000;
+  const a = t.MV.sys.rels.actions(t.g, t.r, t.n).find((x) => x.id === 'acoso_orden');
+  assert.ok(/Termina siempre/.test(a.sub) && !/Casi/.test(a.sub), a.sub);
 });

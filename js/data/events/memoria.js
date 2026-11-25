@@ -13,11 +13,12 @@
 
   /** Los favores, en orden de prioridad: el primero que encaja con tu situación. */
   MV.MEMORY_FAVORS = [
-    { id: 'abogado', when: (g) => !!g.p.prison,
+    { id: 'abogado', when: (g) => !!g.p.prison && g.p.prison.left >= 2,
       ok: (g, r, n) => {
         const pr = g.p.prison;
+        if (!pr) return `${n.first} le pagó a un abogado, pero ya no hacía falta: saliste antes. La intención cuenta.`;
         pr.left = Math.max(1, pr.left - 1);
-        return `${n.first} le pagó a un abogado que movió papeles. Te quitaron un año de condena; te quedan ${pr.left}.`;
+        return `${n.first} le pagó a un abogado que movió papeles. Te quitaron un año de condena; ${pr.left === 1 ? 'te queda 1 año' : `te quedan ${pr.left} años`}.`;
       } },
     { id: 'plata', when: (g) => g.p.money < 0 || MV.sys.money.dues(g) > g.p.money + MV.sys.money.income(g),
       ok: (g, r, n, ctx) => {
@@ -55,6 +56,10 @@
       } },
     { id: 'regalo', when: () => true,
       ok: (g, r, n) => {
+        if (n.age < 14) {
+          fx.stat(g, 'happy', 4);
+          return `${n.first} te hizo ${U.pick(['un dibujo de los dos, con un sol enorme', 'una tarjeta con letras torcidas y muchos corazones'])}. Lo guardaste donde no se arruine.`;
+        }
         if (U.chance(0.5)) {
           fx.stat(g, 'happy', 10); fx.stat(g, 'stress', -8);
           g.p.counters.viajes = (g.p.counters.viajes || 0) + 1;
@@ -73,7 +78,7 @@
     plata: () => `Se enteró de que andas mal de plata y te ofrece una mano con el dinero.`,
     entrevista: () => `Se enteró de que no tienes trabajo y te ofrece conseguirte una entrevista.`,
     cuidado: () => `Se enteró de que no andas bien de salud y te ofrece cuidarte unos días.`,
-    pareja: (g, n) => `Se enteró de que las cosas con tu pareja andan frías y te ofrece hablar con ${U.gw(n.gender, 'él', 'ella')}.`,
+    pareja: (g, n) => { const x = coldPartner(g, n); return `Se enteró de que las cosas con tu pareja andan frías y te ofrece hablar con ${x ? U.gw(x.n.gender, 'él', 'ella') : 'ella o él'}.`; },
     regalo: () => `No necesitas nada, pero quiere devolverte la mano con un regalo.`
   };
 
@@ -120,8 +125,9 @@
         fx.money(g, amt);
         return `${n.first} te devolvió ${U.money(amt)}, el doble de lo que le prestaste. "Los intereses", dijo.`;
       } },
-    { id: 'medico', kinds: ['apoyo'], when: (g, r, n) => n.age >= 25,
+    { id: 'medico', kinds: ['apoyo'], when: (g, r, n) => !MV.FAMILY.includes(r.type) && n.age >= 25 && n.age <= 65 && !/Jubilad/.test(n.job || ''),
       ok: (g, r, n) => {
+        n.job = U.gw(n.gender, 'Médico', 'Médica');
         const c = (g.p.conds || [])[0];
         if (c) {
           MV.sys.health.remove(g, c.id);
@@ -137,7 +143,7 @@
         if (r) r.rel = U.clamp(r.rel + 10, 0, 100);
         return `Fuiste ${U.gw(g.p.gender, 'el padrino', 'la madrina')} del hijo de ${n.first}. Lloraste más que los padres.`;
       } },
-    { id: 'recomienda', get kinds() { return GOOD(); }, when: (g) => !!g.p.job,
+    { id: 'recomienda', get kinds() { return GOOD(); }, when: (g, r, n) => !!g.p.job && n.age >= 18,
       ok: (g, r, n) => {
         const job = g.p.job;
         if (!job) return `${n.first} quiso recomendarte en tu trabajo, pero ya no estás ahí. La intención cuenta.`;
@@ -197,7 +203,7 @@
           fx.stat(g, 'happy', 3);
           return `Le agradeciste a ${nobody(g, ctx).first}. Algo que cargabas sin saberlo se aflojó.`;
         } },
-      { t: 'Hacerte el distraído',
+      { t: (g) => U.gw(g.p.gender, 'Hacerte el distraído', 'Hacerte la distraída'),
         eff: (g, ctx) => {
           const r = MV.relOf(g, ctx.target);
           if (r) r.rel = U.clamp(r.rel - 2, 0, 100);
@@ -271,7 +277,7 @@
           const n = nobody(g, ctx), r = MV.relOf(g, ctx.target);
           if (U.chance(0.4)) {
             if (r) r.rel = U.clamp(r.rel + 10, 0, 100);
-            return `Le pediste perdón a ${n.first} sin excusas. ${U.gw(n.gender, 'Lo', 'La')} pensó un buen rato y aceptó: lo dejó pasar.`;
+            return `Le pediste perdón a ${n.first} sin excusas. Lo pensó un buen rato y aceptó: lo dejó pasar.`;
           }
           return `${n.first} escuchó tu disculpa y no la creyó. ${revengeOf(ctx).hit(g, r, n)}`;
         } },
@@ -315,9 +321,10 @@
     text: (g, ctx) => {
       const n = nobody(g, ctx), st = stageOf(g, ctx), par = MV.partner(g);
       if (st <= 1) return `${n.first} no te deja en paz: mensajes a cualquier hora, audios de cuatro minutos y un "solo quería saber cómo estabas" cada madrugada. Ya ni abres el celular con confianza.`;
-      if (st === 2) return `${n.first} apareció en la puerta de tu trabajo con un ramo y cara de no haber dormido. Dice que pasaba por casualidad, a cuarenta cuadras de su casa. Ayer estaba frente a la tuya.`;
+      if (st === 2) return g.p.job ? `${n.first} apareció en la puerta de tu trabajo con un ramo y cara de no haber dormido. Dice que pasaba por casualidad, a cuarenta cuadras de su casa. Ayer estaba frente a la tuya.`
+        : `${n.first} apareció frente a tu casa con un ramo y cara de no haber dormido. Dice que pasaba por casualidad, a cuarenta cuadras de su casa. Ayer estaba en la esquina de la tuya.`;
       return par
-        ? `${n.first} se metió en tu vida de a poco: le escribió a ${par.n.first}, tu pareja, para contarle "la verdad sobre ti", y ${U.gw(par.n.gender, 'lo', 'la')} siguió hasta la puerta del trabajo. En casa nadie habla de otra cosa.`
+        ? `${n.first} se metió en tu vida de a poco: le escribió a ${par.n.first}, tu pareja, para contarle "la verdad sobre ti", y ${U.gw(par.n.gender, 'lo', 'la')} siguió hasta la puerta ${g.p.job ? 'del trabajo' : 'de casa'}. En casa nadie habla de otra cosa.`
         : `${n.first} ya no se esconde: habla de ti con tus vecinos, se sienta en el café de siempre y sabe qué pides antes de que lo pidas. Si tuvieras pareja, ya la habría molestado también.`;
     },
     choices: [

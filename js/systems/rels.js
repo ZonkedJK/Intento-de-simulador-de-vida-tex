@@ -128,14 +128,16 @@
       if (g.p.flags.convive === r.id) delete g.p.flags.convive;
     },
 
-    breakUp(g, n) {
+    breakUp(g, n, theyLeft) {
       const r = MV.relOf(g, n.id);
       if (!r) return '';
       rels.makeEx(g, r); r.rel = U.clamp(r.rel - 25, 0, 100);
-      MV.sys.memory.remember(g, n.id, 'ruptura');
       MV.fx.stat(g, 'happy', -6);
+      if (theyLeft) return `${n.first} te dejó. Juntó sus cosas sin gritar, que fue peor.`;
+      MV.sys.memory.remember(g, n.id, 'ruptura');
       const stalks = U.chance(0.08) && MV.sys.memory.makeStalker(g, n, 'ruptura');
-      return `Terminaste con ${n.first}. ${stalks ? 'No lo tomó bien. ' : ''}${U.pick(['Lloró en tu cara.', 'Te devolvió tu buzo, sin lavar.', 'Dijo "ya lo veía venir".', 'Cambió su estado a "liberad' + U.gw(n.gender, 'o', 'a') + '".'])}`;
+      if (stalks) return `Terminaste con ${n.first}. No lo tomó bien.`;
+      return `Terminaste con ${n.first}. ${U.pick(['Lloró en tu cara.', 'Te devolvió tu buzo, sin lavar.', 'Dijo "ya lo veía venir".', 'Cambió su estado a "liberad' + U.gw(n.gender, 'o', 'a') + '".'])}`;
     },
 
     /** Nacimiento de un hijo. Devuelve el texto. */
@@ -188,7 +190,6 @@
       const lover = MV.rels(g, 'amante')[0];
       const cur = MV.partner(g);
       if (lover && cur && U.chance(0.2)) {
-        MV.sys.memory.remember(g, cur.n.id, 'infidelidad', lover.n.first);
         MV.EV.push(g, 'infiel_descubierto', { target: cur.n.id, lover: lover.n.first });
       }
       // Bebé en camino
@@ -389,7 +390,7 @@
       A({ id: 'discutir', icon: '😤', label: 'Discutir', sub: '-relación', limit: 1, run: (g) => { r.rel = U.clamp(r.rel - U.int(5, 12), 0, 100); MV.fx.stat(g, 'stress', 3); return U.pick([`Discutiste con ${n.first} por ${U.pick(['política', 'quién lava los platos', 'una deuda de hace años', 'el final de una serie', 'nada en particular'])}.`, `Le gritaste a ${n.first}. Te gritó más fuerte.`]); } });
       A({ id: 'insultar', icon: '🤬', label: 'Insultar', sub: '-relación, -karma', limit: 1, run: (g) => {
           r.rel = U.clamp(r.rel - U.int(10, 20), 0, 100); MV.fx.stat(g, 'karma', -2);
-          const said = U.pick(['tiene cara de papa hervida', 'su comida sabe a cartón', 'nadie lo soporta', 'se viste como un sillón viejo']);
+          const said = U.pick(['tiene cara de papa hervida', 'su comida sabe a cartón', 'nadie ' + U.gw(n.gender, 'lo', 'la') + ' soporta', 'se viste como un sillón viejo']);
           MV.sys.memory.remember(g, n.id, 'insulto', said);
           return `Le dijiste a ${n.first} que ${said}. Silencio incómodo.`;
         } });
@@ -463,9 +464,9 @@
     id: 'infiel_descubierto', manual: true, icon: '📱', scene: 'hogar', title: '¡Te descubrieron!',
     text: (g, ctx) => `{t} encontró mensajes tuyos con ${ctx.lover}. Está furios${'{to}'}.`,
     choices: [
-      { t: '🙏 Pedir perdón de rodillas', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); const lover = MV.rels(g, 'amante')[0]; if (lover) MV.removeRel(g, lover.n.id); if (U.chance(r.rel / 110)) { r.rel = U.clamp(r.rel - 25, 0, 100); return 'Te perdonó. Pero lo va a sacar en cada discusión durante 30 años.'; } const n = MV.person(g, ctx.target); return r.type === 'conyuge' ? rels.divorce(g, n, true) : rels.breakUp(g, n); } },
-      { t: '🤷 Negarlo todo', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); MV.fx.stat(g, 'karma', -5); if (U.chance(0.25)) return '"Era mi primo." Increíblemente, funcionó.'; const n = MV.person(g, ctx.target); return r.type === 'conyuge' ? rels.divorce(g, n, true) : rels.breakUp(g, n); } },
-      { t: '💘 Quedarme con mi amante', eff: (g, ctx) => { const n = MV.person(g, ctx.target), r = MV.relOf(g, ctx.target); const msg = r.type === 'conyuge' ? rels.divorce(g, n) : rels.breakUp(g, n); const lover = MV.rels(g, 'amante')[0]; if (lover) lover.r.type = 'pareja'; return msg + ` Ahora sales oficialmente con ${ctx.lover}.`; } }
+      { t: '🙏 Pedir perdón de rodillas', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); const lover = MV.rels(g, 'amante')[0]; if (lover) MV.removeRel(g, lover.n.id); MV.sys.memory.remember(g, ctx.target, 'infidelidad', ctx.lover); if (U.chance(r.rel / 110)) { r.rel = U.clamp(r.rel - 25, 0, 100); return 'Te perdonó. Pero lo va a sacar en cada discusión durante 30 años.'; } const n = MV.person(g, ctx.target); return r.type === 'conyuge' ? rels.divorce(g, n, true) : rels.breakUp(g, n, true); } },
+      { t: '🤷 Negarlo todo', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); MV.fx.stat(g, 'karma', -5); if (U.chance(0.25)) return '"Era mi primo." Increíblemente, funcionó.'; MV.sys.memory.remember(g, ctx.target, 'infidelidad', ctx.lover); const n = MV.person(g, ctx.target); return r.type === 'conyuge' ? rels.divorce(g, n, true) : rels.breakUp(g, n, true); } },
+      { t: '💘 Quedarme con mi amante', eff: (g, ctx) => { const n = MV.person(g, ctx.target), r = MV.relOf(g, ctx.target); MV.sys.memory.remember(g, ctx.target, 'infidelidad', ctx.lover); const msg = r.type === 'conyuge' ? rels.divorce(g, n) : rels.breakUp(g, n); const lover = MV.rels(g, 'amante')[0]; if (lover) lover.r.type = 'pareja'; return msg + ` Ahora sales oficialmente con ${ctx.lover}.`; } }
     ]
   });
 })(window.MV = window.MV || {});

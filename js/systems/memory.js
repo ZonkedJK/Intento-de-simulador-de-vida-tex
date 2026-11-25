@@ -43,20 +43,21 @@
 
     /** El favor que te devuelve esta persona: el primero de MV.MEMORY_FAVORS cuya condición se cumple. */
     favorFor(g, r, n, ctx) {
-      const f = (MV.MEMORY_FAVORS || []).find((x) => { try { return x.when(g, r, n, ctx || {}); } catch (e) { return false; } });
+      const f = (MV.MEMORY_FAVORS || []).find((x) => { try { return (n.age >= 14 || x.id === 'regalo') && x.when(g, r, n, ctx || {}); } catch (e) { return false; } });
       return f ? f.id : 'regalo';
     },
 
     /** La vuelta de la vida de esta persona: una al azar entre las de MV.MEMORY_TWISTS que encajan con ctx.k y cuya condición se cumple. Null si no hay o estás preso. */
     twistFor(g, r, n, ctx) {
-      if (g.p.prison || !ctx) return null;
+      if (g.p.prison || !ctx || n.age < 14) return null;
       const ok = (MV.MEMORY_TWISTS || []).filter((x) => x.kinds.includes(ctx.k) && (() => { try { return x.when(g, r, n, ctx); } catch (e) { return false; } })());
       return ok.length ? MV.U.pick(ok).id : null;
     },
 
     /** Las venganzas de MV.MEMORY_REVENGES que encajan con tu situación ahora. `chismes` siempre está. */
     revengesFor(g, r, n) {
-      return (MV.MEMORY_REVENGES || []).filter((x) => { try { return x.when(g, r, n); } catch (e) { return false; } }).map((x) => x.id);
+      const kid = n.age < 14;
+      return (MV.MEMORY_REVENGES || []).filter((x) => { try { return (!kid || ['chismes', 'auto'].includes(x.id)) && x.when(g, r, n); } catch (e) { return false; } }).map((x) => x.id);
     },
 
     /** Los recuerdos que podrían volver: sin `done`, de hace 3 años o más, de humanos vivos que siguen en tus relaciones. */
@@ -148,9 +149,10 @@
         st.stage = Math.min(3, stage + 1);
         const Lo = U.gw(n.gender, 'Lo', 'La');
         if (stage === 1) return `${Lo} ignoraste. Los mensajes se multiplicaron: cuarenta por día, ahora con fotos de tu calle. ${n.first} ya sabe por dónde caminas.`;
-        if (stage === 2) return `${Lo} ignoraste. ${n.first} apareció en la puerta de tu trabajo y, al día siguiente, frente a tu casa, con un ramo y una sonrisa que nadie pidió.`;
+        if (stage === 2) return p.job ? `${Lo} ignoraste. ${n.first} apareció en la puerta de tu trabajo y, al día siguiente, frente a tu casa, con un ramo y una sonrisa que nadie pidió.`
+          : `${Lo} ignoraste. ${n.first} apareció frente a tu casa y, al día siguiente, en la esquina de siempre, con un ramo y una sonrisa que nadie pidió.`;
         const par = MV.partner(g);
-        return par ? `${Lo} ignoraste. ${n.first} le escribió a ${par.n.first} para contarle mentiras sobre ti y ${U.gw(par.n.gender, 'lo', 'la')} siguió hasta la puerta del trabajo. La cena en casa fue un campo minado.`
+        return par ? `${Lo} ignoraste. ${n.first} le escribió a ${par.n.first} para contarle mentiras sobre ti y ${U.gw(par.n.gender, 'lo', 'la')} siguió hasta la puerta ${p.job ? 'del trabajo' : 'de casa'}. La cena en casa fue un campo minado.`
           : `${Lo} ignoraste. ${n.first} sigue ahí, esperando, con la paciencia de quien no tiene nada mejor que hacer, y ya habla de ti con tus vecinos.`;
       }
       const COST = { orden: 5000, mudarte: 2000 };
@@ -186,6 +188,7 @@
     /** Las acciones de la ficha de un acosador. Una por año (comparten el año con la decisión del evento). */
     stalkActions(g, r, n) {
       const p = g.p, U = MV.U, list = [];
+      if (p.prison) return list;
       const st = r.stalk || (r.stalk = { stage: 1, since: p.age });
       const A = (how, icon, label, sub, extra) => list.push(Object.assign({
         id: 'acoso_' + how, icon, label, sub, limit: 1,
@@ -195,7 +198,7 @@
       A('hablar', '🗣️', 'Hablar con ' + (n.gender === 'f' ? 'ella' : 'él'), '25 % de que termine');
       if (st.stage === 1) A('bloquear', '🚫', 'Bloquearl' + U.gw(n.gender, 'o', 'a'), '50 % de que termine');
       A('policia', '🚔', 'Llamar a la policía', '40 % de que termine');
-      if (p.money >= 5000) A('orden', '⚖️', 'Pedir una orden de restricción', `${U.money(5000)}. Casi siempre termina`);
+      if (p.money >= 5000) A('orden', '⚖️', 'Pedir una orden de restricción', `${U.money(5000)}. Termina siempre`);
       if (p.money >= 2000) A('mudarte', '📦', 'Mudarte', `${U.money(2000)}. 70 % de que termine`);
       return list;
     },
