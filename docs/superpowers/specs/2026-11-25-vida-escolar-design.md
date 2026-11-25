@@ -30,6 +30,13 @@ adultos → publicación.
 - **Enfoque elegido:** un sistema escolar propio con el mismo molde que el lugar de trabajo (el A de "Enfoques").
 - **Compañeros:** el usuario aprobó la propuesta de 4 compañeros con papel (mejor amigo o amiga, rival, abusón o
   abusona no siempre, y desde los 14 alguien que te gusta), un tutor con carácter y el grupo propio en Relaciones.
+- **Romance con un docente:** el usuario lo pidió en la secundaria y en la universidad. En la secundaria se rechazó
+  (ver "Límites"). En la universidad lo aprobó (sección 9).
+- **Personalidades:**
+  - El usuario pidió que las personas tengan personalidad, que reaccionen distinto a lo que haces y que vaya dentro de
+    la A2. No pidió que tomen la iniciativa.
+  - Aprobó la propuesta de la sección 10 y eligió el enfoque C: un solo lugar que ajusta la reacción, más 8
+    reacciones especiales armadas a mano.
 
 ## Metas, límites y lo que no es
 
@@ -76,6 +83,14 @@ adultos → publicación.
   escuela, universidad y clubes, y cuesta más de probar.
 - **C. Un motor común de "lugar con gente" para el trabajo y la escuela.** No repite código, pero obliga a rehacer el
   lugar de trabajo de la parte C1, que ya funciona y tiene sus pruebas.
+
+Para las personalidades (sección 10):
+- **A. Un solo lugar que ajusta la reacción.** Una tabla por rasgo multiplica el efecto de cada grupo de acciones y
+  suma una línea de reacción. Toca todas las acciones de una vez, con un estilo parejo.
+- **B. Reescribir cada acción con ramas por rasgo.** Son más de 50 acciones por 18 rasgos: enorme y repartido por todo
+  el código.
+- **C. La A más 8 reacciones especiales armadas a mano (elegido).** Se nota en todas partes y además hay sorpresas que
+  el jugador recuerda, con un costo chico más que la A.
 
 ## Cómo funciona hoy (lo que hay que respetar)
 
@@ -357,6 +372,92 @@ Lo pidió el usuario y aprobó esta forma.
 - Con un jugador de 17 en la universidad, o con un profesor de la escuela, nunca hay romance.
 - Con 18 o más en la universidad, el evento puede salir.
 - Las tres opciones del comité hacen su efecto.
+
+### 10. Personalidades que reaccionan
+
+**Hoy:**
+- Cada persona tiene 2 rasgos (`n.traits`) de una lista de 14 (`MV.TRAITS`). Se ven como etiquetas en su ficha.
+- Casi no hacen nada: tacaño y generoso cambian los regalos y los pedidos de plata, y celoso dispara un evento.
+- Las etiquetas no concuerdan con el género.
+
+**Rasgos:**
+- Se guardan con el mismo id que hoy, así las partidas viejas no cambian.
+- Se muestran con una etiqueta que concuerda con el género de la persona: "tóxica", "tacaña", "celosa".
+- Se suman 4 rasgos nuevos: **rencoroso**, **tímido**, **competitivo** y **sensible**. Son 18 en total. Las personas
+  nuevas los sacan de la lista completa; las viejas conservan los suyos.
+
+**Grupos de acciones:**
+- Cada acción de relación de hoy, y cada acción de abusón de la escuela, pertenece a un grupo:
+  - **cariño:** conversar, pasar tiempo, cumplidos, escuchar, consejos, videollamadas, historias y similares;
+  - **regalos:** regalar y sorpresas;
+  - **plata:** pedir dinero, prestar, dar dinero;
+  - **ofensas:** discutir, insultar, bromas, atacar, espiar el celular y las acciones de abusón;
+  - **romance:** citas, coquetear, poemas, votos y similares;
+  - **salidas:** fiestas, bailar, cine, comer afuera, gimnasio y similares.
+- El constructor asigna los grupos. Algunas acciones (castigar, heredero, terapia y otras parecidas) pueden quedar sin
+  grupo, y entonces los rasgos no las tocan.
+
+**El ajuste (un solo lugar):**
+- Después de cada acción con grupo se mira cuánto cambió la relación.
+- Si subió, se multiplica por lo que dicen los rasgos para "le gusta"; si bajó, por lo que dicen para "le molesta".
+- Con 2 rasgos se multiplican los dos factores. El total queda entre ×0,5 y ×2.
+
+| Rasgo | Le gusta (sube más) | Le molesta (baja más) | Recuerdos (A1) |
+|---|---|---|---|
+| amable | cariño ×1,5 | toda bajada ×0,75 | perdona con relación 60 |
+| tóxico | regalos ×1,5; cariño ×0,75 | ofensas ×2 | se venga más |
+| generoso | plata ×1,5 (pedirle ayuda le gusta) | — | igual |
+| tacaño | regalos ×1,5 | plata ×1,5 | igual |
+| chismoso | cariño ×1,25 | — | igual |
+| leal | cariño ×1,25 | toda bajada ×0,75 | perdona con relación 60 |
+| celoso | romance ×1,25 | ofensas ×1,5 | igual |
+| divertido | salidas ×1,5 | las bromas no le bajan: le suben un poco | igual |
+| perezoso | cariño ×1,25 | salidas: sube la mitad | igual |
+| ambicioso | consejos ×1,5 | — | igual |
+| religioso | cariño ×1,25 | ofensas ×1,5; fiestas: sube la mitad | igual |
+| fiestero | salidas ×1,5 | cariño en casa: sube la mitad | igual |
+| dramático | romance y sorpresas ×1,5 | toda bajada ×2 | se venga más |
+| tranquilo | cariño ×1,5 | ofensas ×1,5; fiestas: sube la mitad | igual |
+| rencoroso | — | toda bajada ×1,25 | perdona solo con 90 o más; se venga más |
+| tímido | cariño ×1,25 | salidas y fiestas: sube la mitad | igual |
+| competitivo | salidas deportivas ×1,5 | — | igual |
+| sensible | cariño ×1,5 | ofensas ×2 | igual |
+
+**La línea de reacción:**
+- Cuando un rasgo cambió el resultado, a veces (cerca de la mitad de las veces) se suma una línea corta al texto de la
+  acción, con su nombre y su rasgo. Por ejemplo: "Como es dramática, lo contó en tres grupos de chat."
+- Cada rasgo tiene al menos 2 líneas para cuando le gusta y 2 para cuando le molesta, con ambos géneros.
+
+**Recuerdos (A1):**
+- "Ya te perdoné" usa el umbral de la tabla: 60 para amable y leal, 90 para rencoroso, y 70 para el resto, como hoy.
+  Si los dos rasgos dicen cosas distintas, gana el umbral más alto.
+- "Se venga más": en el sorteo anual de la A1, los recuerdos malos de esa persona pesan ×1,5.
+
+**En la escuela:**
+- Los compañeros y el tutor también tienen rasgos.
+- La tabla vale para las acciones de abusón. Por ejemplo, burlarte de alguien sensible baja el doble.
+
+**Las 8 reacciones especiales** (armadas a mano; reemplazan a la línea común cuando se dan):
+1. **Regalo caro a alguien tacaño** ($1.000 o más): no lo puede creer. Relación +5 extra, y a veces lo guarda sin abrir
+   "para una ocasión especial".
+2. **Insultar a alguien dramático:** se lo cuenta a otra persona que conocen los dos, y esa relación también baja 5.
+3. **Pedirle plata a alguien generoso:** si te presta, te da un 50 % más de lo que pediste.
+4. **Coquetear con alguien tímido:** la primera vez se pone colorado y dice que no. Si vuelves a intentarlo el año
+   siguiente, tienes el doble de chance.
+5. **Broma a alguien divertido:** te la devuelve con otra broma. Felicidad +3 y relación +5.
+6. **Salida tranquila con alguien fiestero:** aparece con 6 amigos. Felicidad +4, estrés +3.
+7. **Espiar el celular de alguien celoso:** te pilla y te revisa el tuyo. Relación −5 extra, y si tienes un amante, lo
+   descubre.
+8. **Burlarte de un compañero sensible (escuela):** se pone a llorar en clase. La chance de que te pillen sube 15 %, y
+   el recuerdo `humillacion` entra con el peso máximo.
+
+**Pruebas:**
+- Cada rasgo cambia en la dirección de la tabla la misma acción con la misma semilla.
+- Las 8 especiales se dan con su condición y hacen su efecto.
+- Los umbrales de perdón valen.
+- Las etiquetas concuerdan con ambos géneros.
+- Una persona de una partida vieja con rasgos viejos funciona.
+- Ningún texto tiene marcas prohibidas.
 
 ## Lo que queda al constructor
 
