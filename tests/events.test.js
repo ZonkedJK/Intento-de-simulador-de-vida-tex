@@ -202,3 +202,192 @@ test('un evento automático no se aplica si otro del mismo año ya lo dejó sin 
     MV.EV.runYear(g);
   }
 });
+
+/* ---- Efectos con azar { p, ok, ko, msg }: las demás claves valen salga lo que salga ---- */
+
+const BRANCH_KEYS = ['p', 'ok', 'ko', 'msg'];
+
+/** Fuerza el resultado de la próxima tirada de U.chance (solo esa) mientras corre fn. */
+function withRoll(MV, win, fn) {
+  const orig = MV.U.chance;
+  let used = false;
+  MV.U.chance = (p) => { if (used) return orig(p); used = true; return win; };
+  try { return fn(); } finally {
+    MV.U.chance = orig;
+    assert.ok(used, 'no hubo tirada de azar');
+  }
+}
+
+/** Todos los efectos { p } de los eventos, incluidos los anidados en ok/ko. */
+function chanceEffects(MV) {
+  const out = [];
+  const walk = (eff, name) => {
+    if (!eff || typeof eff !== 'object' || eff.p == null) return;
+    out.push([name, eff]);
+    walk(eff.ok, name + '.ok'); walk(eff.ko, name + '.ko');
+  };
+  MV.EV.list.forEach((d) => {
+    (d.choices || []).forEach((c, i) => walk(c.eff, d.id + '#' + i));
+    walk(d.auto, d.id + ' (auto)');
+  });
+  return out;
+}
+
+test('fx.apply: las claves junto a p se aplican en las dos ramas, después de tirar', () => {
+  const MV = load({ seed: 31 });
+  [true, false].forEach((win) => {
+    const g = MV.newGame({ seed: 3100 });
+    const n = MV.newNPC(g, { age: 30 }); MV.addRel(g, n, 'amigo', 50);
+    g.p.money = 1000; g.p.karma = 0; g.p.skills.arte = 50; g.p.stats.happy = 50;
+    let karmaAtRoll = null;
+    const eff = {
+      money: -100, karma: -5, rel: 10, skills: { arte: 4 }, msg: 'Lo intentaste.',
+      p: (gg) => { karmaAtRoll = gg.p.karma; return 0.5; },
+      ok: { happy: 5, msg: 'Salió bien.' }, ko: { happy: -5, msg: 'Salió mal.' }
+    };
+    MV.fx.begin();
+    const msg = withRoll(MV, win, () => MV.fx.apply(g, eff, { target: n.id }));
+    const chips = MV.fx.end();
+    assert.strictEqual(karmaAtRoll, 0, 'las claves comunes no cambian la probabilidad');
+    assert.strictEqual(g.p.money, 900, 'dinero');
+    assert.strictEqual(g.p.karma, -5, 'karma');
+    assert.strictEqual(MV.relOf(g, n.id).rel, 60, 'relación');
+    assert.ok(g.p.skills.arte > 50, 'habilidad');
+    assert.strictEqual(g.p.stats.happy, win ? 55 : 45, 'rama');
+    assert.strictEqual(msg, win ? 'Lo intentaste. Salió bien.' : 'Lo intentaste. Salió mal.');
+    assert.ok(chips.some((c) => c.k === 'money' && c.d === -100), 'el cobro se ve en los chips');
+  });
+});
+
+test('fx.apply: un efecto { p, ok, ko, msg } sin más claves no cambia', () => {
+  const MV = load({ seed: 33 });
+  const g = MV.newGame({ seed: 3300 });
+  g.p.money = 500; g.p.stats.happy = 50;
+  const eff = { p: 0.5, msg: 'Tiraste.', ok: { money: [10, 20], msg: 'Ganaste {amount}.' }, ko: { happy: -3, msg: 'Nada.' } };
+  MV.rng.seed(77);
+  const first = MV.U.chance(0.5);
+  MV.rng.seed(77);
+  const msg = MV.fx.apply(g, eff, {});
+  if (first) {
+    assert.ok(g.p.money >= 510 && g.p.money <= 520, 'premio de la rama ok');
+    assert.strictEqual(msg, `Tiraste. Ganaste ${MV.U.money(g.p.money - 500)}.`);
+  } else {
+    assert.strictEqual(g.p.stats.happy, 47);
+    assert.strictEqual(msg, 'Tiraste. Nada.');
+  }
+});
+
+test('ninguna opción con azar pierde los efectos que tiene junto a p', () => {
+  const MV = load({ seed: 32 });
+  const lost = [];
+  let checked = 0;
+  chanceEffects(MV).forEach(([name, eff]) => {
+    const shared = Object.keys(eff).filter((k) => !BRANCH_KEYS.includes(k));
+    if (!shared.length) return;
+    [true, false].forEach((win) => {
+      const g = MV.newGame({ seed: 3200 });
+      const p = g.p;
+      p.age = 30; p.money = 100000; p.karma = 0; p.fame = 50;
+      Object.keys(p.stats).forEach((k) => { p.stats[k] = 50; });
+      Object.keys(p.skills).forEach((k) => { p.skills[k] = 50; });
+      const n = MV.newNPC(g, { age: 30 }); MV.addRel(g, n, 'amigo', 50);
+      const before = JSON.stringify(g);
+      // Ramas vacías: lo único que puede cambiar la partida son las claves junto a p.
+      withRoll(MV, win, () => MV.fx.apply(g, Object.assign({}, eff, { ok: null, ko: null, msg: null }), { target: n.id }));
+      if (JSON.stringify(g) === before) lost.push(`${name} (${win ? 'ok' : 'ko'}): ${shared.join(', ')}`);
+      checked++;
+    });
+  });
+  assert.deepStrictEqual(lost, [], 'claves junto a p que no se aplican');
+  assert.ok(checked >= 22, 'se esperaban al menos 11 opciones con claves junto a p: ' + checked / 2);
+});
+
+test('las opciones con azar que cuestan dinero solo aparecen si puedes pagarlas', () => {
+  const MV = load({ seed: 34 });
+  const offenders = [];
+  chanceEffects(MV).forEach(([name, eff]) => {
+    if (typeof eff.money !== 'number' || eff.money >= 0 || name.includes('.')) return;
+    const [id, i] = name.split('#');
+    const c = MV.EV.byId[id].choices[+i];
+    const g = MV.newGame({ seed: 3400 });
+    g.p.money = -eff.money - 1;
+    if (!c.when || c.when(g, {})) offenders.push(name);
+  });
+  assert.deepStrictEqual(offenders, [], 'opciones que te dejarían con dinero negativo');
+});
+
+/** Prepara el evento, muestra la opción y la elige con la tirada forzada. */
+function pay(MV, kase, money, win) {
+  const g = MV.newGame({ seed: 3500 });
+  const p = g.p;
+  p.age = kase.age; p.money = money; p.karma = 0;
+  Object.values(g.people).forEach((n) => { n.age += kase.age; });
+  const ctx = kase.setup ? kase.setup(MV, g) : {};
+  g.queue = [];
+  MV.EV.push(g, kase.id, ctx, true);
+  const v = MV.EV.view(g);
+  assert.ok(v && v.id === kase.id, 'no se mostró ' + kase.id);
+  const c = v.choices.find((x) => kase.label.test(x.label));
+  if (win == null) return { shown: !!c };
+  assert.ok(c, `${kase.id}: falta la opción ${kase.label} con ${MV.U.money(money)}`);
+  const res = withRoll(MV, win, () => MV.EV.choose(g, c.i));
+  return { g, ctx, res };
+}
+
+const PAID = [
+  { id: 'concierto_sin_entrada', label: /revendedor/, age: 15, cost: 200, ok: [0, 0], ko: [0, 0] },
+  {
+    id: 'hijo_pide_dinero', label: /^Darle/, age: 50, cost: 2000, ok: [2000, 2000], ko: [0, 0],
+    setup: (MV, g) => { const k = MV.newNPC(g, { age: 24, last: g.p.last }); MV.addRel(g, k, 'hijo', 50); return { target: k.id }; }
+  },
+  {
+    id: 'loteria_oficina', label: /^Poner/, age: 30, cost: 20, ok: [200000, 600000], ko: [0, 0],
+    setup: (MV, g) => { MV.sys.career.hire(g, MV.jobById('cajero')); return {}; }
+  },
+  {
+    id: 'auditoria', label: /contador/, age: 40, cost: 3000, ok: [0, 0], ko: [0, 0],
+    setup: (MV, g) => { g.p.business = { type: 'cafe', name: 'Café de prueba', value: 60000, last: 0, since: 35, manager: false }; return {}; }
+  }
+];
+
+PAID.forEach((kase) => {
+  test(`${kase.id}: cobra ${kase.cost} salga bien o mal, y solo si te alcanza`, () => {
+    const MV = load({ seed: 35 });
+    assert.strictEqual(pay(MV, kase, kase.cost - 1).shown, false, 'se ofrece sin dinero suficiente');
+    assert.strictEqual(pay(MV, kase, kase.cost).shown, true, 'no se ofrece con el dinero justo');
+    [true, false].forEach((win) => {
+      const { g, ctx, res } = pay(MV, kase, kase.cost, win);
+      const [lo, hi] = kase[win ? 'ok' : 'ko'];
+      assert.ok(g.p.money >= lo && g.p.money <= hi, `${kase.id} (${win ? 'ok' : 'ko'}): quedaste con ${g.p.money}`);
+      assert.ok(g.p.money >= 0, 'dinero negativo');
+      assert.ok(!BAD_TEXT.test(res.msg), res.msg);
+      if (kase.id === 'loteria_oficina' && win) assert.ok(res.msg.includes(MV.U.money(g.p.money)), 'el premio que se muestra es el que cobras: ' + res.msg);
+      if (kase.id === 'hijo_pide_dinero') assert.strictEqual(MV.relOf(g, ctx.target).rel, 60, 'la relación mejora igual');
+      if (kase.id === 'auditoria') {
+        assert.strictEqual(g.p.karma, -3, 'el contador creativo baja el karma igual');
+        assert.strictEqual(g.queue.some((q) => q.id === 'juicio'), !win, 'si sale mal, vas a juicio');
+      }
+    });
+  });
+});
+
+test('los demás efectos junto a p se aplican salga lo que salga', () => {
+  const MV = load({ seed: 36 });
+  // [evento, índice de la opción, comprobar(g, habilidades de antes)]
+  const karma = (d) => (g) => assert.strictEqual(g.p.karma, d, 'karma');
+  const cases = [
+    ['concurso_dibujo', 2, karma(-2)], ['encargo_mafia', 2, karma(8)], ['bingo', 1, karma(-3)],
+    ['torneo_escolar', 2, karma(-4)], ['padres_deporte', 2, karma(-2)], ['final_campeonato', 2, karma(-5)],
+    ['final_campeonato', 1, (g, s0) => assert.ok(g.p.skills.carisma > s0.carisma, 'carisma')]
+  ];
+  cases.forEach(([id, i, check]) => [true, false].forEach((win) => {
+    const g = MV.newGame({ seed: 3600 });
+    g.p.karma = 0; g.p.age = 30;
+    Object.keys(g.p.skills).forEach((k) => { g.p.skills[k] = 50; });
+    const s0 = Object.assign({}, g.p.skills);
+    // Sin ramas: así no hace falta preparar el club, el trabajo ni la familia de cada evento.
+    const eff = Object.assign({}, MV.EV.byId[id].choices[i].eff, { ok: null, ko: null });
+    withRoll(MV, win, () => MV.fx.apply(g, eff, {}));
+    check(g, s0);
+  }));
+});

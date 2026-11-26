@@ -146,7 +146,7 @@
   ev({ id: 'hijo_pide_dinero', age: [36, 90], when: H.has('hijo', (n) => n.age >= 18), target: H.rel('hijo', (n) => n.age >= 18), icon: '💸', title: 'Inversión familiar',
     text: (g) => `{t} te pide $2.000 para "un emprendimiento de ${U.pick(['criptomonedas', 'velas aromáticas', 'NFTs de gatos', 'un food truck de sushi-tacos', 'un podcast'])}".`,
     choices: [
-      { t: 'Darle $2.000', when: (g) => g.p.money >= 2000, eff: { money: -2000, rel: 10, p: 0.25, ok: { msg: '¡El emprendimiento de {t} funcionó! Te devolvió el dinero y te regaló una taza.' }, ko: { msg: 'El emprendimiento de {t} fracasó. Te quedaste con 300 velas aromáticas.' } } },
+      { t: 'Darle $2.000', when: (g) => g.p.money >= 2000, eff: { money: -2000, rel: 10, p: 0.25, ok: { money: 2000, msg: '¡El emprendimiento de {t} funcionó! Te devolvió el dinero y te regaló una taza.' }, ko: { msg: 'El emprendimiento de {t} fracasó. Te quedaste con 300 velas aromáticas.' } } },
       { t: 'Negarte', eff: { rel: -8, msg: 'Te negaste. {t} dijo que "nunca crees en sus sueños". Drama familiar.' } },
       { t: 'Ofrecerle un trabajo honesto', eff: { rel: -2, karma: 2, msg: 'Le ofreciste trabajo a {t}. Te miró como si le hubieras ofrecido veneno.' } }
     ] });
@@ -174,7 +174,7 @@
   ev({ id: 'loteria_oficina', age: [20, 64], when: H.job, icon: '🎟️', scene: 'trabajo', title: 'La vaquita',
     text: 'Tus compañeros juntan dinero para comprar lotería en grupo.',
     choices: [
-      { t: 'Poner $20', eff: { money: -20, p: 0.01, ok: { money: [200000, 600000], happy: 20, msg: '¡¡GANARON!! Tu parte: {amount}. La mitad de la oficina renunció ese mismo día.' }, ko: { msg: 'No ganaron. Como siempre. Pero se rieron imaginando qué harían.' } } },
+      { t: 'Poner $20', when: (g) => g.p.money >= 20, eff: { money: -20, p: 0.01, ok: { money: [200000, 600000], happy: 20, msg: '¡¡GANARON!! Tu parte: {amount}. La mitad de la oficina renunció ese mismo día.' }, ko: { msg: 'No ganaron. Como siempre. Pero se rieron imaginando qué harían.' } } },
       { t: 'No participar', eff: (g) => { if (U.chance(0.01)) { fx.stat(g, 'happy', -20); return 'No pusiste dinero. GANARON. Ya no tienes compañeros, todos renunciaron millonarios.'; } return 'No participaste. No ganaron. Tenías razón.'; } }
     ] });
   ev({ id: 'bunker', age: [25, 90], icon: '☢️', title: 'El fin del mundo',

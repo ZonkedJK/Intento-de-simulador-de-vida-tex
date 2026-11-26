@@ -7,6 +7,8 @@
     happy: [0, 100], health: [0, 100], smarts: [0, 100], looks: [0, 100],
     stress: [0, 100], fame: [0, 100], karma: [-100, 100]
   };
+  /** Claves propias de un efecto con azar; las demás se aplican en las dos ramas. */
+  const BRANCH_KEYS = ['p', 'ok', 'ko', 'msg'];
 
   const fx = {
     /** Cambios registrados desde el último `begin()` (para mostrar chips en la UI). */
@@ -82,6 +84,8 @@
      * Claves: happy, health, smarts, looks, stress, karma, fame, money, skills{}, addic{},
      * rel (cambia relación con ctx.target), cond (condición médica), flag, unflag,
      * count (contador), ach (logro), msg, then(g,ctx)->texto, p/ok/ko (azar).
+     * Con `p`, msg es la introducción y el resto de claves (money, karma, rel...) son comunes:
+     * se aplican salga lo que salga, después de tirar (no cambian la probabilidad) y antes de la rama.
      */
     apply(g, eff, ctx) {
       ctx = ctx || {};
@@ -93,8 +97,11 @@
       if (eff.p != null) {
         const prob = typeof eff.p === 'function' ? eff.p(g, ctx) : eff.p;
         const branch = U.chance(prob) ? eff.ok : eff.ko;
-        const head = eff.msg ? fx.tpl(g, eff.msg, ctx) + ' ' : '';
-        return (head + fx.apply(g, branch, ctx)).trim();
+        const shared = {};
+        Object.keys(eff).forEach((k) => { if (!BRANCH_KEYS.includes(k)) shared[k] = eff[k]; });
+        const common = fx.apply(g, shared, ctx);
+        const head = eff.msg ? fx.tpl(g, eff.msg, ctx) : '';
+        return [head, common, fx.apply(g, branch, ctx)].filter(Boolean).join(' ').trim();
       }
       Object.keys(RANGE).forEach((k) => {
         if (eff[k] != null) {
