@@ -287,11 +287,11 @@ test('las siete especiales', () => {
   assert.ok(guardado > 5 && guardado < normal - 5, guardado + '/' + normal);
   { // el extra es exacto: +5 sobre el regalo sin rasgo, misma semilla
     for (let s = 1; s <= 10; s++) {
-      const a = setup(s, ['tacaño']), b = setup(s, ['avaro-no']);
+      const a = setup(s, ['tacaño']), b = setup(s, []);
       const ba = a.r.rel, bb = b.r.rel;
       MV.rng.seed(s); a.act('regalo', g1.id); MV.rng.seed(s); b.act('regalo', g1.id);
       const da = a.r.rel - ba, db = b.r.rel - bb;
-      assert.ok(da === Math.min(100, ba + db + 5) - ba || a.r.rel === 100, 'extra +5 s' + s);
+      assert.strictEqual(da, db + 5, 'extra +5 s' + s);
     }
   }
 
@@ -415,6 +415,22 @@ test('las siete especiales', () => {
     assert.strictEqual(seen, 10);
   }
 
+  // 1b. tacaño que odia el regalo caro: +5 igual, sin texto de emoción
+  {
+    const realR = MV.giftReaction; MV.giftReaction = () => 'hate';
+    try {
+      for (let s = 1; s <= 10; s++) {
+        const a = setup(s, ['tacaño']), b = setup(s, []);
+        const ba = a.r.rel, bb = b.r.rel;
+        MV.rng.seed(s); const ma = a.act('regalo', g1.id); MV.rng.seed(s); b.act('regalo', g1.id);
+        clean(ma);
+        assert.ok(!/emocion/.test(ma), ma);
+        assert.ok(/no le gustó|piedra/.test(ma), ma);
+        assert.strictEqual(a.r.rel - ba, (b.r.rel - bb) + 5, 'conserva el +5');
+      }
+    } finally { MV.giftReaction = realR; }
+  }
+
   // 7. espiar a un celoso
   for (let s = 1; s <= 10; s++) {
     const a = setup(s, ['celoso'], 'pareja');
@@ -433,6 +449,15 @@ test('las siete especiales', () => {
       assert.strictEqual(pushed[0][0], 'infiel_descubierto');
       assert.strictEqual(pushed[0][1].target, a.n.id); assert.strictEqual(pushed[0][1].lover, 'Marta');
       void lover;
+    } finally { MV.EV.push = real; }
+  }
+  { // un celoso que es tu amante: él mismo no cuenta como el amante
+    const a = setup(5, ['celoso'], 'amante');
+    const real = MV.EV.push; const pushed = [];
+    MV.EV.push = (g, id, d) => pushed.push([id, d]);
+    try {
+      clean(a.act('espiar_celular'));
+      assert.strictEqual(pushed.length, 0, 'sin otro amante no encola');
     } finally { MV.EV.push = real; }
   }
   { // sin el rasgo no siempre te descubre

@@ -223,7 +223,8 @@
         // Especial: a alguien tacaño un regalo caro le cae mejor y la reacción es toda suya.
         r.rel = U.clamp(r.rel + 5, 0, 100);
         MV.sys.persona.fire();
-        miser = U.chance(0.5) ? ` ${n.first} lo guarda sin abrir, para una ocasión especial. Lleva años esperando que llegue esa ocasión.` : ` ${n.first} calculó en voz baja cuánto costó y se emocionó ${U.gw(n.gender, 'solo', 'sola')}.`;
+        if (react === 'hate') miser = ` Igual ${n.first} calculó en voz baja cuánto te costó, y eso lo consoló un poco.`;
+        else miser = U.chance(0.5) ? ` ${n.first} lo guarda sin abrir, para una ocasión especial. Lleva años esperando que llegue esa ocasión.` : ` ${n.first} calculó en voz baja cuánto costó y se emocionó ${U.gw(n.gender, 'solo', 'sola')}.`;
       }
       if (gift.special === 'pet' && react !== 'hate') {
         const home = r.type === 'conyuge' || g.p.flags.convive === n.id || (r.type === 'hijo' && n.age < 18) || (r.type === 'padre' && g.p.age < 18);
@@ -376,7 +377,7 @@
             bump(-25, -15); r.rel = U.clamp(r.rel - 5, 0, 100);
             MV.sys.memory.remember(g, n.id, 'espiar');
             MV.sys.persona.fire();
-            const lover = MV.rels(g, 'amante')[0];
+            const lover = MV.rels(g, 'amante').find((x) => x.n.id !== n.id);
             if (lover) MV.EV.push(g, 'infiel_descubierto', { target: n.id, lover: lover.n.first });
             return `${n.first} te descubrió revisando su celular antes de que lo desbloquearas. Ya tenía la contraseña cambiada, una cámara escondida y un discurso de tres horas preparado.`;
           }
