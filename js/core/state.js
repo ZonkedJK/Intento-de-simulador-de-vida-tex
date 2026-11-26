@@ -33,7 +33,8 @@
   };
 
   MV.TRAITS = ['amable', 'tóxico', 'generoso', 'tacaño', 'chismoso', 'leal', 'celoso',
-    'divertido', 'perezoso', 'ambicioso', 'religioso', 'fiestero', 'dramático', 'tranquilo'];
+    'divertido', 'perezoso', 'ambicioso', 'religioso', 'fiestero', 'dramático', 'tranquilo',
+    'rencoroso', 'tímido', 'competitivo', 'sensible'];
 
   const REL_LABEL = {
     padre: ['Padre', 'Madre'], hermano: ['Hermano', 'Hermana'], abuelo: ['Abuelo', 'Abuela'],
