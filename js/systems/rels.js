@@ -213,7 +213,7 @@
       if (g.p.money < gift.price) return `No te alcanza para ${gift.name.toLowerCase()}.`;
       MV.fx.money(g, -gift.price);
       const react = MV.giftReaction(n, gift, r.type);
-      const base = 3 + Math.log10(gift.price + 1) * 3 * (n.traits.includes('tacaño') ? 1.3 : 1);
+      const base = 3 + Math.log10(gift.price + 1) * 3;
       const d = react === 'hate' ? -U.int(5, 12) : Math.round(react === 'love' ? base * 1.6 + 3 : react === 'like' ? base : base * 0.5);
       r.rel = U.clamp(r.rel + d, 0, 100);
       MV.sys.memory.remember(g, n.id, 'regalo', gift.name, gift.price >= 500 ? 2 : 1);
@@ -240,7 +240,7 @@
       if (!n || !n.alive) return list;
       if (r.type === 'acosador') return MV.sys.memory.stalkActions(g, r, n);
       const t = r.type, adult = p.age >= 18, human = n.species === 'humano';
-      const A = (o) => list.push(o);
+      const A = (o) => list.push(MV.sys.persona.wrap(g, r, n, o));
       if (!human) {
         A({ id: 'jugar', icon: '🎾', label: 'Jugar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Jugaste con ${n.first}. Te mordió con cariño.`, `${n.first} trajo la pelota 40 veces. Tú te cansaste primero.`, `${n.first} te ignoró olímpicamente, pero se notaba feliz.`]); } });
         if (n.species === 'perro') A({ id: 'pasear', icon: '🦮', label: 'Pasear', sub: '+salud para ambos', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(3, 8), 0, 100); MV.fx.stat(g, 'health', U.int(1, 3)); n.health = U.clamp(n.health + 3, 0, 100); return `Paseaste a ${n.first}. Olfateó cada poste del barrio.`; } });

@@ -83,7 +83,7 @@
         if (twist && U.chance(0.3)) return { ev: 'mem_vuelta', v: twist };
         return { ev: 'mem_favor', v: memory.favorFor(g, r, n, ctx) };
       }
-      if (r.rel >= 70) return { ev: 'mem_perdon', v: null };
+      if (r.rel >= MV.sys.persona.forgiveAt(n)) return { ev: 'mem_perdon', v: null };
       return { ev: 'mem_venganza', v: U.pick(memory.revengesFor(g, r, n)) };
     },
 
@@ -95,7 +95,7 @@
       let all = memory.recall(g);
       if (p.prison) all = all.filter((e) => e.m.v > 0);
       if (!all.length || !U.chance(0.2)) return;
-      const e = U.pickW(all, (x) => Math.abs(x.m.v) * (p.age - x.m.a));
+      const e = U.pickW(all, (x) => Math.abs(x.m.v) * (p.age - x.m.a) * (x.m.v < 0 ? MV.sys.persona.spite(x.n) : 1));
       if (!e) return;
       const o = memory.outcome(g, e.r, e.n, e.m);
       e.m.done = true; e.r.memNext = p.age + 5;
