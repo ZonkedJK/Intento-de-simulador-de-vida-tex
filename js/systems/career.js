@@ -134,7 +134,7 @@
       if (!J) { p.job = null; return; }
       const job = p.job;
       job.years++; job.lvlYears++;
-      const acts = p.yearActs;
+      const acts = p.lastActs || {};
       const WP = MV.sys.workplace, B = WP.boss(g), w = B && B.kind === 'controlador' ? 0.5 : 0.6; // el controlador mira más el año
       job.perf = U.clamp(Math.round(job.perf * w + (p.stats.smarts * 0.4 + 30 + U.int(-12, 12)) * (1 - w) +
         (acts.esforzarse || 0) * 4 - (acts.holgazanear || 0) * 6 - (p.addic.alcohol > 50 ? 6 : 0) - (p.addic.drogas > 50 ? 10 : 0)), 0, 100);

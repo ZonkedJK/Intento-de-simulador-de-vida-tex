@@ -721,3 +721,30 @@ test('C1-R5: la fiesta de fin de año es para mayores de 18', () => {
   g.p.age = 18;
   assert.ok(MV.EV.eligible(g, MV.EV.byId.trabajo_fiesta));
 });
+
+// ——— Lo que hiciste en el año cuenta al cerrar el año (MV.ageUp) ———
+// Hace la acción `times` veces con MV.doAction y después deshace sus efectos inmediatos:
+// al llegar a MV.ageUp, lo único distinto entre dos corridas es el registro de acciones del año.
+function perfAtYearEnd(MV, id, times, seed) {
+  const g = withBoss(MV, 141, 'ausente', 50);
+  g.queue = []; g.p.job.perf = 50;
+  const before = JSON.stringify(g.p);
+  for (let i = 0; i < times; i++) MV.doAction(g, act(MV, g, id));
+  const acts = g.p.yearActs;
+  assert.strictEqual(acts[id] || 0, times, 'yearActs cuenta las acciones');
+  g.p = Object.assign(JSON.parse(before), { yearActs: acts });
+  MV.rng.seed(seed);
+  MV.ageUp(g);
+  assert.ok(g.p.job, 'sigue con trabajo');
+  return g.p.job.perf;
+}
+
+test('esforzarse durante el año sube el rendimiento de fin de año (por MV.ageUp)', () => {
+  const MV = load({ seed: 140 });
+  assert.strictEqual(perfAtYearEnd(MV, 'esforzarse', 3, 1401) - perfAtYearEnd(MV, 'esforzarse', 0, 1401), 12); // 3 × 4
+});
+
+test('holgazanear durante el año baja el rendimiento de fin de año (por MV.ageUp)', () => {
+  const MV = load({ seed: 140 });
+  assert.strictEqual(perfAtYearEnd(MV, 'holgazanear', 3, 1402) - perfAtYearEnd(MV, 'holgazanear', 0, 1402), -18); // 3 × 6
+});

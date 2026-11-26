@@ -216,3 +216,25 @@ test('un exprofesional de 34 años puede volver; alguien sin pasado profesional 
   const g2 = MV.newGame({ seed: 5 }); g2.p.age = 34; g2.p.edu.done = ['primaria', 'secundaria'];
   assert.equal(MV.sys.sports.canTryout(g2, 'futbol').ok, false);
 });
+
+// Entrena `times` veces con MV.doAction y después deshace sus efectos inmediatos (rendimiento,
+// habilidad, salud, lesión): al llegar a MV.ageUp, lo único distinto es el registro del año.
+function seasonPerf(MV, times, seed) {
+  const g = athlete(MV, 'futbol', 'alto', 12);
+  g.queue = []; g.p.job.perf = 20;
+  const before = JSON.stringify(g.p);
+  const train = MV.sys.career.actions(g).find((a) => a.id === 'entrenar');
+  for (let i = 0; i < times; i++) MV.doAction(g, train);
+  const acts = g.p.yearActs;
+  assert.strictEqual(acts.entrenar || 0, times, 'yearActs cuenta los entrenamientos');
+  g.p = Object.assign(JSON.parse(before), { yearActs: acts });
+  MV.rng.seed(seed);
+  MV.ageUp(g);
+  assert.ok(g.p.job, 'sigue siendo profesional');
+  return g.p.job.perf;
+}
+
+test('entrenar a fondo durante el año sube el rendimiento de la temporada (por MV.ageUp)', () => {
+  const MV = load({ seed: 45 });
+  assert.strictEqual(seasonPerf(MV, 3, 451) - seasonPerf(MV, 0, 451), 9); // 3 × 3
+});
