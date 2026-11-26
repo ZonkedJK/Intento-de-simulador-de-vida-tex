@@ -74,6 +74,7 @@
       r.rel = U.clamp(before + Math.round(d * f), 0, 100);
       const main = persona.mainTrait(n, tags, sign);
       if (!main || !U.chance(0.5)) return '';
+      if (sign > 0 && pickOne(main, tags, 1) < 1) return persona.line(main, 'less', n) || persona.line(main, 'up', n);
       return persona.line(main, sign > 0 ? 'up' : 'down', n);
     },
 

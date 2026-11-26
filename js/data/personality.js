@@ -61,7 +61,8 @@
     },
     'tóxico': {
       up: [(n) => `${n.first} aceptó el gesto con una sonrisa de contrato. Seguro lo anotó para cobrártelo.`, (n) => `${n.first} dijo "ya era hora" y lo tomó como un derecho.`],
-      down: [(n) => `${n.first} lo recordará y lo sacará a relucir en cada cena durante años.`, (n) => `${n.first} sacó una libreta mental, y tú estás en la primera página.`]
+      down: [(n) => `${n.first} lo recordará y lo sacará a relucir en cada cena durante años.`, (n) => `${n.first} sacó una libreta mental, y tú estás en la primera página.`],
+      less: [(n) => `${n.first} aceptó el cariño con cara de "¿eso es todo?".`, (n) => `${n.first} se mostró menos conmovid${gw(n, 'o', 'a')} de lo que esperabas: el cariño le sabe a poco.`]
     },
     'generoso': {
       up: [(n) => `${n.first} es ${lab('generoso', n)} y quiso devolverte el favor antes de que terminaras de hablar.`, (n) => `${n.first} insistió en invitar, aunque la invitación era tuya.`],
@@ -89,7 +90,8 @@
     },
     'perezoso': {
       up: [(n) => `${n.first} aprobó el plan, siempre que se hiciera desde el sillón.`, (n) => `${n.first} agradeció la idea y bostezó un poco, para no perder la costumbre.`],
-      down: [(n) => `${n.first} pensó en enojarse, pero le dio pereza.`, (n) => `${n.first} se ofendió un rato y se quedó dormid${gw(n, 'o', 'a')} en pleno enojo.`]
+      down: [(n) => `${n.first} pensó en enojarse, pero le dio pereza.`, (n) => `${n.first} se ofendió un rato y se quedó dormid${gw(n, 'o', 'a')} en pleno enojo.`],
+      less: [(n) => `${n.first} agradeció la propuesta, pero salir de casa le dio demasiada pereza para emocionarse.`, (n) => `${n.first} dijo que sí con tan poca energía que parecía que dijo que no.`]
     },
     'ambicioso': {
       up: [(n) => `${n.first} tomó nota. Tiene un plan de cinco años y tú eres el paso tres.`, (n) => `${n.first} escuchó con atención y ya piensa cómo sacarle provecho.`],
@@ -97,11 +99,13 @@
     },
     'religioso': {
       up: [(n) => `${n.first} dijo "Dios te lo pague". Con eso quedó todo cobrado.`, (n) => `${n.first} agradeció el gesto y rezó un poquito por ti. Por si acaso.`],
-      down: [(n) => `${n.first} se persignó y dijo que rezará por ti. Esto no suena tranquilizador.`, (n) => `${n.first} te miró con paciencia de santo y un poco de decepción.`]
+      down: [(n) => `${n.first} se persignó y dijo que rezará por ti. Esto no suena tranquilizador.`, (n) => `${n.first} te miró con paciencia de santo y un poco de decepción.`],
+      less: [(n) => `${n.first} pensó que la fiesta no era para tanto y prefirió otra clase de plan, más tranquilo.`, (n) => `${n.first} sonrió con cortesía, pero con la mente en la misa del domingo.`]
     },
     'fiestero': {
       up: [(n) => `${n.first} ya está armando la lista de invitados y una playlist.`, (n) => `${n.first} dijo "esto hay que festejarlo" y festejó. Sin ti.`],
-      down: [(n) => `${n.first} cambió de tema enseguida: tiene una fiesta el sábado y no quiere malos rollos.`, (n) => `${n.first} lo olvidó a la segunda ronda de tragos.`]
+      down: [(n) => `${n.first} cambió de tema enseguida: tiene una fiesta el sábado y no quiere malos rollos.`, (n) => `${n.first} lo olvidó a la segunda ronda de tragos.`],
+      less: [(n) => `${n.first} pensó en cuántas fiestas se estaba perdiendo mientras tanto.`, (n) => `${n.first} se quedó en casa, pero miró el celular cada dos minutos esperando algún plan mejor.`]
     },
     'dramático': {
       up: [(n) => `${n.first} se llevó la mano al pecho y dijo que jamás había sentido algo así.`, (n) => `${n.first} lloró de emoción. Después lloró de nuevo, por si no se había notado.`],
@@ -109,15 +113,17 @@
     },
     'tranquilo': {
       up: [(n) => `${n.first} sonrió en silencio y puso a hervir el agua del té.`, (n) => `${n.first} asintió despacio. Eso, en ${gw(n, 'él', 'ella')}, es un abrazo.`],
-      down: [(n) => `${n.first} no levantó la voz. Se quedó callad${gw(n, 'o', 'a')} y eso fue peor.`, (n) => `${n.first} lo tomó con calma y una mirada que enfría el té.`]
+      down: [(n) => `${n.first} no levantó la voz. Se quedó callad${gw(n, 'o', 'a')} y eso fue peor.`, (n) => `${n.first} lo tomó con calma y una mirada que enfría el té.`],
+      less: [(n) => `${n.first} prefirió un plan sin ruido y lo disfrutó menos de lo que esperabas.`, (n) => `${n.first} bostezó discretamente: tanta fiesta le agotaba.`]
     },
     'rencoroso': {
       up: [(n) => `${n.first} agradeció el gesto, pero aún guarda tres cosas más en el cajón del rencor.`, (n) => `${n.first} sonrió, aunque su memoria sigue siendo muy selectiva.`],
       down: [(n) => `${n.first} no olvida: lo archivó con fecha, hora y testigos.`, (n) => `${n.first} dijo "no pasa nada" y lo anotó en el libro de cuentas pendientes.`]
     },
     'tímido': {
-      up: [(n) => `${n.first} se puso rojo, dijo "gracias" a media voz y miró al piso.`, (n) => `${n.first} sonrió un segundo y se escondió detrás del cuello de la camisa.`],
-      down: [(n) => `${n.first} no contestó nada, pero se le quebró un poquito la voz.`, (n) => `${n.first} se encogió de hombros y se fue en silencio, sin hacer ruido.`]
+      up: [(n) => `${n.first} se puso ${gw(n, 'rojo', 'roja')}, dijo "gracias" a media voz y miró al piso.`, (n) => `${n.first} sonrió un segundo y se escondió detrás del cuello de la camisa.`],
+      down: [(n) => `${n.first} no contestó nada, pero se le quebró un poquito la voz.`, (n) => `${n.first} se encogió de hombros y se fue en silencio, sin hacer ruido.`],
+      less: [(n) => `${n.first} se quedó en un rincón, con ganas de que la salida terminara pronto.`, (n) => `${n.first} sonrió a medias: con tanta gente a ${gw(n, 'él', 'ella')} le cuesta disfrutar.`]
     },
     'competitivo': {
       up: [(n) => `${n.first} lo convirtió en una carrera y, por supuesto, ganó.`, (n) => `${n.first} dijo "la próxima vez te gano" con una sonrisa que da miedo.`],

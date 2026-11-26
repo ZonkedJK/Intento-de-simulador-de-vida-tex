@@ -210,3 +210,39 @@ test('los rencorosos se vengan más', () => {
   }
   assert.ok(rencor / N > 0.53 && rencor / N < 0.67, String(rencor / N));
 });
+
+test('ninguna línea trae un adjetivo masculino para una mujer', () => {
+  const MASC = /\b(rojo|contento|emocionado|encantado|enojado|ofendido|dolido|aburrido|callado|preocupado|furioso|celoso|dormido|sorprendido|cansado)\b/i;
+  for (const id of MV.TRAITS) {
+    const t = MV.TRAIT_INFO[id];
+    for (const side of ['up', 'down', 'less']) {
+      for (const f of (t.lines && t.lines[side]) || []) {
+        const fem = f({ first: 'Zoe', gender: 'f' }), mas = f({ first: 'Leo', gender: 'm' });
+        assert.ok(!MASC.test(fem), id + ' ' + side + ': ' + fem);
+        assert.ok(!BAD_TEXT.test(fem) && !BAD_TEXT.test(mas), id + ' ' + side);
+      }
+    }
+  }
+});
+
+test('las ganancias que un rasgo reduce usan líneas "less"', () => {
+  for (const id of ['fiestero', 'tímido', 'perezoso', 'religioso', 'tranquilo', 'tóxico']) {
+    const t = MV.TRAIT_INFO[id];
+    assert.ok(t.lines.less && t.lines.less.length >= 2, id);
+    for (const f of t.lines.less) assert.ok(f({ first: 'Zoe', gender: 'f' }).includes('Zoe'));
+  }
+  const g = game(MV, 9);
+  const { n, r } = person(MV, g, 'amigo', ['fiestero']);
+  const less = new Set(MV.TRAIT_INFO.fiestero.lines.less.map((f) => f(n)));
+  const up = new Set(MV.TRAIT_INFO.fiestero.lines.up.map((f) => f(n)));
+  let seen = 0;
+  for (let s = 1; s <= 60; s++) {
+    MV.rng.seed(s);
+    r.rel = 50;
+    r.rel = 60;
+    const msg = MV.sys.persona.adjust(g, r, n, 'desayuno', 50);
+    assert.ok(!up.has(msg), 'no usa up: ' + msg);
+    if (less.has(msg)) seen++;
+  }
+  assert.ok(seen > 0);
+});
