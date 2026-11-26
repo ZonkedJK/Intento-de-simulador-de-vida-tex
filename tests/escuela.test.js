@@ -192,3 +192,66 @@ test('abandonar y repetir arman o cierran el curso; los textos no rompen', () =>
   assert.notStrictEqual(S().teacher(h).n.id, t);
   for (const k of ['curso', 'profe']) { assert.ok(MV.REL_ORDER.includes(k)); assert.ok(!BAD_TEXT.test(MV.relLabel(k, h.people[t]))); }
 });
+
+// ——— Ronda de arreglos 1 ———
+test('un ex tutor nunca es romance, ni como amigo', () => {
+  for (let s = 1; s <= 20; s++) {
+    MV.rng.seed(s);
+    const g = student(MV, s, 18, 'secundaria');
+    const t = S().teacher(g);
+    t.n.gender = g.p.orientation === 'homo' ? g.p.gender : (g.p.gender === 'm' ? 'f' : 'm');
+    t.n.age = 25; t.r.rel = 85;
+    const id = t.n.id;
+    g.p.edu.year = MV.sys.edu.yearsOf(g.p.edu) - 1;
+    MV.sys.edu.yearly(g);
+    const r = MV.relOf(g, id);
+    assert.strictEqual(r.type, 'amigo');
+    assert.strictEqual(MV.sys.rels.canRomance(g, g.people[id], r), false);
+    assert.ok(!MV.sys.rels.actions(g, r, g.people[id]).some((a) => a.id === 'coquetear'));
+  }
+});
+
+test('el crush es un compañero menor: ni a los 18 ni adulto', () => {
+  for (let s = 1; s <= 30; s++) {
+    MV.rng.seed(s);
+    const g18 = student(MV, s, 18, 'secundaria');
+    S().staff(g18);
+    assert.ok(!S().mate(g18, 'crush'), 'sin crush a los 18');
+    const g = student(MV, s, 15);
+    S().staff(g);
+    const c = S().mate(g, 'crush');
+    assert.ok(c, 'crush a los 15');
+    assert.ok(c.n.age >= 14 && c.n.age <= 17);
+    assert.strictEqual(c.n.job, 'Estudiante');
+    assert.strictEqual(c.n.money, 0);
+  }
+});
+
+test('con pareja no llega un crush nuevo', () => {
+  MV.rng.seed(21);
+  const g = student(MV, 21, 15);
+  S().staff(g);
+  const c = S().mate(g, 'crush');
+  assert.ok(c);
+  MV.sys.rels.startDating(g, c.n);
+  assert.strictEqual(c.r.type, 'pareja');
+  S().staff(g);
+  assert.ok(!S().mate(g, 'crush'));
+  assert.ok(!g.p.edu.class.mates.some((m) => m.role === 'crush'));
+});
+
+test('el payaso puede ser mejor amigo y el curso se rellena', () => {
+  MV.rng.seed(23);
+  const g = student(MV, 23, 9);
+  let pa = S().mate(g, 'payaso');
+  if (!pa) { // el curso salió con abusón: convertimos a un compañero en payaso
+    const ab = S().mate(g, 'abuson');
+    ab.m.role = 'payaso'; pa = S().mate(g, 'payaso');
+  }
+  const am = S().mate(g, 'amigo');
+  am.r.rel = 25; pa.r.rel = 55;
+  S().staff(g);
+  assert.strictEqual(am.m.role, 'comun');
+  assert.strictEqual(pa.m.role, 'amigo');
+  assert.ok(S().mate(g, 'abuson') || S().mate(g, 'payaso'), 'curso con abusón o payaso nuevo');
+});

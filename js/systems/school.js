@@ -65,6 +65,7 @@
         const gender = U.pick(['m', 'f']);
         const job = U.gw(gender, sec ? 'Profesor' : 'Maestro', sec ? 'Profesora' : 'Maestra');
         const n = MV.newNPC(g, { gender, age: U.int(25, 60), country: p.country, job });
+        n.schoolTeacher = true; // nunca romance, ni como ex tutor y amigo
         MV.addRel(g, n, 'profe', U.int(50, 65));
         c.teacher = { id: n.id, kind: U.pick(Object.keys(MV.TEACHER_KINDS)) };
       }
@@ -75,7 +76,7 @@
       c.mates.forEach((m) => { if (m.role === 'amigo' && MV.relOf(g, m.id).rel < 30) m.role = 'comun'; });
 
       if (!c.mates.some((m) => m.role === 'amigo')) {
-        const cand = c.mates.filter((m) => m.role === 'comun' && MV.relOf(g, m.id).rel >= 30).sort((a, b) => MV.relOf(g, b.id).rel - MV.relOf(g, a.id).rel)[0];
+        const cand = c.mates.filter((m) => !['rival', 'abuson', 'amigo', 'crush'].includes(m.role) && MV.relOf(g, m.id).rel >= 30).sort((a, b) => MV.relOf(g, b.id).rel - MV.relOf(g, a.id).rel)[0];
         if (cand) {
           cand.role = 'amigo';
           const r = MV.relOf(g, cand.id);
@@ -87,8 +88,9 @@
         school._newMate(g, U.chance(MV.CLASS_ROLES.abuson.chance) ? 'abuson' : 'payaso');
       }
 
-      if (p.age >= MV.CLASS_ROLES.crush.minAge && !c.mates.some((m) => m.role === 'crush')) {
-        const n = MV.sys.rels.candidate(g);
+      if (p.age >= MV.CLASS_ROLES.crush.minAge && p.age <= 17 && !MV.partner(g) && !c.mates.some((m) => m.role === 'crush')) {
+        const gender = p.orientation === 'bi' ? U.pick(['m', 'f']) : p.orientation === 'homo' ? p.gender : (p.gender === 'm' ? 'f' : 'm');
+        const n = MV.newNPC(g, { gender, age: U.clamp(p.age + U.int(-1, 1), 14, 17), country: p.country, job: 'Estudiante', money: 0 });
         const rg = roleRange('crush');
         const r = MV.addRel(g, n, 'curso', U.int(rg[0], rg[1]));
         if (MV.sys.rels.canRomance(g, n, r)) c.mates.push({ id: n.id, role: 'crush' });

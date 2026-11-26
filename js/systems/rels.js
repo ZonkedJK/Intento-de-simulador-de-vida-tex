@@ -17,7 +17,7 @@
     canRomance(g, n, r) {
       const p = g.p;
       if (!n || !n.alive || n.species !== 'humano') return false;
-      if (r && r.type === 'profe') return false;
+      if (n.schoolTeacher || (r && r.type === 'profe')) return false;
       if (r && (MV.FAMILY.includes(r.type) || ROMANTIC.includes(r.type))) return false;
       if (p.age < 14 || n.age < 14) return false;
       const minor = p.age < 18 || n.age < 18;
