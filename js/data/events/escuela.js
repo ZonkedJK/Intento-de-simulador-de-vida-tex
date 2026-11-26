@@ -225,4 +225,59 @@
       { t: 'Enojarte', eff: (g, ctx) => { S().pop(g, -8); fx.stat(g, 'happy', -4); fx.stat(g, 'stress', 4); bumpRel(g, ctx.target, -10); return 'Te enojaste a los gritos con {t}. Fue mucho peor: ahora hay una segunda foto, de tu cara enojada.'; } },
       { t: 'Ignorar la foto', eff: (g) => { S().pop(g, -8); fx.stat(g, 'stress', 2); return 'Hiciste como si la foto no existiera. En una semana nadie se acordaba. Bueno, casi nadie.'; } }
     ] });
+  // — Romance con un docente universitario (adultos) y comité de ética —
+  const SUBJ = {
+    medicina: 'Anatomía', derecho: 'Derecho Civil', ingenieria: 'Análisis Matemático', informatica: 'Algoritmos', psicologia: 'Psicología Social',
+    administracion: 'Gestión de Empresas', economia: 'Macroeconomía', arquitectura: 'Historia de la Arquitectura', educacion: 'Didáctica',
+    periodismo: 'Redacción Periodística', biologia: 'Genética', enfermeria: 'Cuidados Críticos', veterinaria: 'Fisiología Animal',
+    bellasartes: 'Dibujo', musica: 'Armonía', filosofia: 'Ética', idiomas: 'Lingüística', gastronomia: 'Técnicas de Cocina',
+    mecanica: 'Motores', electricidad: 'Circuitos', estetica: 'Colorimetría', programacion: 'Desarrollo Web', aviacion: 'Navegación Aérea'
+  };
+  const SUBJ_GEN = ['Metodología de la Investigación', 'Estadística', 'Historia del Pensamiento', 'Redacción Académica', 'Ética Profesional'];
+  const profKey = (e) => e.stage + ':' + (e.major || e.type || '');
+  const markProf = (g) => { g.p.edu.profEv = profKey(g.p.edu); };
+  const RO = ['pareja', 'conyuge', 'amante'];
+  const suspended = (n) => U.gw(n.gender, 'Profesor suspendido', 'Profesora suspendida');
+
+  ev({ id: 'uni_profe', age: [18, 130], w: 0.5, cd: 3, icon: '🍎', scene: 'universidad', title: 'Un docente te mira distinto',
+    when: (g) => { const p = g.p, e = p.edu; return p.age >= 18 && !!e && MV.sys.edu.inHigher(p) && (p.stats.looks >= 50 || p.skills.carisma >= 50) && e.profEv !== profKey(e); },
+    ctx: (g) => {
+      const p = g.p, e = p.edu, gender = p.orientation === 'bi' ? U.pick(['m', 'f']) : p.orientation === 'homo' ? p.gender : (p.gender === 'm' ? 'f' : 'm');
+      const key = e.stage === 'posgrado' ? ((e.degrees || []).find((d) => d.kind === 'universidad') || {}).major : e.major;
+      return { pf: MV.randomFirst(gender, p.country), pl: MV.randomLast(p.country), pg: gender, pa: U.int(28, 60), subj: SUBJ[key] || U.pick(SUBJ_GEN) };
+    },
+    text: (g, ctx) => `${U.gw(ctx.pg, 'El profesor', 'La profesora')} ${ctx.pf} ${ctx.pl}, de ${ctx.subj}, te pidió que te quedaras un momento después de clase. Habló de tu trabajo final treinta segundos y después, mirando el escritorio, te invitó a tomar un café "fuera del campus". Tiene ${ctx.pa} años y fama de dar el examen oral más temido de la facultad. Tu corazón acaba de hacer un parcial sorpresa.`,
+    choices: [
+      { t: 'Aceptar', eff: (g, ctx) => {
+        markProf(g);
+        const cur = MV.partner(g);
+        const n = MV.newNPC(g, { first: ctx.pf, last: ctx.pl, gender: ctx.pg, age: ctx.pa, job: U.gw(ctx.pg, 'Profesor universitario', 'Profesora universitaria') });
+        if (!MV.sys.rels.canRomance(g, n, null)) { // antes de la relación: una pareja ya no "puede" ser pareja
+          delete g.people[n.id];
+          return `Ibas a decir que sí, pero te echaste atrás en la puerta del aula. ${U.gw(ctx.pg, 'El profesor', 'La profesora')} ${ctx.pf} se quedó con el café frío y tú, con la duda.`;
+        }
+        MV.addRel(g, n, cur ? 'amante' : 'pareja', U.int(60, 75)).prof = true;
+        MV.fx.stat(g, 'happy', 6);
+        return `Dijiste que sí. El café se alargó hasta la cena y el resto de la noche no es asunto de nadie. Desde entonces ${ctx.pf} te manda mensajes con bibliografía y emojis, y lo sospechoso son los emojis.${cur ? ` ${cur.n.first} no sabe nada... todavía.` : ''}`;
+      } },
+      { t: 'Rechazar con amabilidad', eff: (g, ctx) => { markProf(g); return `Le agradeciste la invitación y dijiste que preferías mantener lo académico en lo académico. ${ctx.pf} asintió con dignidad y te puso un "muy bien" en el siguiente trabajo, sin rencores.`; } },
+      { t: 'Contárselo a la facultad', eff: (g, ctx) => { markProf(g); MV.fx.stat(g, 'karma', 1); return `Fuiste a la oficina de la facultad y lo contaste todo. ${U.gw(ctx.pg, 'El profesor', 'La profesora')} ${ctx.pf} fue sancionad${U.gw(ctx.pg, 'o', 'a')} y ahora te saluda de lejos. En el pasillo te miran con respeto, y un poco de miedo.`; } }
+    ] });
+
+  ev({ id: 'comite_etica', pushOnly: true, age: [18, 130], icon: '⚖️', scene: 'universidad', title: 'Comité de ética',
+    when: (g, ctx) => { const r = ctx && ctx.target ? MV.relOf(g, ctx.target) : null; return MV.sys.edu.inHigher(g.p) && !!r && !!r.prof && RO.includes(r.type); },
+    text: (g, ctx) => `El comité de ética de la facultad abrió un expediente: alguien los vio a {t} y a ti salir juntos del café de la esquina. ${U.gw((MV.person(g, ctx.target) || {}).gender, 'El profesor', 'La profesora')} quedó suspendid{to} mientras se investiga, y tu rendimiento se resintió entre rumores y miradas en los pasillos.`,
+    choices: [
+      { t: 'Seguir juntos', eff: { msg: 'Decidieron aguantar el temporal. Los pasillos hablan, pero {t} y tú se miran en el comedor como si el expediente fuera de otras personas.' } },
+      { t: 'Terminar', eff: (g, ctx) => {
+        const n = MV.person(g, ctx.target), r = MV.relOf(g, ctx.target);
+        let m = '';
+        if (r.type === 'conyuge') m = MV.sys.rels.divorce(g, n);
+        else if (r.type === 'amante') { MV.sys.rels.makeEx(g, r); MV.fx.stat(g, 'happy', -4); m = `Le dijiste a ${n.first} que esto no podía seguir. Se acabó el misterio y también la bibliografía con emojis.`; }
+        else m = MV.sys.rels.breakUp(g, n);
+        delete r.prof;
+        return m + ' El comité cerró el expediente por falta de nada que investigar.';
+      } },
+      { t: 'Pedir cambio de cátedra', eff: (g, ctx) => { const r = MV.relOf(g, ctx.target); if (r) delete r.prof; perf(g, 5); return 'Pediste cambiarte a otra cátedra y el comité lo aceptó sin hacer preguntas. Tu nuevo profesor es un señor de 70 años que no sabe quién eres. Un alivio.'; } }
+    ] });
 })(window.MV = window.MV || {});

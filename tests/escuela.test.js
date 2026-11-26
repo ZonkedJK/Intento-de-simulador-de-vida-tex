@@ -1146,3 +1146,171 @@ test('las olimpíadas se leen bien y pelea_patio no describe heridas', () => {
   quiet(false, () => MV.EV.choose(lose, vl.choices[2].i));
   assert.strictEqual(lose.p.stats.health, h0 - 5);
 });
+
+// — Tarea 9: romance con un docente universitario —
+function uni(seed, age, o) {
+  o = o || {};
+  const g = game(MV, seed, age);
+  g.p.gender = o.gender || 'm'; g.p.orientation = o.orientation || 'hetero';
+  g.p.stats.looks = o.looks == null ? 60 : o.looks; g.p.skills.carisma = o.carisma == null ? 10 : o.carisma;
+  MV.sys.edu.start(g, o.stage || 'universidad', { major: o.major === undefined ? 'derecho' : o.major });
+  return g;
+}
+const PROFE = () => MV.EV.byId.uni_profe;
+
+test('el docente solo en estudios superiores', () => {
+  const ok = (g) => assert.ok(MV.EV.eligible(g, PROFE()), 'debía salir');
+  const no = (g, why) => assert.strictEqual(MV.EV.eligible(g, PROFE()), null, why);
+  no(uni(1, 17), '17 años');
+  const sec = uni(2, 18, { stage: 'secundaria', major: null }); no(sec, 'secundaria');
+  no(uni(3, 20, { looks: 40, carisma: 40 }), 'looks y carisma bajos');
+  const g = uni(4, 20); ok(g);
+  ok(uni(5, 20, { looks: 10, carisma: 55 }));
+  ok(uni(6, 25, { stage: 'tecnica', major: 'mecanica' }));
+  ok(uni(7, 25, { stage: 'posgrado', major: null }));
+  const v = showEv(g, 'uni_profe');
+  MV.EV.choose(g, labelIdx(v, /Rechazar/));
+  no(g, 'ya salió en esta etapa');
+  const h = uni(8, 20); h.p.edu.stage = 'universidad'; h.p.edu.profEv = 'universidad:derecho'; no(h, 'marca de etapa');
+  h.p.edu.major = 'medicina'; ok(h);
+});
+
+test('aceptar', () => {
+  for (const [pg, ori] of [['m', 'hetero'], ['f', 'hetero'], ['m', 'homo'], ['f', 'bi']]) {
+    for (let s = 1; s <= 25; s++) {
+      MV.rng.seed(s);
+      const g = uni(s, 21, { gender: pg, orientation: ori });
+      const v = showEv(g, 'uni_profe');
+      assert.ok(!BAD_TEXT.test(v.text), v.text);
+      MV.EV.choose(g, labelIdx(v, /Aceptar/));
+      const x = MV.rels(g, ['pareja', 'amante'])[0];
+      assert.ok(x && x.r.type === 'pareja' && x.r.prof === true, 'pareja con prof');
+      assert.ok(!x.n.schoolTeacher);
+      assert.ok(x.n.age >= 28 && x.n.age <= 60);
+      assert.match(x.n.job, /^Profesor(a)? universitari[oa]$/);
+      assert.strictEqual(x.n.job.endsWith('a'), x.n.gender === 'f');
+      assert.ok(MV.sys.rels.attracted(g.p, x.n));
+      assert.ok(x.r.rel >= 60 && x.r.rel <= 75);
+      assert.ok(v.text.includes(x.n.first), 'el texto nombra a quien se crea');
+    }
+  }
+  const g = uni(31, 21);
+  const sp = person(MV, g, 'conyuge', [], { gender: 'f', age: 24 });
+  const v = showEv(g, 'uni_profe');
+  const r = MV.EV.choose(g, labelIdx(v, /Aceptar/));
+  assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+  const lover = MV.rels(g, ['amante'])[0];
+  assert.ok(lover && lover.r.prof === true);
+  assert.ok(r.msg.includes(sp.n.first), 'infidelidad');
+  assert.strictEqual(MV.rels(g, ['pareja']).length, 0);
+  // las reglas de infidelidad de rels.yearly siguen valiendo
+  let found = 0;
+  for (let s = 1; s <= 200; s++) {
+    MV.rng.seed(s);
+    const h = uni(s, 21); const c = person(MV, h, 'conyuge', [], { gender: 'f', age: 24 });
+    const w = showEv(h, 'uni_profe'); MV.EV.choose(h, labelIdx(w, /Aceptar/));
+    h.queue = []; MV.sys.rels.yearly(h);
+    if (h.queue.length) found++;
+  }
+  assert.ok(found > 0, 'a veces te descubren');
+});
+
+test('contárselo a la facultad', () => {
+  const g = uni(40, 21); const k0 = g.p.karma, n0 = g.p.rels.length, ppl = Object.keys(g.people).length;
+  const v = showEv(g, 'uni_profe');
+  const r = MV.EV.choose(g, labelIdx(v, /facultad/));
+  assert.strictEqual(g.p.karma, k0 + 1);
+  assert.strictEqual(g.p.rels.length, n0);
+  assert.strictEqual(Object.keys(g.people).length, ppl, 'no se crea a nadie');
+  assert.match(r.msg, /sancionad/);
+  assert.ok(!BAD_TEXT.test(r.msg));
+});
+
+function comite(seed, type) {
+  const g = uni(seed, 21);
+  const x = person(MV, g, type || 'pareja', [], { gender: 'f', age: 40, job: 'Profesora universitaria' });
+  x.r.prof = true;
+  return { g, x };
+}
+test('el comité', () => {
+  let n = 0;
+  for (let s = 1; s <= 400; s++) {
+    MV.rng.seed(s);
+    const { g } = comite(s);
+    S().profYearly(g);
+    if (g.queue.some((q) => q.id === 'comite_etica')) n++;
+  }
+  assert.ok(n >= 72 && n <= 128, 'comités ' + n);
+  assert.strictEqual(MV.EV.byId.comite_etica.pushOnly, true);
+  // al salir a la luz se aplican los efectos, una sola vez
+  let g, x;
+  for (let s = 1; s < 100; s++) {
+    MV.rng.seed(s); ({ g, x } = comite(s));
+    const p0 = g.p.edu.perf; S().profYearly(g);
+    if (g.queue.length) { assert.strictEqual(g.p.edu.perf, Math.max(0, p0 - 10)); break; }
+  }
+  assert.match(x.n.job, /Profesora suspendida/);
+  assert.strictEqual(g.queue[0].ctx.target, x.n.id);
+  const p1 = g.p.edu.perf;
+  const v = MV.EV.view(g); MV.EV.view(g);
+  assert.strictEqual(g.p.edu.perf, p1, 'ver no cambia nada');
+  assert.ok(!BAD_TEXT.test(v.text), v.text);
+  assert.ok(v.text.includes(x.n.first));
+  // opciones
+  const run = (type, re) => {
+    let q; for (let s = 1; s < 100; s++) { MV.rng.seed(s); q = comite(s, type); S().profYearly(q.g); if (q.g.queue.length) break; }
+    q.g.p.edu.perf = 50;
+    const r = MV.EV.choose(q.g, labelIdx(MV.EV.view(q.g), re));
+    assert.ok(!BAD_TEXT.test(r.msg), r.msg);
+    return q;
+  };
+  let q = run('pareja', /Seguir/); assert.strictEqual(q.x.r.type, 'pareja'); assert.strictEqual(q.g.p.edu.perf, 50); assert.ok(q.x.r.prof);
+  q = run('pareja', /Terminar/); assert.strictEqual(q.x.r.type, 'ex'); assert.ok(!q.x.r.prof);
+  q = run('amante', /Terminar/); assert.strictEqual(q.x.r.type, 'ex'); assert.ok(!q.x.r.prof);
+  q = run('pareja', /cátedra/); assert.strictEqual(q.g.p.edu.perf, 55); assert.ok(!q.x.r.prof); assert.strictEqual(q.x.r.type, 'pareja');
+  const h = comite(5).g; h.p.edu.perf = 3; S().profYearly(h); assert.ok(h.p.edu.perf >= 0);
+});
+
+test('al recibirte queda normal', () => {
+  for (const how of ['graduate', 'drop']) {
+    const { g, x } = comite(50);
+    MV.sys.edu[how](g);
+    assert.ok(!MV.relOf(g, x.n.id).prof, how);
+  }
+  const { g, x } = comite(51);
+  MV.sys.edu.start(g, 'universidad', { major: 'derecho' }); g.p.edu.year = 4; g.p.edu.perf = 80;
+  MV.sys.edu.yearly(g);
+  assert.ok(!g.p.rels.some((r) => r.prof), 'yearly que gradúa');
+  // en la escuela no se toca
+  const s = student(MV, 52, 14); const m = person(MV, s, 'amigo'); m.r.prof = true;
+  MV.sys.edu.graduate(s);
+  assert.ok(m.r.prof, 'solo estudios superiores');
+});
+
+test('los textos del docente', () => {
+  const BAD2 = /sexo|desnud|cama/i;
+  for (const pg of ['m', 'f']) for (const ori of ['hetero', 'homo']) {
+    for (let s = 1; s <= 12; s++) {
+      MV.rng.seed(s);
+      const g = uni(60 + s, 22, { gender: pg, orientation: ori });
+      const v = showEv(g, 'uni_profe');
+      const all = [v.title, v.text, ...v.choices.map((c) => c.label + ' ' + (c.sub || ''))];
+      for (let i = 0; i < 3; i++) {
+        MV.rng.seed(s);
+        const h = uni(60 + s, 22, { gender: pg, orientation: ori });
+        const w = showEv(h, 'uni_profe'); all.push(MV.EV.choose(h, labelIdx(w, [/Aceptar/, /Rechazar/, /facultad/][i])).msg);
+        assert.ok(h.p.money >= 0);
+      }
+      for (const type of ['pareja', 'amante']) for (const re of [/Seguir/, /Terminar/, /cátedra/]) {
+        MV.rng.seed(s);
+        const { g: k, x } = comite(60 + s, type); x.n.gender = pg === 'm' ? 'f' : 'm'; if (ori === 'homo') x.n.gender = pg; x.n.job = x.n.gender === 'f' ? 'Profesora universitaria' : 'Profesor universitario';
+        k.p.gender = pg;
+        S().profYearly(k); if (!k.queue.length) k.queue.push({ id: 'comite_etica', ctx: { target: x.n.id } });
+        const w = MV.EV.view(k); all.push(w.title, w.text, ...w.choices.map((c) => c.label));
+        all.push(MV.EV.choose(k, labelIdx(w, re)).msg);
+        assert.ok(k.p.money >= 0);
+      }
+      for (const t of all) { assert.ok(!BAD_TEXT.test(t) && !BAD2.test(t), t); }
+    }
+  }
+});

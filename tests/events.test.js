@@ -68,8 +68,8 @@ test('todas las opciones de los eventos aleatorios se pueden ejecutar', () => {
   const MV = load({ seed: 21 });
   let covered = 0, total = 0;
   const uncovered = [];
-  // `acoso` solo existe con un acosador y los `esc_*` con un curso: se prueban con su contexto en el test de los manuales.
-  MV.EV.list.filter((d) => d.choices && !d.manual && d.id !== 'acoso' && !/^esc_/.test(d.id)).forEach((d, di) => {
+  // `acoso` solo existe con un acosador, los `esc_*` con un curso y `uni_profe`/`comite_etica` con estudios superiores: se prueban con su contexto aparte.
+  MV.EV.list.filter((d) => d.choices && !d.manual && d.id !== 'acoso' && d.id !== 'uni_profe' && d.id !== 'comite_etica' && !/^esc_/.test(d.id)).forEach((d, di) => {
     total++;
     const ages = [d.age[0], Math.round((d.age[0] + Math.min(d.age[1], 100)) / 2), Math.min(d.age[1], 100)];
     let found = null;

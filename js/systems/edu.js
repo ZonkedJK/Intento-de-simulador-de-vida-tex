@@ -57,8 +57,10 @@
       if (edu.inHigher(p) && e.perf < 15 && U.chance(0.35)) {
         MV.EV.info(g, { title: 'Expulsión', text: `Te expulsaron de ${edu.stageName(e)} por bajo rendimiento.`, icon: '🚪', scene: 'universidad' });
         e.stage = null; e.dropped = true; MV.fx.stat(g, 'happy', -12);
+        MV.sys.school.clearProf(g);
         return;
       }
+      if (edu.inHigher(p)) MV.sys.school.profYearly(g);
       if (!edu.inHigher(p) && e.perf < 20 && U.chance(0.35)) {
         e.year--;
         MV.log(g, 'Repetiste de año. Tus nuevos compañeros te miran como a un abuelo.', '🔁', 'bad');
@@ -80,6 +82,7 @@
       const st = e.stage, grade = MV.grade(e.perf);
       if (!e.done.includes(st)) e.done.push(st);
       e.stage = null;
+      if (['universidad', 'tecnica', 'posgrado'].includes(st)) MV.sys.school.clearProf(g);
       if (st === 'primaria') {
         MV.log(g, `Terminaste la primaria con promedio ${grade}. Ahora, la secundaria.`, '🎒', 'good');
         MV.sys.school.cleanup(g);
@@ -130,8 +133,9 @@
 
     drop(g) {
       const e = g.p.edu;
-      const name = edu.stageName(e);
+      const name = edu.stageName(e), higher = edu.inHigher(g.p);
       e.stage = null; e.dropped = true;
+      if (higher) MV.sys.school.clearProf(g);
       MV.sys.school.cleanup(g);
       MV.ach.unlock(g, 'abandono');
       return `Abandonaste ${name}. ${U.pick(['Libertad.', 'Tu madre no te habla.', 'Grandes genios también lo hicieron. Algunos.'])}`;

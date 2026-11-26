@@ -224,6 +224,20 @@
       }
     },
 
+    /** Cierre de año con estudios superiores: a veces sale a la luz un romance con un docente. */
+    profYearly(g) {
+      const p = g.p;
+      MV.rels(g, ['pareja', 'conyuge', 'amante']).forEach(({ n, r }) => {
+        if (!r.prof || !n.alive || !U.chance(0.25)) return;
+        n.job = U.gw(n.gender, 'Profesor suspendido', 'Profesora suspendida');
+        p.edu.perf = U.clamp((p.edu.perf || 0) - 10, 0, 100);
+        MV.EV.push(g, 'comite_etica', { target: n.id });
+      });
+    },
+
+    /** Al terminar o dejar un estudio superior, los romances con docentes vuelven a ser normales. */
+    clearProf(g) { g.p.rels.forEach((r) => { delete r.prof; }); },
+
     /**
      * Curso nuevo. `kind` fija cómo pasa la barra: 'stage' (cambio de etapa, por defecto),
      * 'repeat' (repetir: -5) o 'expel' (expulsión: -10). Sin barra, parte de la base.
