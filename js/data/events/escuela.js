@@ -58,10 +58,10 @@
     text: (g, ctx) => `Hay elecciones de delegado y varios compañeros te propusieron como candidat{o}. ${MV.person(g, ctx.target).first}, tu rival, ya empapeló el pasillo con carteles. Las promesas van desde "más recreo" hasta "una máquina de helados en el patio".`,
     choices: [
       { t: 'Presentarte con propuestas serias', eff: { p: (g) => clamp((bar(g) - 20) / 100 + g.p.stats.smarts / 500, 0.2, 0.9),
-        ok: { happy: 6, karma: 1, ach: 'delegado', then: pop(5), msg: 'Diste un discurso sobre los baños y el recreo largo. Ganaste por amplia mayoría: ahora eres el delegado del curso, con todo y brazalete.' },
+        ok: { happy: 6, karma: 1, ach: 'delegado', then: pop(5), msg: 'Diste un discurso sobre los baños y el recreo largo. Ganaste por amplia mayoría: ahora eres delegad{o} del curso, con todo y brazalete.' },
         ko: { happy: -3, then: pop(-2), msg: 'Tu discurso fue tan serio que a mitad de camino se durmieron hasta los de la primera fila. Ganó {t}.' } } },
       { t: 'Hacer campaña con memes y caramelos', eff: { p: (g) => clamp(bar(g) / 130 + g.p.skills.carisma / 300, 0.2, 0.85),
-        ok: { happy: 7, ach: 'delegado', skills: { carisma: 2 }, then: pop(5), msg: 'Tus memes del profe y tus caramelos hicieron milagros. Ganaste: eres el delegado del curso y ya tienes lista de pedidos.' },
+        ok: { happy: 7, ach: 'delegado', skills: { carisma: 2 }, then: pop(5), msg: 'Tus memes del profe y tus caramelos hicieron milagros. Ganaste: eres delegad{o} del curso y ya tienes lista de pedidos.' },
         ko: { happy: -4, then: pop(-3), msg: 'Te descalificaron por repartir caramelos en horario de clase. {t} ganó y te miró con aire de víctima.' } } },
       { t: 'Dejar que se presente otro', eff: { happy: -1, msg: 'Te quedaste mirando desde la última fila. Ganó {t} y ahora reparte tareas con cara de presidente.' } }
     ] });
@@ -77,8 +77,8 @@
       { t: 'Ir con un regalo', sub: '$30', when: (g, ctx) => ctx.mode === 'in' && g.p.money >= 30, eff: (g, ctx) => { fx.money(g, -30); fx.stat(g, 'happy', 6); S().pop(g, 3); bumpRel(g, ctx.target, 6); return 'Llevaste un regalo envuelto con tanto papel que {t} tardó más en abrirlo que en jugar con él. Fue un éxito.'; } },
       { t: 'Ir con las manos vacías', when: (g, ctx) => ctx.mode === 'in', eff: (g, ctx) => { fx.stat(g, 'happy', 4); S().pop(g, 3); bumpRel(g, ctx.target, 2); return 'Llegaste sin regalo, pero con muy buen humor, y te llevaste dos porciones de torta por las dudas.'; } },
       { t: 'Quedarte en casa estudiando', when: (g, ctx) => ctx.mode === 'in', eff: (g) => { fx.stat(g, 'happy', -1); perf(g, 2); return 'Te quedaste estudiando. La torta no se enteró y tus apuntes tampoco.'; } },
-      { t: 'Hacerte el distraído', when: (g, ctx) => ctx.mode === 'out', eff: (g) => { fx.stat(g, 'happy', -3); return 'Hiciste como si nada. En el recreo hablaste del clima con una intensidad sospechosa.'; } },
-      { t: 'Armar tu propio plan con tu mejor amigo', when: (g, ctx) => ctx.mode === 'out', eff: (g) => { const a = S().mate(g, 'amigo'); fx.stat(g, 'happy', 3); if (a) bumpRel(g, a.n.id, 6); return `${a ? `Tú y ${a.n.first}` : 'Tú'} se hicieron su propio festejo con pizza y una película de terror mala. Muy superior, según ustedes.`; } },
+      { t: 'Hacer como si nada', when: (g, ctx) => ctx.mode === 'out', eff: (g) => { fx.stat(g, 'happy', -3); return 'Hiciste como si nada. En el recreo hablaste del clima con una intensidad sospechosa.'; } },
+      { t: (g) => { const a = S().mate(g, 'amigo'); return a ? `Armar tu propio plan con ${lab(a.n, 'amigo')}` : 'Armar tu propio plan'; }, when: (g, ctx) => ctx.mode === 'out', eff: (g) => { const a = S().mate(g, 'amigo'); fx.stat(g, 'happy', 3); if (a) bumpRel(g, a.n.id, 6); return `${a ? `Tú y ${a.n.first}` : 'Tú'} se hicieron su propio festejo con pizza y una película de terror mala. Muy superior, según ustedes.`; } },
       { t: 'Preguntar sin vueltas por qué', when: (g, ctx) => ctx.mode === 'out', eff: { p: 0.5, ok: { happy: 1, rel: 8, msg: '{t} se puso colorad{to}: la invitación se había perdido entre mensajes. Te pidió perdón y te guardó torta.' }, ko: { happy: -4, msg: '{t} contestó: "ay, es que éramos pocos". Eran treinta.' } } }
     ] });
 
@@ -104,24 +104,27 @@
         ok: { happy: 5, rel: -3, then: pop(4), msg: 'Ganaste. {t} se fue murmurando que "fue de casualidad". Todo el curso lo vio y lo sabe.' },
         ko: { happy: -4, then: pop(-3), msg: 'Perdiste por muy poco, que es la forma más molesta de perder. {t} lo celebró como si fuera el Mundial.' } } },
       { t: 'Proponer un empate', eff: { karma: 1, rel: 6, happy: 1, msg: 'Propusiste un empate "por el bien de todos". {t} aceptó, desconfiad{to}, y por un día hubo paz en el patio.' } },
-      { t: 'Ignorar el desafío', eff: (g) => { fx.stat(g, 'happy', -1); S().pop(g, -2); return 'Te hiciste el sordo. {t} lo tomó como una victoria y se lo contó a medio colegio.'; } }
+      { t: 'Ignorar el desafío', eff: (g) => { fx.stat(g, 'happy', -1); S().pop(g, -2); return 'Hiciste oídos sordos. {t} lo tomó como una victoria y se lo contó a medio colegio.'; } }
     ] });
 
   // 5. El abusón te elige
-  esc({ id: 'esc_abuson', age: [6, 17], who: ['abuson'], icon: '😠', title: 'El abusón te elige',
+  esc({ id: 'esc_abuson', age: [6, 17], who: ['abuson'], icon: '😠', title: (g, ctx) => `${U.gw((MV.person(g, ctx.target) || {}).gender, 'El abusón', 'La abusona')} te elige`,
     w: (g) => (bar(g) <= MV.SCHOOL.LOW ? 3 : 1),
     text: (g) => secondary(g)
       ? '{t} te acorraló junto a los casilleros y te exigió que le pases la tarea, además de tus apuntes. "Total, tú entiendes", dijo, sin ningún argumento más.'
       : '{t} te frenó en el patio y te exigió la merienda: "como cada día". Nadie dijo que fuera costumbre, pero ya lo parece.',
     choices: [
-      { t: 'Contárselo al tutor', eff: { p: 0.6,
-        ok: { happy: 3, karma: 1, msg: 'El tutor habló con {t}. Ahora te mira de lejos, y sin gritar. Un avance.' },
-        ko: { happy: -6, then: (g, ctx) => { S().pop(g, -3); return markBully(g, ctx); }, msg: 'El tutor habló con {t}, pero {el} te llamó soplón delante de todos. Ahora te odia con motivo.' } } },
+      { t: (g) => { const t = S().teacher(g); return t ? `Contárselo ${U.gw(t.n.gender, 'al', 'a la')} ${t.n.job.toLowerCase()}` : 'Contárselo al tutor'; },
+        eff: (g, ctx) => {
+          if (U.chance(0.6)) { fx.stat(g, 'happy', 3); fx.stat(g, 'karma', 1); return `${cap(tutor(g))} habló con {t}. Ahora te mira de lejos, y sin gritar. Un avance.`; }
+          fx.stat(g, 'happy', -6); S().pop(g, -3); markBully(g, ctx);
+          return `${cap(tutor(g))} habló con {t}, pero {el} te llamó chivat{o} delante de todos. Ahora te odia con motivo.`;
+        } },
       { t: 'Plantarle cara', eff: { p: (g) => clamp(0.35 + g.p.skills.deporte / 150 + g.p.stats.health / 400, 0.1, 0.85),
-        ok: { happy: 8, karma: 1, rel: -4, then: pop(8), msg: 'Le dijiste "basta" sin parpadear. {t} se quedó callad{to}, miró alrededor y se fue. Eres leyenda en el recreo.' },
+        ok: { happy: 8, karma: 1, rel: -4, then: pop(8), msg: 'Le dijiste "basta" sin parpadear. {t} se quedó callad{to}, miró alrededor y se fue. Por un día, en el recreo no se habló de otra cosa.' },
         ko: { happy: -6, stress: 3, then: (g, ctx) => { S().pop(g, -5); return markBully(g, ctx); }, msg: 'Le dijiste "basta" con voz de ratón. {t} se rió, se llevó lo que quería y encima te sacó la lengua.' } } },
-      { t: 'Ignorarlo', eff: (g, ctx) => { fx.stat(g, 'happy', -4); S().pop(g, -1); markBully(g, ctx); return 'Hiciste como si {t} no existiera. Funcionó un día. Al siguiente {el} volvió, con más ganas.'; } },
-      { t: 'Hacerte su amigo', eff: { p: (g) => clamp(0.3 + g.p.skills.carisma / 150, 0.1, 0.8),
+      { t: 'Ignorarl{to}', eff: (g, ctx) => { fx.stat(g, 'happy', -4); S().pop(g, -1); markBully(g, ctx); return 'Hiciste como si {t} no existiera. Funcionó un día. Al siguiente {el} volvió, con más ganas.'; } },
+      { t: 'Hacerte su amig{o}', eff: { p: (g) => clamp(0.3 + g.p.skills.carisma / 150, 0.1, 0.8),
         ok: { happy: 5, rel: 15, skills: { carisma: 3 }, then: pop(3), msg: 'Le hiciste un chiste y se rió. Ahora te saluda en el pasillo y hasta te cuida la merienda.' },
         ko: { happy: -5, then: (g, ctx) => { S().pop(g, -3); return markBully(g, ctx); }, msg: 'Le contaste un chiste que no entendió y ahora cree que te burlaste de {el}. Mal comienzo para una amistad.' } } }
     ] });
@@ -131,8 +134,8 @@
     ctx: (g) => { const a = S().mate(g, 'abuson'); return { b: a ? a.n.first : 'alguien', be: a ? U.gw(a.n.gender, 'él', 'ella') : 'él' }; },
     text: '{b} le escondió los útiles a {t} y se ríe con dos amigos. {t} se quedó quiet{to}, colorad{to} hasta las orejas, sin saber qué hacer.',
     choices: [
-      { t: 'Defenderlo', eff: { p: (g) => clamp(0.45 + g.p.skills.carisma / 200 + g.p.skills.deporte / 400, 0.2, 0.85),
-        ok: { karma: 3, happy: 3, rel: 15, then: pop(3), msg: 'Le dijiste a {b} que lo dejara en paz. Por una vez, {be} te hizo caso, y {t} te miró como a un héroe de caricatura.' },
+      { t: 'Defenderl{to}', eff: { p: (g) => clamp(0.45 + g.p.skills.carisma / 200 + g.p.skills.deporte / 400, 0.2, 0.85),
+        ok: { karma: 3, happy: 3, rel: 15, then: pop(3), msg: 'Le dijiste a {b} que dejara en paz a {t}. Por una vez, {be} te hizo caso, y {t} te miró como si hubieras salvado el recreo.' },
         ko: { karma: 2, happy: -2, rel: 8, then: pop(-2), msg: 'Intentaste defender a {t}, pero {b} te dejó sin palabras. Al menos {t} vio que lo intentaste.' } } },
       { t: 'Mirar para otro lado', eff: (g, ctx) => { fx.stat(g, 'karma', -1); fx.stat(g, 'happy', -2); bumpRel(g, ctx.target, -4); return 'Miraste para otro lado. Te sentiste mal el resto del día, y la merienda no te ayudó.'; } },
       { t: 'Sumarte a la burla', eff: (g, ctx) => S().tease(g, ctx.target, 'burla') }
@@ -148,7 +151,7 @@
         eff: (g, ctx) => { const x = mateOf(g, ctx.target); if (U.chance(clamp(x.r.rel / 110 + g.p.skills.carisma / 300, 0.1, 0.85))) return MV.sys.rels.startDating(g, x.n); x.r.rel = clamp(x.r.rel - 5, 0, 100); fx.stat(g, 'happy', -3); return `Le propusiste salir y {t} contestó que "tiene que hacer la tarea". Tarea de qué, no aclaró.`; } },
       { t: 'Responder con un meme', eff: { rel: 8, happy: 3, msg: 'Le mandaste un meme de un gato en un monopatín. {t} respondió con tres emojis de risa y una pregunta sobre el gato.' } },
       { t: 'Compartir tu merienda en el recreo', eff: { rel: 10, happy: 4, msg: 'Compartieron una bolsa de papas en el recreo y se rieron de nada en particular. Fue mejor que cualquier cita en una película.' } },
-      { t: 'Hacerte el distraído', eff: { rel: -3, happy: -2, msg: 'Dejaste el mensaje sin responder. Tu mano temblaba y tu orgullo, también. Ya lo estás lamentando.' } }
+      { t: 'Fingir que no lo viste', eff: { rel: -3, happy: -2, msg: 'Dejaste el mensaje sin responder. Tu mano temblaba y tu orgullo, también. Ya lo estás lamentando.' } }
     ] });
 
   // 8. Pelea con tu mejor amigo
@@ -162,7 +165,7 @@
 
   // 9. El tutor ve tu talento
   const TALENT = {
-    musica: ['la música', 'un concurso de bandas entre escuelas'], deporte: ['el deporte', 'las olimpíadas deportivas interescolares'],
+    musica: ['la música', 'un concurso de bandas entre escuelas'], deporte: ['el deporte', 'unas olimpíadas deportivas interescolares'],
     cocina: ['la cocina', 'un concurso de cocina escolar'], programacion: ['la programación', 'una olimpíada de programación'],
     arte: ['el arte', 'un concurso de dibujo y pintura'], carisma: ['hablar en público', 'un torneo de oratoria'], idiomas: ['los idiomas', 'una olimpíada de idiomas']
   };
@@ -192,18 +195,18 @@
     choices: [
       { t: 'Admitir lo que hiciste', eff: (g) => { fx.stat(g, 'karma', 2); fx.stat(g, 'stress', 4); bumpParents(g, -3); return 'Dijiste la verdad, sin adornos. En casa suspiraron, pero te apretaron la mano al salir. Menos mal.'; } },
       { t: 'Poner cara de ángel', eff: { p: (g) => clamp(0.35 + g.p.skills.carisma / 200, 0.2, 0.8),
-        ok: { happy: 3, msg: 'Pusiste cara de ángel y hasta soltaste una lagrimita. Se lo creyeron todo. Eres un actor nato.' },
+        ok: { happy: 3, msg: 'Pusiste cara de ángel y hasta soltaste una lagrimita. Se lo creyeron todo. Tienes talento para la actuación.' },
         ko: { happy: -4, stress: 4, then: (g) => { bumpParents(g, -8); return ''; }, msg: 'La cara de ángel no convenció a nadie, y se nota. Te explicaron durante media hora lo que opinan de las caras de ángel.' } } },
-      { t: 'Echarle la culpa a otro', eff: { p: 0.3, karma: -3,
-        ok: { happy: 2, msg: 'Echaste la culpa a un compañero, y por esta vez coló. Tu conciencia te anda mirando con cara fea.' },
-        ko: { happy: -6, then: (g) => { bumpParents(g, -10); return ''; }, msg: 'Tu historia tenía tantos agujeros que se coló el ruido del viento. Terminaron sabiendo la verdad y la mentira.' } } }
+      { t: 'Echarle la culpa a otro', eff: { p: 0.3,
+        ok: { karma: -3, happy: 2, msg: 'Echaste la culpa a alguien del curso, y por esta vez coló. Tu conciencia te anda mirando con cara fea.' },
+        ko: { karma: -3, happy: -6, then: (g) => { bumpParents(g, -10); return ''; }, msg: 'Tu historia tenía tantos agujeros que se coló el ruido del viento. Terminaron sabiendo la verdad y la mentira.' } } }
     ] });
 
   // 11. Viste a alguien copiarse
   esc({ id: 'esc_copia', age: [8, 17], who: ['rival', 'comun', 'payaso', 'abuson'], icon: '📝', title: 'Machete en la manga',
     text: (g) => `En el examen ves que {t} mira un machete escondido en la manga. ${cap(tutor(g))} está de espaldas, borrando el pizarrón.`,
     choices: [
-      { t: 'Acusarlo', eff: (g, ctx) => { fx.stat(g, 'karma', 1); S().pop(g, -6); bumpRel(g, ctx.target, -15); const t = S().teacher(g); if (t) t.r.rel = clamp(t.r.rel + 5, 0, 100); return `Levantaste la mano y lo acusaste. ${cap(tutor(g))} le sacó el examen, y {t} te miró con cara de "esto no se queda así".`; } },
+      { t: 'Acusarl{to}', eff: (g, ctx) => { fx.stat(g, 'karma', 1); S().pop(g, -6); bumpRel(g, ctx.target, -15); const t = S().teacher(g); if (t) t.r.rel = clamp(t.r.rel + 5, 0, 100); return `Levantaste la mano y ${U.gw((MV.person(g, ctx.target) || {}).gender, 'lo', 'la')} acusaste. ${cap(tutor(g))} le sacó el examen, y {t} te miró con cara de "esto no se queda así".`; } },
       { t: 'Callarte', eff: { stress: 2, msg: 'Te callaste. Hasta el final del examen sentiste que alguien debía decir algo, y ese alguien no eras tú.' } },
       { t: 'Pedirle que te pase las respuestas', eff: (g) => {
         const t = S().teacher(g), K = (t && t.K) || {};
@@ -220,6 +223,6 @@
     choices: [
       { t: 'Reírte de ti', eff: (g) => { S().pop(g, -8); if (g.p.skills.carisma >= 40) { S().pop(g, 4); fx.stat(g, 'happy', 2); return 'Te reíste primero, te hiciste un sticker con la foto y hasta lo pusiste de foto de perfil. Recuperaste la mitad del respeto perdido.'; } fx.stat(g, 'happy', -2); return 'Te reíste, pero se notó que era una risa de las que duelen. La foto sigue dando vueltas.'; } },
       { t: 'Enojarte', eff: (g, ctx) => { S().pop(g, -8); fx.stat(g, 'happy', -4); fx.stat(g, 'stress', 4); bumpRel(g, ctx.target, -10); return 'Te enojaste a los gritos con {t}. Fue mucho peor: ahora hay una segunda foto, de tu cara enojada.'; } },
-      { t: 'Ignorarlo', eff: (g) => { S().pop(g, -8); fx.stat(g, 'stress', 2); return 'Hiciste como si la foto no existiera. En una semana nadie se acordaba. Bueno, casi nadie.'; } }
+      { t: 'Ignorar la foto', eff: (g) => { S().pop(g, -8); fx.stat(g, 'stress', 2); return 'Hiciste como si la foto no existiera. En una semana nadie se acordaba. Bueno, casi nadie.'; } }
     ] });
 })(window.MV = window.MV || {});

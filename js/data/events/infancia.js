@@ -125,12 +125,15 @@
       { t: 'Artes marciales', eff: { skills: { deporte: 6 }, health: 2, karma: 1, msg: 'Empezaste karate. Ahora rompes tablas (y una lámpara).' } },
       { t: 'Prefiero mi consola', eff: { happy: 3, health: -1, skills: { programacion: 1 }, msg: 'Elegiste la consola. Tus pulgares están en forma olímpica.' } }
     ] });
+  /** El rival del curso (o null), para que "él" y "ella" concuerden. */
+  const rivalOf = (g) => { const x = MV.sys.school.active(g.p) && MV.sys.school.mate(g, 'rival'); return x ? x.n : null; };
   ev({ id: 'pelea_patio', age: [6, 12], when: H.school, icon: '🥊', scene: 'escuela', title: 'Provocación',
-    text: (g) => { const rv = MV.sys.school.active(g.p) && MV.sys.school.mate(g, 'rival'); return `${rv ? `${rv.n.first}, tu rival,` : 'Un compañero'} dice que tu ${U.pick(['madre', 'padre'])} tiene cara de sapo.`; },
+    text: (g) => { const rv = rivalOf(g); return `${rv ? `${rv.first}, tu rival,` : 'Un compañero'} dice que tu ${U.pick(['madre', 'padre'])} tiene cara de sapo.`; },
     choices: [
-      { t: 'Ignorarlo', eff: { karma: 1, msg: 'Lo ignoraste. Él se aburrió y molestó a otro.' } },
+      { t: (g) => { const rv = rivalOf(g); return rv ? `Ignorar${U.gw(rv.gender, 'lo', 'la')}` : 'Ignorarlo'; },
+        eff: (g) => { fx.stat(g, 'karma', 1); const rv = rivalOf(g); return rv ? `${U.gw(rv.gender, 'Lo', 'La')} ignoraste. ${U.gw(rv.gender, 'Él', 'Ella')} se aburrió y molestó a otro.` : 'Lo ignoraste. Él se aburrió y molestó a otro.'; } },
       { t: 'Responder con un insulto creativo', eff: { p: (g) => 0.4 + g.p.skills.carisma / 100, ok: { happy: 5, skills: { carisma: 3 }, msg: 'Tu respuesta fue tan buena que todo el patio hizo "uuuuh". Ganaste.' }, ko: { happy: -3, msg: 'Te trabaste a la mitad del insulto. Se rieron de ti.' } } },
-      { t: 'Pelear', eff: { p: (g) => 0.45 + g.p.skills.deporte / 200, ok: { happy: 4, karma: -2, msg: 'Ganaste la pelea. Te suspendieron, pero valió la pena.' }, ko: { health: -5, happy: -5, msg: 'Perdiste la pelea y tu dignidad. Volviste a casa con un ojo morado.' } } }
+      { t: 'Armar un lío', eff: { p: (g) => 0.45 + g.p.skills.deporte / 200, ok: { happy: 4, karma: -2, msg: 'Se armó un lío en el patio y ganaste la discusión a los gritos. Los mandaron a la dirección, pero valió la pena.' }, ko: { health: -5, happy: -5, msg: 'Se armó un lío en el patio y perdiste la discusión y la dignidad. Terminaste en la dirección con un dolor de panza de pura vergüenza.' } } }
     ] });
   ev({ id: 'invento', age: [7, 12], icon: '💡', title: 'Un invento',
     text: (g) => `Se te ocurre un invento revolucionario: ${U.pick(['zapatillas con ruedas y frenos', 'un robot que hace la tarea', 'un paraguas para gatos', 'una máquina de hacer helado con la bici'])}.`,

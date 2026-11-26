@@ -1072,3 +1072,77 @@ test('el viejo pelea_patio nombra al rival y nerd_amigo usa al curso', () => {
   MV.EV.choose(o, 0);
   assert.strictEqual(Object.keys(o.people).length, pp + 1);
 });
+
+// — Tarea 8, ronda de correcciones 1 —
+/** Todo lo que se ve de un evento: título, texto, opciones y resultados de cada opción con el azar forzado en las dos ramas. */
+function everything(mk, id, withEvent) {
+  const out = [];
+  const g0 = mk();
+  const v0 = withEvent(g0, id);
+  out.push(v0.title, v0.text, ...v0.choices.map((c) => c.label + ' ' + (c.sub || '')));
+  v0.choices.forEach((c) => {
+    for (const val of [true, false]) {
+      const g = mk();
+      const v = withEvent(g, id);
+      const ci = v.choices.find((x) => x.label === c.label);
+      if (!ci) continue;
+      out.push(quiet(val, () => MV.EV.choose(g, ci.i)).msg);
+    }
+  });
+  return out;
+}
+const withOld = (g, id) => { MV.EV.push(g, id, {}, true); return MV.EV.view(g); };
+const evOf = (g, id) => (id === 'pelea_patio' ? withOld(g, id) : showEv(g, id));
+
+test('concordancia de género en los eventos de la escuela', () => {
+  const MASC = /el delegado|el distraído|el sordo|soplón|Ignorarlo|Defenderlo|Acusarlo|lo acusaste|un héroe|un actor|el tutor|El tutor|Él se|\bél\b|tu mejor amigo|Hacerte su amigo|que lo dejara|el abusón|El abusón|\bun compañero\b|el payaso|el profesor|el maestro|Lo ignoraste/;
+  const FEM = /la delegada|la distraída|la sorda|soplona|Ignorarla|Defenderla|Acusarla|la acusaste|una heroína|una actriz|la tutora|La tutora|Ella se|\bella\b|tu mejor amiga|Hacerte su amiga|la abusona|La abusona|una compañera|la payasa|la profesora|la maestra|Hacerte la|Eres la|La ignoraste/;
+  const mk = (pg, og) => (() => { const g = escScene(80, 15, 50); setGenders(g, pg, og); g.p.edu.susp = 1; g.p.skills.arte = 70; return g; });
+  const kids = (id) => id === 'pelea_patio' ? (() => { const g = escScene(80, 9, 50); return g; }) : null;
+  void kids;
+  for (const id of ESC.concat(['pelea_patio'])) {
+    const fem = everything(mk('f', 'f'), id, evOf);
+    fem.forEach((t) => { assert.ok(!BAD_TEXT.test(t), t); assert.ok(!MASC.test(t), `${id} (todas mujeres): "${t}" ->  ${t.match(MASC)}`); });
+    const masc = everything(mk('m', 'm'), id, evOf);
+    masc.forEach((t) => assert.ok(!FEM.test(t), `${id} (todos hombres): "${t}" -> ${t.match(FEM)}`));
+  }
+});
+
+test('sin fama en los resultados con la barra baja', () => {
+  const BIG = /leyenda|\brey\b|\breina\b|famos|popular/i;
+  for (const bar of [15, 69]) for (const id of ESC) {
+    const mk = () => { const g = escScene(81, 15, bar); g.p.edu.susp = 1; g.p.skills.arte = 70; return g; };
+    everything(mk, id, showEv).forEach((t) => assert.ok(!BIG.test(t.replace(/no eres popular/gi, '')), `${id}: ${t}`));
+  }
+});
+
+test('echarle la culpa a otro resta 3 de karma en las dos ramas', () => {
+  for (const val of [true, false]) {
+    const g = escScene(82, 14, 50); g.p.edu.susp = 1;
+    const k0 = g.p.karma;
+    const v = showEv(g, 'esc_citacion');
+    quiet(val, () => MV.EV.choose(g, labelIdx(v, /culpa/i)));
+    assert.strictEqual(g.p.karma, k0 - 3, 'rama ' + val);
+  }
+});
+
+test('las olimpíadas se leen bien y pelea_patio no describe heridas', () => {
+  const g = escScene(83, 14, 50); g.p.skills.deporte = 80;
+  Object.keys(g.p.skills).forEach((k) => { if (k !== 'deporte') g.p.skills[k] = 10; });
+  g.p.clubs = [];
+  const v = showEv(g, 'esc_talento');
+  assert.ok(!/Hay las /.test(v.text) && /unas olimpíadas/.test(v.text), v.text);
+  const INJURY = /ojo|sangre|golpe|pegó|pegaste|herid|moret/i;
+  for (const age of [9]) {
+    const mk = () => escScene(84, age, 50);
+    everything(mk, 'pelea_patio', evOf).forEach((t) => assert.ok(!INJURY.test(t), t));
+  }
+  // los efectos de pelear siguen siendo los mismos
+  const win = escScene(84, 9, 50), lose = escScene(84, 9, 50);
+  const vw = withOld(win, 'pelea_patio'), k0 = win.p.karma;
+  quiet(true, () => MV.EV.choose(win, vw.choices[2].i));
+  assert.strictEqual(win.p.karma, k0 - 2);
+  const h0 = lose.p.stats.health, vl = withOld(lose, 'pelea_patio');
+  quiet(false, () => MV.EV.choose(lose, vl.choices[2].i));
+  assert.strictEqual(lose.p.stats.health, h0 - 5);
+});
