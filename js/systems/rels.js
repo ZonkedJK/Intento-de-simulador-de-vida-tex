@@ -218,6 +218,13 @@
       r.rel = U.clamp(r.rel + d, 0, 100);
       MV.sys.memory.remember(g, n.id, 'regalo', gift.name, gift.price >= 500 ? 2 : 1);
       let extra = '';
+      let miser = '';
+      if (gift.price >= 1000 && MV.sys.persona.has(n, 'tacaño')) {
+        // Especial: a alguien tacaño un regalo caro le cae mejor y la reacción es toda suya.
+        r.rel = U.clamp(r.rel + 5, 0, 100);
+        MV.sys.persona.fire();
+        miser = U.chance(0.5) ? ` ${n.first} lo guarda sin abrir, para una ocasión especial. Lleva años esperando que llegue esa ocasión.` : ` ${n.first} calculó en voz baja cuánto costó y se emocionó ${U.gw(n.gender, 'solo', 'sola')}.`;
+      }
       if (gift.special === 'pet' && react !== 'hate') {
         const home = r.type === 'conyuge' || g.p.flags.convive === n.id || (r.type === 'hijo' && n.age < 18) || (r.type === 'padre' && g.p.age < 18);
         if (home) { const pet = MV.newPet(g, 'perro', { age: 0 }); MV.addRel(g, pet, 'mascota', U.int(60, 85)); MV.ach.check(g); extra = ` Ahora en casa hay un perrito: ${n.first} le puso ${pet.first}.`; }
@@ -231,7 +238,7 @@
         meh: [`${n.first} dijo "gracias" con la misma emoción que un lunes.`, `${n.first} lo aceptó por educación. Ya está pensando en a quién regalárselo.`],
         hate: [`A ${n.first} no le gustó nada. Silencio incómodo.`, `${n.first} te miró como si le hubieras regalado una piedra.`]
       }[react];
-      return `Le regalaste ${gift.name.toLowerCase()} (${U.money(gift.price)}). ${U.pick(line)}${extra}`;
+      return `Le regalaste ${gift.name.toLowerCase()} (${U.money(gift.price)}). ${U.pick(line)}${miser}${extra}`;
     },
 
     /** Acciones disponibles con una relación concreta. */
@@ -241,6 +248,13 @@
       if (r.type === 'acosador') return MV.sys.memory.stalkActions(g, r, n);
       const t = r.type, adult = p.age >= 18, human = n.species === 'humano';
       const A = (o) => list.push(MV.sys.persona.wrap(g, r, n, o));
+      /** Especial: un fiestero se aburre en las salidas tranquilas, pero algo de ruido hace igual. */
+      const quiet = (g, text) => {
+        if (!MV.sys.persona.has(n, 'fiestero')) return text;
+        MV.fx.stat(g, 'happy', 4); MV.fx.stat(g, 'stress', 3);
+        MV.sys.persona.fire();
+        return `${text} ${n.first} aguantó hasta las 10, ${U.gw(n.gender, 'convencido', 'convencida')} de que esto era una fiesta si se miraba con ganas, y terminó organizando una de verdad con los vecinos.`;
+      };
       if (!human) {
         A({ id: 'jugar', icon: '🎾', label: 'Jugar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Jugaste con ${n.first}. Te mordió con cariño.`, `${n.first} trajo la pelota 40 veces. Tú te cansaste primero.`, `${n.first} te ignoró olímpicamente, pero se notaba feliz.`]); } });
         if (n.species === 'perro') A({ id: 'pasear', icon: '🦮', label: 'Pasear', sub: '+salud para ambos', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(3, 8), 0, 100); MV.fx.stat(g, 'health', U.int(1, 3)); n.health = U.clamp(n.health + 3, 0, 100); return `Paseaste a ${n.first}. Olfateó cada poste del barrio.`; } });
@@ -253,7 +267,7 @@
         return list.filter((a) => !a.when || a.when(g));
       }
       A({ id: 'conversar', icon: '💬', label: 'Conversar', sub: '+relación', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(1, 6), 0, 100); return U.pick([`Hablaste con ${n.first} sobre la vida. ${U.cap(MV.relLabel(t, n).toLowerCase())} feliz.`, `Charlaron de todo y de nada con ${n.first}.`, `${n.first} te contó un chisme jugoso.`, `Hablaron del clima durante 20 minutos. Intensísimo.`]); } });
-      A({ id: 'tiempo', icon: '🫂', label: 'Pasar tiempo juntos', sub: '+relación, +felicidad', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return U.pick([`Pasaste la tarde con ${n.first}. ${U.pick(['Vieron una película malísima.', 'Cocinaron algo incomible y se rieron mucho.', 'Fueron a caminar por el parque.', 'Jugaron cartas y hubo trampas.'])}`]); } });
+      A({ id: 'tiempo', icon: '🫂', label: 'Pasar tiempo juntos', sub: '+relación, +felicidad', limit: 2, run: (g) => { r.rel = U.clamp(r.rel + U.int(4, 10), 0, 100); MV.fx.stat(g, 'happy', U.int(2, 5)); return quiet(g, U.pick([`Pasaste la tarde con ${n.first}. ${U.pick(['Vieron una película malísima.', 'Cocinaron algo incomible y se rieron mucho.', 'Fueron a caminar por el parque.', 'Jugaron cartas y hubo trampas.'])}`])); } });
       A({ id: 'cumplido', icon: '🌹', label: 'Hacer un cumplido', sub: 'Endulza el día', limit: 1, run: (g) => { if (U.chance(0.8)) { r.rel = U.clamp(r.rel + U.int(2, 6), 0, 100); return `Le dijiste a ${n.first} que ${U.pick(['tiene una sonrisa preciosa', 'es una persona increíble', 'cocina mejor que nadie', 'su corte de pelo le queda genial'])}. Se sonrojó.`; } r.rel = U.clamp(r.rel - 3, 0, 100); return `Intentaste decirle un cumplido a ${n.first} pero sonó raro. Muy raro.`; } });
       A({ id: 'regalo', icon: '🎁', label: 'Hacer un regalo', sub: 'Elige entre más de 35 regalos', limit: 1, ui: 'gift', relId: n.id,
         opts: (g) => rels.giftOptions(g, n.id).map((x) => ({ id: x.id, icon: x.icon, label: x.name, sub: U.money(x.price) })),
@@ -262,8 +276,11 @@
         run: (g) => {
           const generous = n.traits.includes('generoso') ? 0.25 : n.traits.includes('tacaño') ? -0.3 : 0;
           if (n.money > 100 && U.chance(U.clamp(r.rel / 120 + generous - (p.age > 30 ? 0.2 : 0), 0.05, 0.9))) {
-            const amt = Math.max(20, Math.round(Math.min(n.money * U.float(0.02, 0.15), 50000)));
+            let amt = Math.max(20, Math.round(Math.min(n.money * U.float(0.02, 0.15), 50000)));
+            const open = MV.sys.persona.has(n, 'generoso');
+            if (open) { amt = Math.round(amt * 1.5); MV.sys.persona.fire(); }
             n.money -= amt; MV.fx.money(g, amt); r.rel = U.clamp(r.rel - 3, 0, 100);
+            if (open) return `${n.first} te dio ${U.money(amt)} y todavía se disculpó por no poder más. Te hizo sentir culpa, que es su forma de cobrar intereses.`;
             return `${n.first} te dio ${U.money(amt)}. ${U.pick(['"No le digas a nadie."', '"La última vez, eh."', 'Lo anotó en una libreta.'])}`;
           }
           r.rel = U.clamp(r.rel - 6, 0, 100);
@@ -306,7 +323,17 @@
       }
       if (['amigo', 'companero', 'ex', 'enemigo'].includes(t) && rels.canRomance(g, n, r)) A({ id: 'coquetear', icon: '😏', label: t === 'ex' ? 'Intentar volver' : 'Coquetear', sub: 'Podría salir bien...', limit: 1,
         run: (g) => {
-          const ch = U.clamp(r.rel / 140 + (p.stats.looks - n.looks) / 250 + p.skills.carisma / 300 + (t === 'ex' ? -0.1 : 0) + (t === 'enemigo' ? -0.3 : 0), 0.05, 0.85);
+          let ch = U.clamp(r.rel / 140 + (p.stats.looks - n.looks) / 250 + p.skills.carisma / 300 + (t === 'ex' ? -0.1 : 0) + (t === 'enemigo' ? -0.3 : 0), 0.05, 0.85);
+          if (MV.sys.persona.has(n, 'tímido')) {
+            // Especial: la primera vez se esconde; al año siguiente tiene el doble de ganas.
+            MV.sys.persona.fire();
+            if (r.shy === undefined) {
+              r.shy = p.age;
+              r.rel = U.clamp(r.rel - 1, 0, 100);
+              return `Coqueteaste con ${n.first} y se puso ${U.gw(n.gender, 'rojo', 'roja')} como un tomate. Murmuró algo, tropezó con una silla y huyó. Dijo que no, pero el tropiezo suena a "quizás el año que viene".`;
+            }
+            if (p.age === r.shy + 1) ch = Math.min(0.95, ch * 2);
+          }
           if (U.chance(ch)) return rels.startDating(g, n);
           r.rel = U.clamp(r.rel - 8, 0, 100); MV.fx.stat(g, 'happy', -4);
           return `Coqueteaste con ${n.first}. ${U.pick(['Te dijo que te ve "como un hermano".', 'Se rió pensando que era un chiste.', 'Te dejó en visto. En persona.'])}`;
@@ -318,8 +345,8 @@
       if (ROMANTIC.includes(t) && adult && n.age >= 18) {
         A({ id: 'cena_casera', icon: '🕯️', label: 'Cocinarle una cena', sub: 'Depende de tu Cocina', limit: 1, run: (g) => {
           MV.fx.skill(g, 'cocina', 2);
-          if (U.chance(0.35 + p.skills.cocina / 120)) { bump(6, 12); return `Le cocinaste a ${n.first} una cena con velas. Pidió repetir el postre.`; }
-          bump(-2, 3); return `Quemaste la cena. ${n.first} pidió pizza y se rió de ti toda la noche. Igual fue lindo.`;
+          if (U.chance(0.35 + p.skills.cocina / 120)) { bump(6, 12); return quiet(g, `Le cocinaste a ${n.first} una cena con velas. Pidió repetir el postre.`); }
+          bump(-2, 3); return quiet(g, `Quemaste la cena. ${n.first} pidió pizza y se rió de ti toda la noche. Igual fue lindo.`);
         } });
         A({ id: 'poema', icon: '📝', label: 'Escribirle un poema', sub: 'Depende de tu Arte', limit: 1, run: (g) => {
           MV.fx.skill(g, 'arte', 2);
@@ -344,6 +371,15 @@
         } });
         A({ id: 'espiar_celular', icon: '🔍', label: 'Revisar su celular', sub: 'Arriesgado', limit: 1, run: (g) => {
           MV.fx.stat(g, 'karma', -2);
+          if (MV.sys.persona.has(n, 'celoso')) {
+            // Especial: alguien celoso siempre se da cuenta.
+            bump(-25, -15); r.rel = U.clamp(r.rel - 5, 0, 100);
+            MV.sys.memory.remember(g, n.id, 'espiar');
+            MV.sys.persona.fire();
+            const lover = MV.rels(g, 'amante')[0];
+            if (lover) MV.EV.push(g, 'infiel_descubierto', { target: n.id, lover: lover.n.first });
+            return `${n.first} te descubrió revisando su celular antes de que lo desbloquearas. Ya tenía la contraseña cambiada, una cámara escondida y un discurso de tres horas preparado.`;
+          }
           if (U.chance(0.3)) { bump(-25, -15); MV.sys.memory.remember(g, n.id, 'espiar'); return `${n.first} te descubrió revisando su celular. Discusión monumental.`; }
           if (U.chance(0.2)) { bump(-10, -5); MV.fx.stat(g, 'happy', -8); return `Encontraste mensajes sospechosos de ${n.first} con alguien llamado "Mecánico 2". Ahora no duermes.`; }
           MV.fx.stat(g, 'stress', -2); return 'Revisaste su celular. Solo había memes, fotos de comida y 400 capturas de pantalla de recetas.';
@@ -352,7 +388,7 @@
       // — Planes con familia y amigos —
       if (['amigo', 'padre', 'hermano', 'hijo', 'abuelo', 'companero', 'conyuge', 'pareja'].includes(t) && n.age >= 14 && p.age >= 14) {
         A({ id: 'comer_afuera', icon: '🍔', label: 'Salir a comer', sub: '$80', limit: 1, when: () => p.money >= 80 || p.age < 18, run: (g) => { if (p.age >= 18) MV.fx.money(g, -80); bump(4, 8); return `Salieron a comer con ${n.first}. ${U.pick(['Pidieron demasiado.', 'El mozo se equivocó con todo y igual dejaron propina.', 'Hablaron tres horas sin mirar el celular.'])}`; } });
-        A({ id: 'cine_juntos', icon: '🍿', label: 'Ir al cine juntos', sub: '+relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'happy', 2); return `Fueron al cine con ${n.first}. ${U.pick(['Se durmió a la mitad.', 'Lloraron los dos y fingieron que no.', 'Comentó toda la película. Toda.'])}`; } });
+        A({ id: 'cine_juntos', icon: '🍿', label: 'Ir al cine juntos', sub: '+relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'happy', 2); return quiet(g, `Fueron al cine con ${n.first}. ${U.pick(['Se durmió a la mitad.', 'Lloraron los dos y fingieron que no.', 'Comentó toda la película. Toda.'])}`); } });
         A({ id: 'gym_juntos', icon: '🏋️', label: 'Ir al gimnasio juntos', sub: '+salud, +relación', limit: 1, run: (g) => { bump(3, 7); MV.fx.stat(g, 'health', 2); n.health = U.clamp(n.health + 2, 0, 100); return `Entrenaron juntos con ${n.first}. Se motivaron mutuamente (y se quejaron mutuamente).`; } });
         A({ id: 'consejo', icon: '🧭', label: 'Pedir un consejo', sub: '+felicidad', limit: 1, run: (g) => { bump(2, 5); MV.fx.stat(g, 'happy', 3); MV.fx.stat(g, 'stress', -4); return `Le pediste consejo a ${n.first}. ${U.pick(['Te dijo justo lo que necesitabas escuchar.', 'Te contó una historia larguísima que, al final, tenía sentido.', 'Su consejo fue "hacé lo que sientas". Gracias.'])}`; } });
         A({ id: 'escuchar', icon: '👂', label: 'Escuchar sus problemas', sub: '+relación, +karma', limit: 1, run: (g) => { bump(5, 10); MV.fx.stat(g, 'karma', 2); MV.fx.skill(g, 'carisma', 1); MV.sys.memory.remember(g, n.id, 'apoyo'); return `Escuchaste a ${n.first} durante horas. Se sintió mucho mejor. Tú también.`; } });
@@ -389,12 +425,32 @@
       // Conflicto
       A({ id: 'discutir', icon: '😤', label: 'Discutir', sub: '-relación', limit: 1, run: (g) => { r.rel = U.clamp(r.rel - U.int(5, 12), 0, 100); MV.fx.stat(g, 'stress', 3); return U.pick([`Discutiste con ${n.first} por ${U.pick(['política', 'quién lava los platos', 'una deuda de hace años', 'el final de una serie', 'nada en particular'])}.`, `Le gritaste a ${n.first}. Te gritó más fuerte.`]); } });
       A({ id: 'insultar', icon: '🤬', label: 'Insultar', sub: '-relación, -karma', limit: 1, run: (g) => {
+          const was = r.rel;
           r.rel = U.clamp(r.rel - U.int(10, 20), 0, 100); MV.fx.stat(g, 'karma', -2);
           const said = U.pick(['tiene cara de papa hervida', 'su comida sabe a cartón', 'nadie ' + U.gw(n.gender, 'lo', 'la') + ' soporta', 'se viste como un sillón viejo']);
           MV.sys.memory.remember(g, n.id, 'insulto', said);
+          if (MV.sys.persona.has(n, 'dramático')) {
+            // Especial: alguien dramático se lo cuenta a todo el mundo.
+            MV.sys.persona.fire();
+            r.rel = U.clamp(was + Math.round((r.rel - was) * MV.sys.persona.factor(n, MV.ACTION_TAGS.insultar || [], -1)), 0, 100); // conserva el golpe doble
+            const humans = MV.rels(g).filter((x) => x.n.id !== n.id && x.n.species === 'humano' && x.r.type !== 'mascota' && x.r.type !== 'acosador');
+            const fam = humans.filter((x) => x.n.id === n.parentId || (x.n.parentId && x.n.parentId === n.parentId));
+            const heard = fam.length ? U.pick(fam) : (humans.filter((x) => x.r.type === 'amigo').length ? U.pick(humans.filter((x) => x.r.type === 'amigo')) : null);
+            if (!heard) return `Le dijiste a ${n.first} que ${said}. ${n.first} se llevó la mano al pecho, lo contó en todas sus redes y ahora lo sabe hasta el repartidor.`;
+            heard.r.rel = U.clamp(heard.r.rel - 5, 0, 100);
+            return `Le dijiste a ${n.first} que ${said}. Se llevó la mano al pecho, se desplomó en el sofá y llamó a ${heard.n.first} para contar la tragedia con detalles que no ocurrieron. ${heard.n.first} ahora te mira distinto.`;
+          }
           return `Le dijiste a ${n.first} que ${said}. Silencio incómodo.`;
         } });
-      A({ id: 'broma', icon: '🃏', label: 'Hacerle una broma', sub: 'Puede salir mal', limit: 1, run: (g) => { if (U.chance(0.55)) { r.rel = U.clamp(r.rel + 3, 0, 100); MV.fx.stat(g, 'happy', 4); return `Le pusiste sal al café de ${n.first}. Se rió (después de escupir).`; } r.rel = U.clamp(r.rel - 8, 0, 100); MV.sys.memory.remember(g, n.id, 'broma'); return `Tu broma a ${n.first} salió fatal. Ahora planea venganza.`; } });
+      A({ id: 'broma', icon: '🃏', label: 'Hacerle una broma', sub: 'Puede salir mal', limit: 1, run: (g) => { if (U.chance(0.55)) {
+          r.rel = U.clamp(r.rel + 3, 0, 100); MV.fx.stat(g, 'happy', 4);
+          if (MV.sys.persona.has(n, 'divertido')) {
+            // Especial: alguien divertido sabe reconocer una buena broma.
+            r.rel = U.clamp(r.rel + 5, 0, 100); MV.fx.stat(g, 'happy', 3); MV.sys.persona.fire();
+            return `Le pusiste sal al café de ${n.first}. Se rió tanto que casi se ahoga, y juró vengarse con algo peor. Entre ustedes, eso es amor.`;
+          }
+          return `Le pusiste sal al café de ${n.first}. Se rió (después de escupir).`;
+        } r.rel = U.clamp(r.rel - 8, 0, 100); MV.sys.memory.remember(g, n.id, 'broma'); return `Tu broma a ${n.first} salió fatal. Ahora planea venganza.`; } });
       if (p.age >= 8) A({ id: 'atacar', icon: '👊', label: 'Atacar', sub: 'Violencia: mala idea', limit: 1, confirm: `¿Atacar a ${n.first}?`,
         run: (g) => {
           r.rel = U.clamp(r.rel - U.int(25, 45), 0, 100); MV.fx.stat(g, 'karma', -8);
