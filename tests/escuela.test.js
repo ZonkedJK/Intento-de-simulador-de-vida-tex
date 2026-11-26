@@ -451,3 +451,168 @@ test('estudiar durante el año sube el rendimiento que calcula edu.yearly', () =
   };
   assert.strictEqual(run(2) - run(0), 10);
 });
+
+// — Tarea 6: ser el abusón —
+const bully = (g, id) => MV.sys.edu.actions(g).find((a) => a.id === id);
+const mkStudent = (seed, age, noTraits) => {
+  MV.rng.seed(seed);
+  const g = student(MV, seed, age);
+  if (noTraits) S().mates(g).forEach((x) => { x.n.traits = []; });
+  return g;
+};
+const victim = (g) => S().mates(g).find((x) => x.m.role === 'rival');
+const parentsOf = (g) => { const out = []; for (let i = 0; i < 2; i++) { const q = person(MV, g, 'padre'); q.r.rel = 60; out.push(q); } return out; };
+
+test('molestar a un compañero', () => {
+  const g = mkStudent(7, 9, true);
+  g.p.edu.pop = 50;
+  assert.ok(['burla', 'broma_pesada', 'merienda'].every((id) => bully(g, id)));
+  assert.ok(bully(g, 'burla').limit === 1);
+  const ch = MV.U.chance; MV.U.chance = () => false;
+  try {
+    for (const [id, pop, karma, rel, mem] of [['burla', 4, -3, 15, 'humillacion'], ['broma_pesada', 4, -2, 12, 'broma'], ['merienda', 0, -2, 10, 'humillacion']]) {
+      const h = mkStudent(8, 9, true); h.p.edu.pop = 50; h.p.stats.karma = 50;
+      const v = victim(h), before = v.r.rel, hap = h.p.stats.happy;
+      const t = bully(h, id).run(h, v.n.id);
+      assert.ok(!BAD_TEXT.test(t) && t.includes(v.n.first), t);
+      assert.strictEqual(h.p.edu.pop, 50 + pop);
+      assert.strictEqual(h.p.stats.karma, 50 + karma);
+      assert.strictEqual(v.r.rel, before - rel);
+      assert.ok(v.r.mem.some((m) => m.k === mem));
+      if (id === 'merienda') assert.strictEqual(h.p.stats.happy, hap + 2);
+    }
+  } finally { MV.U.chance = ch; }
+  const sec = mkStudent(9, 13, true);
+  assert.ok(!bully(sec, 'merienda') && bully(sec, 'burla'));
+});
+
+test('al mejor amigo no', () => {
+  const g = mkStudent(10, 9);
+  const am = S().mate(g, 'amigo');
+  for (const id of ['burla', 'broma_pesada', 'merienda']) {
+    const ids = bully(g, id).opts(g).map((o) => o.id);
+    assert.ok(ids.length >= 2 && !ids.includes(am.n.id));
+  }
+});
+
+test('te pillan', () => {
+  const g = mkStudent(11, 9, true);
+  g.p.edu.pop = 50; g.p.edu.perf = 60;
+  const ps = parentsOf(g);
+  const ch = MV.U.chance; MV.U.chance = () => true;
+  try { const t = bully(g, 'burla').run(g, victim(g).n.id); assert.ok(!BAD_TEXT.test(t), t); } finally { MV.U.chance = ch; }
+  assert.strictEqual(g.p.edu.pop, 52);
+  assert.strictEqual(g.p.edu.perf, 52);
+  ps.forEach((q) => assert.strictEqual(q.r.rel, 54));
+  assert.strictEqual(g.p.edu.susp, 1);
+});
+
+test('tres suspensiones y te cambian de escuela', () => {
+  const g = mkStudent(12, 9, true);
+  g.p.edu.pop = 60; g.p.edu.year = 2;
+  const oldT = S().teacher(g).n.id;
+  const ch = MV.U.chance; MV.U.chance = () => true;
+  let t;
+  try {
+    for (let i = 0; i < 3; i++) {
+      const sc = g.p.yearActs; delete sc.burla;
+      t = bully(g, 'burla').run(g, victim(g).n.id);
+    }
+  } finally { MV.U.chance = ch; }
+  assert.ok(!BAD_TEXT.test(t) && /expulsaron/.test(t), t);
+  assert.strictEqual(g.p.edu.susp, 0);
+  assert.strictEqual(g.p.edu.year, 2);
+  assert.strictEqual(g.p.edu.pop, 60 + 6 - 10);
+  assert.strictEqual(g.p.edu.bullied, 3);
+  assert.ok(S().teacher(g) && S().teacher(g).n.id !== oldT);
+  assert.ok(g.p.edu.stage === 'primaria');
+});
+
+test('abusón del curso', () => {
+  const g = mkStudent(13, 9, true);
+  assert.ok(!g.p.flags.abusador);
+  const ch = MV.U.chance; MV.U.chance = () => false;
+  try {
+    for (let i = 0; i < 3; i++) {
+      assert.ok(!g.p.flags.abusador || i === 3);
+      g.p.yearActs = {};
+      bully(g, 'broma_pesada').run(g, victim(g).n.id);
+    }
+  } finally { MV.U.chance = ch; }
+  assert.strictEqual(g.p.flags.abusador, true);
+  assert.strictEqual(g.p.edu.bullied, 3);
+});
+
+test('burlarte de alguien sensible', () => {
+  const rate = (traits) => {
+    let caught = 0, N = 400;
+    for (let s = 1; s <= N; s++) {
+      MV.rng.seed(s);
+      const g = student(MV, s, 9);
+      g.p.edu.class.teacher.kind = 'cansado';
+      const v = victim(g); v.n.traits = traits;
+      const t = bully(g, 'burla').run(g, v.n.id);
+      assert.ok(!BAD_TEXT.test(t), t);
+      if (g.p.edu.susp) caught++;
+    }
+    return caught / N;
+  };
+  const sens = rate(['sensible']), plain = rate([]);
+  assert.ok(sens >= 0.30 && sens <= 0.50, 'sensible ' + sens);
+  assert.ok(plain >= 0.17 && plain <= 0.33, 'sin rasgos ' + plain);
+  // texto propio, recuerdo de peso 3 y la relación se duplica
+  const g = mkStudent(14, 9);
+  const v = victim(g); v.n.traits = ['sensible']; v.r.rel = 50;
+  const ch = MV.U.chance; MV.U.chance = () => false;
+  let t;
+  try { t = bully(g, 'burla').run(g, v.n.id); } finally { MV.U.chance = ch; }
+  assert.match(t, /llorar/);
+  assert.strictEqual(v.r.rel, 20);
+  const m = v.r.mem.find((x) => x.k === 'humillacion');
+  assert.strictEqual(Math.abs(m.v), 3);
+});
+
+test('el abusón con nombre', () => {
+  let withAb = 0, without = 0;
+  for (let s = 1; s <= 40 && (withAb < 3 || without < 3); s++) {
+    MV.rng.seed(s);
+    const g = student(MV, s, 9);
+    const ab = S().mate(g, 'abuson');
+    const ev = MV.EV.byId.abuson;
+    if (ab) {
+      withAb++;
+      assert.ok(!ev.when(g));
+      g.p.flags.abuson = ab.n.id;
+      const a = MV.sys.edu.actions(g).find((x) => x.id === 'abuson');
+      let named = false, lost = false;
+      for (let k = 1; k <= 60 && !(named && lost); k++) {
+        MV.rng.seed(k); g.p.yearActs = {}; g.p.flags.abuson = ab.n.id; ab.r.rel = 30;
+        const t = a.run(g);
+        assert.ok(!BAD_TEXT.test(t) && t.includes(ab.n.first), t);
+        named = true;
+        if (g.p.flags.abuson) { lost = true; assert.strictEqual(ab.r.rel, 25); } else assert.strictEqual(ab.r.rel, 30);
+      }
+      assert.ok(lost);
+    } else {
+      without++;
+      assert.ok(ev.when(g), 'sin abusón el evento sale');
+      g.p.flags.abuson = true;
+      const t = MV.sys.edu.actions(g).find((x) => x.id === 'abuson').run(g);
+      assert.ok(!BAD_TEXT.test(t));
+    }
+  }
+  assert.ok(withAb >= 3 && without >= 3);
+  // sin curso, el evento sigue como hoy
+  const g0 = game(MV, 3, 8); MV.sys.edu.start(g0, 'primaria'); g0.p.edu.class = null;
+  assert.ok(MV.EV.byId.abuson.when(g0));
+});
+
+test('ninguna acción de abusón describe violencia', () => {
+  const FORBID = /golpe|sangre|pegó|pegaste|herid/i;
+  for (let s = 1; s <= 150; s++) {
+    MV.rng.seed(s);
+    const g = student(MV, s, 9);
+    if (s % 2) { const ch = MV.U.chance; MV.U.chance = () => true; try { for (const a of MV.sys.edu.actions(g)) if (['burla', 'broma_pesada', 'merienda'].includes(a.id)) { g.p.yearActs = {}; const v = victim(g); v.n.traits = s % 3 ? ['sensible'] : []; const t = a.run(g, v.n.id); assert.ok(!FORBID.test(t) && !BAD_TEXT.test(t), t); assert.ok(!FORBID.test(a.label + a.sub)); } } finally { MV.U.chance = ch; } }
+    else for (const a of MV.sys.edu.actions(g)) if (['burla', 'broma_pesada', 'merienda'].includes(a.id)) { const v = victim(g); const t = a.run(g, v.n.id); assert.ok(!FORBID.test(t) && !BAD_TEXT.test(t), t); }
+  }
+});

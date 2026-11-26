@@ -32,6 +32,7 @@
       e.stage = stage; e.year = 0; e.major = o.major || null; e.type = o.type || null;
       e.payer = o.payer || 'publica'; e.adult = !!o.adult;
       e.perf = U.clamp(Math.round(g.p.stats.smarts * 0.6 + 20), 10, 90);
+      e.susp = 0; e.bullied = 0;
       e.cost = o.cost || 0;
       if ((stage === 'primaria' || stage === 'secundaria') && !e.adult) MV.sys.school.restaff(g);
     },
@@ -312,8 +313,12 @@
       ];
       if (p.flags.abuson) list.push({ id: 'abuson', icon: '👊', label: 'Enfrentar al abusón', sub: 'Ya basta', limit: 1,
         run: (g) => {
-          if (U.chance(0.35 + p.skills.deporte / 150 + p.stats.health / 400)) { delete p.flags.abuson; pop(10); MV.fx.stat(g, 'happy', 12); MV.fx.stat(g, 'karma', 2); return 'Le plantaste cara al abusón. Se fue llorando. Eres leyenda en el recreo.'; }
-          MV.fx.stat(g, 'health', -U.int(4, 10)); MV.fx.stat(g, 'happy', -8); pop(-5); return 'Enfrentaste al abusón... y perdiste. Te robó la merienda y la dignidad.';
+          const ab = sc.active(p) ? sc.mate(g, 'abuson') : null;
+          const name = ab ? ab.n.first : null;
+          if (U.chance(0.35 + p.skills.deporte / 150 + p.stats.health / 400)) { delete p.flags.abuson; pop(10); MV.fx.stat(g, 'happy', 12); MV.fx.stat(g, 'karma', 2); return name ? `Le plantaste cara a ${name}. Se fue llorando. Eres leyenda en el recreo.` : 'Le plantaste cara al abusón. Se fue llorando. Eres leyenda en el recreo.'; }
+          MV.fx.stat(g, 'health', -U.int(4, 10)); MV.fx.stat(g, 'happy', -8); pop(-5);
+          if (ab) { ab.r.rel = U.clamp(ab.r.rel - 5, 0, 100); return `Enfrentaste a ${name}... y perdiste. Te robó la merienda y la dignidad.`; }
+          return 'Enfrentaste al abusón... y perdiste. Te robó la merienda y la dignidad.';
         } });
       if (higher) list.push({ id: 'fiesta_uni', icon: '🍻', label: 'Ir a una fiesta universitaria', sub: '+felicidad, -notas', limit: 2,
         run: (g) => {
@@ -323,7 +328,7 @@
         } });
       if ((e.stage === 'secundaria' && p.age >= 16) || higher || e.adult) list.push({ id: 'abandonar', icon: '🚪', label: 'Abandonar los estudios', sub: 'Sin vuelta atrás (por ahora)', limit: 1, confirm: '¿Seguro que quieres abandonar?',
         run: (g) => edu.drop(g) });
-      return list;
+      return sc.active(p) ? list.concat(sc.actions(g)) : list;
     }
   };
   MV.sys.edu = edu;

@@ -43,7 +43,7 @@
       { t: 'Ignorarlo', eff: { karma: -1, msg: 'Lo ignoraste. Se fue triste. Tú también un poco.' } }
     ] });
   ev({ id: 'diente_leche', age: [5, 8], once: true, icon: '🦷', text: 'Se te cayó un diente. El ratoncito te dejó {amount} debajo de la almohada.', auto: { happy: 3, money: [1, 20] } });
-  ev({ id: 'abuson', age: [6, 15], once: true, when: H.school, icon: '😠', scene: 'escuela', title: 'El abusón',
+  ev({ id: 'abuson', age: [6, 15], once: true, when: (g) => H.school(g) && !MV.sys.school.mate(g, 'abuson'), icon: '😠', scene: 'escuela', title: 'El abusón',
     text: 'Un chico más grande te exige tu merienda todos los días.',
     choices: [
       { t: 'Dársela', eff: { happy: -6, flag: 'abuson', msg: 'Le diste la merienda. Y mañana también. Y pasado...' } },

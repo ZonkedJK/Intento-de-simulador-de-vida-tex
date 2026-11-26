@@ -682,7 +682,7 @@ test('el jugador automático vive 20 vidas con inmuebles, seguros, jubilación y
   const MV = load({ seed: 310 });
   const done = new Set();
   let rented = 0, insured = 0, funds = 0;
-  for (let s = 310; s < 330; s++) {
+  for (let s = 330; s < 350; s++) {
     const g = MV.newGame({ seed: s });
     live(MV, g, { acts: 4, check: (gg) => {
       const p = gg.p;
