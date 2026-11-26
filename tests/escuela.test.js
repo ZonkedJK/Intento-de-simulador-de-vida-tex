@@ -1329,3 +1329,92 @@ test('firmar un contrato y dejar la universidad borra prof', () => {
   sign(/más dinero/, 'negociar con éxito', 1);
   sign(/más dinero/, 'firmar igual tras negociar', 0);
 });
+
+// ---- Tarea 10: heredero, partidas guardadas, vidas completas y equilibrio ----
+const agent = require('./agent');
+
+test('el heredero empieza su propio curso', () => {
+  const MV = load({ seed: 1001 });
+  const g = MV.newGame({ seed: 1001 }); g.p.age = 40; g.queue = [];
+  g.p.edu.pop = 95; g.p.edu.gpa = 9.1; g.p.edu.susp = 2; g.p.edu.bullied = 3; g.p.edu.lastBully = 20; g.p.edu.popEgreso = 80;
+  g.p.flags.abusador = true;
+  const kid = MV.newNPC(g, { age: 10, last: g.p.last }); MV.addRel(g, kid, 'hijo', 80);
+  MV.sys.legacy.die(g, 'una prueba');
+  const ng = MV.sys.legacy.continueAs(g, kid.id);
+  assert.strictEqual(ng.p.edu.stage, 'primaria');
+  for (const k of ['pop', 'gpa', 'susp', 'bullied', 'lastBully', 'popEgreso']) {
+    assert.ok(!ng.p.edu[k], 'no hereda ' + k + ': ' + ng.p.edu[k]);
+  }
+  ng.queue = [];
+  MV.ageUp(ng);
+  const t = MV.sys.school.teacher(ng);
+  assert.ok(t && t.r.type === 'profe', 'tutor propio');
+  assert.ok(MV.sys.school.mate(ng, 'amigo') && MV.sys.school.mate(ng, 'rival'), 'compañeros propios');
+  assert.ok(!ng.p.edu.gpa && !ng.p.edu.susp);
+  assert.ok(ng.p.edu.pop == null || ng.p.edu.pop < 95);
+  assert.ok(!ng.p.flags.abusador);
+});
+
+test('la partida guardada conserva todo', () => {
+  const MV = load({ seed: 1002 });
+  const g = student(MV, 1002, 15); g.p.edu.year = 3;
+  S().staff(g);
+  S().pop(g, 20);
+  g.p.edu.susp = 2; g.p.edu.gpa = 7.5;
+  const m = S().mate(g, 'amigo'); m.r.shy = true;
+  const u = person(MV, g, 'pareja'); u.r.prof = true;
+  const copy = JSON.parse(JSON.stringify(g));
+  assert.strictEqual(copy.p.edu.pop, g.p.edu.pop);
+  assert.strictEqual(copy.p.edu.susp, 2);
+  assert.strictEqual(copy.p.edu.gpa, 7.5);
+  assert.strictEqual(JSON.stringify(copy.p.edu.class), JSON.stringify(g.p.edu.class));
+  assert.ok(copy.p.rels.find((r) => r.id === m.n.id).shy);
+  assert.ok(copy.p.rels.find((r) => r.id === u.n.id).prof);
+  copy.queue = [];
+  MV.rng.setState ? MV.rng.setState(copy.rng) : MV.rng.seed(5);
+  MV.ageUp(copy);
+  assert.ok(copy.p.age === 16);
+  // Una partida de antes, sin nada de esto, tampoco falla.
+  const old = JSON.parse(JSON.stringify(student(MV, 1003, 13)));
+  delete old.p.edu.class; delete old.p.edu.pop; delete old.p.edu.gpa; delete old.p.edu.susp; delete old.p.edu.bullied; delete old.p.lastActs;
+  old.queue = [];
+  for (let i = 0; i < 6 && !old.over; i++) { MV.ageUp(old); old.queue = []; }
+  assert.ok(old.over || old.p.age >= 19);
+});
+
+test('30 vidas con escuela', () => {
+  let conGpa = 0;
+  for (let s = 800; s < 830; s++) {
+    const MV = load({ seed: s });
+    const g = agent.live(MV, MV.newGame({ seed: s }), { acts: 4 });
+    assert.ok(g.over, 'seed ' + s);
+    if (g.p.edu.gpa) conGpa++;
+  }
+  assert.ok(conGpa > 0, 'alguien egresa con gpa');
+});
+
+/** Vive hasta egresar de la secundaria (o morir) con la estrategia dada; cuenta las suspensiones. */
+function lifeToGrad(seed, mode) {
+  const MV = load({ seed });
+  const g = MV.newGame({ seed });
+  let susp = 0;
+  const orig = MV.sys.school._suspend;
+  MV.sys.school._suspend = function (gg) { susp++; return orig.call(this, gg); };
+  let reached = false;
+  agent.live(MV, g, { acts: 2, school: mode, check: (x) => { if (x.p.edu.popEgreso != null) { reached = true; x.over = true; } } });
+  return { pop: g.p.edu.popEgreso, karma: g.p.karma, susp, reached };
+}
+
+test('molestar no es la mejor manera de ser popular', () => {
+  const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  const res = { amable: [], abusona: [] };
+  for (const mode of ['amable', 'abusona']) for (let s = 900; s < 940; s++) res[mode].push(lifeToGrad(s, mode));
+  const ok = (m) => res[m].filter((r) => r.reached);
+  const pop = (m) => avg(ok(m).map((r) => r.pop)), karma = (m) => avg(res[m].map((r) => r.karma));
+  const withSusp = res.abusona.filter((r) => r.susp > 0).length;
+  if (process.env.MV_BALANCE) console.log({ popA: pop('amable'), popB: pop('abusona'), karmaA: karma('amable'), karmaB: karma('abusona'), withSusp, n: [ok('amable').length, ok('abusona').length] });
+  assert.ok(ok('amable').length >= 20 && ok('abusona').length >= 20, 'suficientes vidas llegan al egreso');
+  assert.ok(pop('abusona') <= pop('amable'), `popularidad ${pop('abusona')} vs ${pop('amable')}`);
+  assert.ok(karma('abusona') < karma('amable'), 'karma');
+  assert.ok(withSusp > res.abusona.length / 2, `suspensiones ${withSusp}/${res.abusona.length}`);
+});

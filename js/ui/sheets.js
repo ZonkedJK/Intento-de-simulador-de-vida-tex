@@ -65,8 +65,12 @@
       const e = p.edu;
       body.append(title('Estudios'), h('div', { class: 'box' },
         kv('Dónde', MV.sys.edu.stageName(e)), kv('Año', `${e.year + 1} de ${MV.sys.edu.yearsOf(e)}`), kv('Promedio', MV.grade(e.perf) + ' / 10'),
-        e.payer && e.cost ? kv('Pago', { padres: 'Tus padres', prestamo: 'Préstamo estudiantil', propio: 'Tu dinero' }[e.payer] || '-') : null),
+        e.payer && e.cost ? kv('Pago', { padres: 'Tus padres', prestamo: 'Préstamo estudiantil', propio: 'Tu dinero' }[e.payer] || '-') : null,
+        MV.sys.school.active(p) ? h('div', { class: 'kv' }, h('span', null, 'Popularidad'), h('span', { style: { width: '120px' } }, UI.bar(e.pop == null ? MV.sys.school.basePop(p) : e.pop))) : null),
+      MV.sys.school.active(p) ? classStaff(g) : '',
       UI.actionList(MV.sys.edu.actions(g)));
+    } else if (p.edu.gpa != null) {
+      body.append(title('Estudios'), h('div', { class: 'box' }, kv('Promedio de egreso', MV.grade(p.edu.gpa) + ' / 10')));
     }
     // Club deportivo (amateur)
     const clubs = MV.sys.edu.clubsOf(p);
@@ -120,6 +124,24 @@
     if (p.age >= 18 && !p.business && MV.sys.company.count(p) < MV.sys.company.MAX) opts.append(UI.row('🏪', 'Abrir un negocio', 'Sé tu propio jefe', null, () => UI.showBusiness()));
     body.append(opts);
     if (p.age >= 16) body.append(title('Encargos freelance'), h('div', { id: 'work-freelance' }, UI.actionList([MV.sys.workplace.freelanceAction(g)])));
+  }
+
+  /** Tutor (carácter) y compañeros con su papel; tocar a alguien abre su ficha. */
+  function classStaff(g) {
+    const SC = MV.sys.school, T = SC.teacher(g), mates = SC.mates(g);
+    if (!T && !mates.length) return '';
+    const list = h('div', { class: 'list', id: 'class-staff' });
+    if (T) {
+      const K = MV.TEACHER_KINDS[T.kind];
+      list.append(UI.row(UI.avatar(T.n, 40), `${U.gw(T.n.gender, '🧑‍🏫 Tu tutor', '🧑‍🏫 Tu tutora')}: ${MV.fullName(T.n)}`, K ? `${K.icon} ${MV.gt(K.name, T.n.gender)}` : (T.n.job || 'Tutor'),
+        h('span', { class: 'relbar' }, UI.bar(T.r.rel)), () => UI.showPerson(T.n.id)));
+    }
+    mates.forEach(({ n, r, m }) => {
+      const R = MV.CLASS_ROLES[m.role];
+      list.append(UI.row(UI.avatar(n, 40), MV.fullName(n), R ? `${R.icon} ${MV.gt(R.name, n.gender)}` : U.gw(n.gender, 'Compañero del curso', 'Compañera del curso'),
+        h('span', { class: 'relbar' }, UI.bar(r.rel)), () => UI.showPerson(n.id)));
+    });
+    return h('div', null, title('Tu curso'), list);
   }
 
   /** Jefe (carácter y relación) y compañeros con su rol; tocar a alguien abre su ficha. */

@@ -61,6 +61,27 @@ function socialAct(MV, g) {
   }
 }
 
+/** Vida escolar (solo con `school`): 'amable' hace amigos, se une a un club y estudia; 'abusona' usa las acciones de abusón. */
+function schoolAct(MV, g, mode) {
+  const p = g.p;
+  if (p.prison || !MV.sys.school.active(p)) return;
+  const acts = MV.sys.edu.actions(g);
+  const go = (id, n) => {
+    const a = acts.find((x) => x.id === id);
+    if (!a) return;
+    for (let i = 0; i < (n || 1) && !g.over; i++) {
+      p.yearActs = p.yearActs || {};
+      if ((p.yearActs[id] || 0) >= (a.limit || 1)) return;
+      const os = a.opts ? (a.opts(g) || []).filter((x) => !/^(Ya |Ya estás)/.test(x.sub || '')) : [undefined];
+      if (!os.length) return;
+      const o = os[0] === undefined ? undefined : MV.U.pick(os).id;
+      MV.doAction(g, a, o, p.yearActs);
+    }
+  };
+  if (mode === 'amable') { go('amigos', 2); go('club'); go('estudiar', 3); }
+  else if (mode === 'abusona') { ['burla', 'broma_pesada', 'merienda'].forEach((id) => go(id)); }
+}
+
 function special(MV, g, social) {
   const U = MV.U, p = g.p;
   if (p.prison || p.age < 14) return;
@@ -221,6 +242,7 @@ function live(MV, g, o) {
       resolveQueue(MV, g);
       if (o.check) o.check(g);
     }
+    if (o.school) { schoolAct(MV, g, o.school); resolveQueue(MV, g); }
     if (o.social) for (let i = 0; i < 3 && !g.over; i++) { socialAct(MV, g); resolveQueue(MV, g); }
     if (g.over) break;
     resolveQueue(MV, g);

@@ -608,6 +608,44 @@ const SHOTS = process.argv[2] || null;
     await resolve();
     await page.evaluate(() => MV.UI.closeAll());
   }
+  // Vida escolar — Popularidad y "Tu curso" en Ocupación, fichas del rival y del tutor, y el promedio de egreso
+  {
+    const sheetText = () => page.evaluate(() => document.querySelector('#layer .layer-item:last-child .sheet-body').textContent);
+    const bad = /null|undefined|NaN|\[object/;
+    const st = await page.evaluate(() => {
+      MV.UI.closeAll(); const g = MV.UI.g; g.queue = []; g.p.prison = null; g.over = false; g.p.age = 13; g.p.gender = 'm'; g.p.orientation = 'hetero';
+      g.p.rels = g.p.rels.filter((r) => r.type === 'padre' || r.type === 'madre'); g.p.job = null; g.p.business = null; g.p.yearActs = {};
+      g.p.edu = { stage: null, year: 0, perf: 60, major: null, done: ['primaria'], degrees: [], dropped: false };
+      MV.sys.edu.start(g, 'secundaria'); g.p.edu.year = 1;
+      MV.sys.school.staff(g);
+      const SC = MV.sys.school, rv = SC.mate(g, 'rival'), am = SC.mate(g, 'amigo'), t = SC.teacher(g);
+      rv.n.gender = 'm'; // no le gusta
+      MV.UI.save(); MV.UI.refreshGame(); MV.UI.showWork();
+      return { rival: rv.n.id, rivalName: rv.n.first, friend: am.n.first, teacher: t.n.first, tid: t.n.id };
+    });
+    await page.waitForSelector('#class-staff');
+    const txt = await sheetText();
+    for (const w of ['Popularidad', 'Tu curso', st.friend, st.teacher, 'mejor amig', 'rival']) if (!txt.includes(w)) errors.push('Ocupación no muestra "' + w + '" con un alumno de 13 años');
+    if (!(await page.$('#layer .layer-item:last-child .sheet-body .kv .bar'))) errors.push('Ocupación no muestra la barra de popularidad');
+    if (bad.test(txt)) errors.push('Ocupación muestra texto roto en la escuela: ' + txt.slice(0, 300));
+    await page.click(`#class-staff .row:has-text("${st.rivalName}")`);
+    await page.waitForSelector('.sheet-head h2:has-text("Relación")', { timeout: 2000 }).catch(() => errors.push('Tocar al rival no abre su ficha'));
+    const rivTxt = await sheetText();
+    if (/Coquetear/.test(rivTxt)) errors.push('La ficha del rival ofrece "Coquetear" sin gustarle');
+    if (bad.test(rivTxt)) errors.push('La ficha del rival muestra texto roto');
+    await page.evaluate((id) => { MV.UI.closeSheets(); MV.UI.showPerson(id); }, st.tid);
+    await page.waitForSelector('#layer .layer-item:last-child .sheet-body');
+    const tTxt = await sheetText();
+    if (/Coquetear/.test(tTxt)) errors.push('La ficha del tutor ofrece "Coquetear"');
+    if (bad.test(tTxt)) errors.push('La ficha del tutor muestra texto roto');
+    // Sin estudios y con promedio de egreso
+    await page.evaluate(() => { MV.UI.closeAll(); const g = MV.UI.g; g.p.edu.stage = null; g.p.edu.gpa = 72; g.p.edu.done = ['primaria', 'secundaria']; g.queue = []; MV.UI.save(); MV.UI.refreshGame(); MV.UI.showWork(); });
+    await page.waitForSelector('#layer .layer-item:last-child .sheet-body');
+    const gTxt = await sheetText();
+    if (!/Promedio de egreso/.test(gTxt) || !/7,5/.test(gTxt)) errors.push('Ocupación no muestra el promedio de egreso: ' + gTxt.slice(0, 200));
+    if (/Tu curso|Popularidad/.test(gTxt) || bad.test(gTxt)) errors.push('Ocupación muestra el curso sin estudios o texto roto');
+    await page.evaluate(() => MV.UI.closeAll());
+  }
   // Avanzar 5 años: se detiene en cada decisión o aviso (nunca saltea una)
   let stopped = 0;
   for (let t = 0; t < 4; t++) {
