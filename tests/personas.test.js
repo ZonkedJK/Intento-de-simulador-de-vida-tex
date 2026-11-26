@@ -419,10 +419,12 @@ test('las siete especiales', () => {
   {
     const realR = MV.giftReaction; MV.giftReaction = () => 'hate';
     try {
-      for (let s = 1; s <= 10; s++) {
-        const a = setup(s, ['tacaño']), b = setup(s, []);
+      for (let s = 1; s <= 10; s++) for (const gender of ['f', 'm']) {
+        const a = setup(s, ['tacaño'], 'amigo', { gender }), b = setup(s, [], 'amigo', { gender });
         const ba = a.r.rel, bb = b.r.rel;
-        MV.rng.seed(s); const ma = a.act('regalo', g1.id); MV.rng.seed(s); b.act('regalo', g1.id);
+        MV.rng.seed(s); const ma = a.act('regalo', g1.id);
+        if (gender === 'f') assert.ok(/la consoló/.test(ma) && !/lo consoló/.test(ma), ma);
+        else assert.ok(/lo consoló/.test(ma) && !/la consoló/.test(ma), ma); MV.rng.seed(s); b.act('regalo', g1.id);
         clean(ma);
         assert.ok(!/emocion/.test(ma), ma);
         assert.ok(/no le gustó|piedra/.test(ma), ma);

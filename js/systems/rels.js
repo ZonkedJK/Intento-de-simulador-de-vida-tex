@@ -223,7 +223,7 @@
         // Especial: a alguien tacaño un regalo caro le cae mejor y la reacción es toda suya.
         r.rel = U.clamp(r.rel + 5, 0, 100);
         MV.sys.persona.fire();
-        if (react === 'hate') miser = ` Igual ${n.first} calculó en voz baja cuánto te costó, y eso lo consoló un poco.`;
+        if (react === 'hate') miser = ` Igual ${n.first} calculó en voz baja cuánto te costó, y eso ${U.gw(n.gender, 'lo', 'la')} consoló un poco.`;
         else miser = U.chance(0.5) ? ` ${n.first} lo guarda sin abrir, para una ocasión especial. Lleva años esperando que llegue esa ocasión.` : ` ${n.first} calculó en voz baja cuánto costó y se emocionó ${U.gw(n.gender, 'solo', 'sola')}.`;
       }
       if (gift.special === 'pet' && react !== 'hate') {
