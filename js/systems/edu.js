@@ -51,6 +51,7 @@
       const acts = p.yearActs;
       const bonus = (acts.estudiar || 0) * 5 - (acts.faltar || 0) * 7 - (p.addic.drogas > 40 ? 10 : 0);
       e.perf = U.clamp(Math.round(e.perf * 0.5 + (S.smarts * 0.6 + 20 + U.int(-14, 14)) * 0.5 + bonus), 0, 100);
+      if (MV.sys.school.active(p)) MV.sys.school.yearly(g);
       if (e.year >= edu.yearsOf(e)) { edu.graduate(g); return; }
       if (edu.inHigher(p) && e.perf < 15 && U.chance(0.35)) {
         MV.EV.info(g, { title: 'Expulsión', text: `Te expulsaron de ${edu.stageName(e)} por bajo rendimiento.`, icon: '🚪', scene: 'universidad' });
@@ -61,7 +62,7 @@
         e.year--;
         MV.log(g, 'Repetiste de año. Tus nuevos compañeros te miran como a un abuelo.', '🔁', 'bad');
         MV.fx.stat(g, 'happy', -6);
-        MV.sys.school.restaff(g);
+        MV.sys.school.restaff(g, 'repeat');
       }
     },
 
@@ -253,9 +254,14 @@
       const p = g.p, e = p.edu;
       if (!e.stage) return [];
       const higher = edu.inHigher(p);
+      // Escuela común: tutor y popularidad. Fuera de ella, nada de esto aplica.
+      const sc = MV.sys.school;
+      const tutor = () => (sc.active(p) ? sc.teacher(g) : null);
+      const K = () => { const t = tutor(); return t ? t.K : {}; };
+      const pop = (d) => { if (sc.active(p)) sc.pop(g, d); };
       const list = [
         { id: 'estudiar', icon: '📚', label: 'Estudiar más', sub: 'Mejora tus notas e inteligencia', limit: 3,
-          run: (g) => { MV.fx.stat(g, 'smarts', U.int(1, 3)); MV.fx.stat(g, 'stress', 3); e.perf = U.clamp(e.perf + U.int(3, 8), 0, 100); return U.pick(['Estudiaste hasta tarde. Tu cerebro cruje.', 'Hiciste resúmenes de colores. Sientes que eres otra persona.', 'Te quedaste dormido sobre el libro, pero algo entró por ósmosis.']); } },
+          run: (g) => { MV.fx.stat(g, 'smarts', U.int(1, 3)); MV.fx.stat(g, 'stress', 3); e.perf = U.clamp(e.perf + U.int(3, 8) + (K().study || 0), 0, 100); return U.pick(['Estudiaste hasta tarde. Tu cerebro cruje.', 'Hiciste resúmenes de colores. Sientes que eres otra persona.', 'Te quedaste dormido sobre el libro, pero algo entró por ósmosis.']); } },
         { id: 'faltar', icon: '🛹', label: 'Faltar a clases', sub: 'Más diversión, peores notas', limit: 3,
           run: (g) => {
             MV.fx.stat(g, 'happy', U.int(2, 6)); e.perf = U.clamp(e.perf - U.int(4, 9), 0, 100);
@@ -263,15 +269,21 @@
             return U.pick(['Faltaste a clases y fuiste a la plaza. Valió la pena.', 'Te escapaste de clase. El profesor ni lo notó.']);
           } },
         { id: 'profesor', icon: '🧑‍🏫', label: 'Hablar con el profesor', sub: 'Puede ayudar... o no', limit: 1,
-          run: (g) => U.pick([
-            () => { e.perf = U.clamp(e.perf + 6, 0, 100); return 'El profesor te dio consejos útiles y te tiene más estima.'; },
-            () => { MV.fx.stat(g, 'happy', -3); return 'El profesor te habló 30 minutos de su divorcio. No aprendiste nada.'; },
-            () => { MV.fx.stat(g, 'smarts', 2); return 'Tuvieron una charla inspiradora. Quieres saber más de todo.'; }
-          ])() },
+          run: (g) => {
+            const t = tutor();
+            const who = t ? `${U.gw(t.n.gender, 'el', 'la')} ${t.n.job.toLowerCase()} ${t.n.first}` : 'el profesor';
+            const Who = who.charAt(0).toUpperCase() + who.slice(1);
+            const bump = (d) => { if (t) t.r.rel = U.clamp(t.r.rel + d, 0, 100); };
+            return U.pick([
+              () => { e.perf = U.clamp(e.perf + 6, 0, 100); bump(5); return t ? `${Who} te dio consejos útiles y te tiene más estima.` : 'El profesor te dio consejos útiles y te tiene más estima.'; },
+              () => { MV.fx.stat(g, 'happy', -3); bump(-3); return t ? `${Who} te habló 30 minutos de su divorcio. No aprendiste nada.` : 'El profesor te habló 30 minutos de su divorcio. No aprendiste nada.'; },
+              () => { MV.fx.stat(g, 'smarts', 2); return t ? `${Who} y tú tuvieron una charla inspiradora. Quieres saber más de todo.` : 'Tuvieron una charla inspiradora. Quieres saber más de todo.'; }
+            ])();
+          } },
         { id: 'trampa', icon: '📝', label: 'Hacer trampa en un examen', sub: 'Arriesgado', limit: 1,
           run: (g) => {
-            if (U.chance(0.55 + p.skills.crimen / 200)) { e.perf = U.clamp(e.perf + 12, 0, 100); MV.fx.stat(g, 'karma', -3); MV.fx.skill(g, 'crimen', 1); return 'Copiaste del de al lado. Sacaste mejor nota que él.'; }
-            e.perf = U.clamp(e.perf - 15, 0, 100); MV.fx.stat(g, 'happy', -8);
+            if (U.chance(0.55 + p.skills.crimen / 200 + (K().cheat || 0))) { e.perf = U.clamp(e.perf + 12, 0, 100); MV.fx.stat(g, 'karma', -3); MV.fx.skill(g, 'crimen', 1); return 'Copiaste del de al lado. Sacaste mejor nota que él.'; }
+            e.perf = U.clamp(e.perf - 15, 0, 100); MV.fx.stat(g, 'happy', -8); pop(-4);
             return 'Te atraparon con un machete escrito en el brazo. Cero y citación a tus padres.';
           } },
         { id: 'club', icon: '🏅', label: higher ? 'Unirte a un equipo o club' : 'Unirte a un club o taller', sub: `Hasta ${MAX_CLUBS} a la vez (deportes y talleres)`, limit: MAX_CLUBS,
@@ -289,18 +301,19 @@
           run: (g, opt) => edu.leaveClub(g, opt) },
         { id: 'amigos', icon: '🤝', label: 'Hacer amigos', sub: 'Conoce a tus compañeros', limit: 2,
           run: (g) => {
-            const chance = 0.35 + p.skills.carisma / 200 + p.stats.looks / 400;
+            const low = sc.active(p) && sc.pop(g, 0) <= MV.SCHOOL.LOW;
+            const chance = 0.35 + p.skills.carisma / 200 + p.stats.looks / 400 - (low ? 0.1 : 0);
             if (!U.chance(chance)) { MV.fx.stat(g, 'happy', -2); return U.pick(['Intentaste unirte a un grupo y te ignoraron. Duele.', 'Contaste un chiste. Nadie se rió. Silencio absoluto.']); }
             const f = MV.newNPC(g, { age: p.age + U.int(-1, 1), country: p.country, money: 0, job: higher ? 'Estudiante universitario' : 'Estudiante' });
             MV.addRel(g, f, 'amigo', U.int(45, 75));
-            MV.fx.skill(g, 'carisma', 2);
+            MV.fx.skill(g, 'carisma', 2); pop(3);
             return `Te hiciste amig${f.gender === 'f' ? 'a' : 'o'} de ${f.first}. ${U.pick(['Tienen el mismo humor raro.', 'Comparten la merienda.', 'Se conocieron odiando al mismo profesor.'])}`;
           } }
       ];
       if (p.flags.abuson) list.push({ id: 'abuson', icon: '👊', label: 'Enfrentar al abusón', sub: 'Ya basta', limit: 1,
         run: (g) => {
-          if (U.chance(0.35 + p.skills.deporte / 150 + p.stats.health / 400)) { delete p.flags.abuson; MV.fx.stat(g, 'happy', 12); MV.fx.stat(g, 'karma', 2); return 'Le plantaste cara al abusón. Se fue llorando. Eres leyenda en el recreo.'; }
-          MV.fx.stat(g, 'health', -U.int(4, 10)); MV.fx.stat(g, 'happy', -8); return 'Enfrentaste al abusón... y perdiste. Te robó la merienda y la dignidad.';
+          if (U.chance(0.35 + p.skills.deporte / 150 + p.stats.health / 400)) { delete p.flags.abuson; pop(10); MV.fx.stat(g, 'happy', 12); MV.fx.stat(g, 'karma', 2); return 'Le plantaste cara al abusón. Se fue llorando. Eres leyenda en el recreo.'; }
+          MV.fx.stat(g, 'health', -U.int(4, 10)); MV.fx.stat(g, 'happy', -8); pop(-5); return 'Enfrentaste al abusón... y perdiste. Te robó la merienda y la dignidad.';
         } });
       if (higher) list.push({ id: 'fiesta_uni', icon: '🍻', label: 'Ir a una fiesta universitaria', sub: '+felicidad, -notas', limit: 2,
         run: (g) => {

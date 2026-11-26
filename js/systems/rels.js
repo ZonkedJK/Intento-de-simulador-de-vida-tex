@@ -325,7 +325,9 @@
       }
       if (['amigo', 'curso', 'companero', 'ex', 'enemigo'].includes(t) && rels.canRomance(g, n, r)) A({ id: 'coquetear', icon: '😏', label: t === 'ex' ? 'Intentar volver' : 'Coquetear', sub: 'Podría salir bien...', limit: 1,
         run: (g) => {
-          let ch = U.clamp(r.rel / 140 + (p.stats.looks - n.looks) / 250 + p.skills.carisma / 300 + (t === 'ex' ? -0.1 : 0) + (t === 'enemigo' ? -0.3 : 0), 0.05, 0.85);
+          const cls = p.edu && p.edu.class;
+          const crush = !!(cls && (p.edu.pop || 0) >= 70 && (cls.mates || []).some((m) => m.id === n.id && m.role === 'crush'));
+          let ch = U.clamp(r.rel / 140 + (p.stats.looks - n.looks) / 250 + p.skills.carisma / 300 + (t === 'ex' ? -0.1 : 0) + (t === 'enemigo' ? -0.3 : 0) + (crush ? 0.1 : 0), 0.05, 0.85);
           if (MV.sys.persona.has(n, 'tímido')) {
             // Especial: la primera vez se esconde; al año siguiente tiene el doble de ganas.
             MV.sys.persona.fire();

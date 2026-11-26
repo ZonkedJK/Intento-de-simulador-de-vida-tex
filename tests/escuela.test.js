@@ -255,3 +255,170 @@ test('el payaso puede ser mejor amigo y el curso se rellena', () => {
   assert.strictEqual(pa.m.role, 'amigo');
   assert.ok(S().mate(g, 'abuson') || S().mate(g, 'payaso'), 'curso con abusón o payaso nuevo');
 });
+
+// ——— Tarea 5: popularidad y año escolar ———
+test('la barra empieza según tu aspecto y tu carisma', () => {
+  const g = student(MV, 31, 9);
+  g.p.stats.looks = 50; g.p.skills.carisma = 20;
+  assert.strictEqual(S().basePop(g.p), 46);
+  g.p.stats.looks = 100; g.p.skills.carisma = 100;
+  assert.strictEqual(S().basePop(g.p), 75);
+  g.p.stats.looks = 0; g.p.skills.carisma = 0;
+  assert.strictEqual(S().basePop(g.p), 30);
+  // sin barra, pop() parte de la base
+  delete g.p.edu.pop;
+  assert.strictEqual(S().pop(g, 5), 35);
+  assert.strictEqual(S().pop(g, 500), 100);
+  assert.strictEqual(S().pop(g, -500), 0);
+});
+
+test('lo que hace un año', () => {
+  const g = student(MV, 33, 9);
+  g.p.edu.pop = 60; g.p.clubs = ['robotica', 'sport:futbol']; g.p.yearActs = {};
+  S().yearly(g);
+  assert.strictEqual(g.p.edu.pop, 63);
+  const h = student(MV, 34, 9);
+  h.p.edu.pop = 60; h.p.clubs = []; h.p.yearActs = { faltar: 2 };
+  S().yearly(h);
+  assert.strictEqual(h.p.edu.pop, 55);
+  // fuera de la escuela, nada
+  const u = game(MV, 35, 19);
+  u.p.edu.done = ['primaria', 'secundaria'];
+  MV.sys.edu.enrollUni(u, Object.keys(MV.EDU.majors)[0], 'publica');
+  S().yearly(u);
+  assert.strictEqual(u.p.edu.pop, undefined);
+});
+
+test('la barra pasa al curso siguiente', () => {
+  const g = student(MV, 37, 11, 'primaria');
+  g.p.stats.looks = 50; g.p.skills.carisma = 0; // base 40
+  assert.strictEqual(S().basePop(g.p), 40);
+  g.p.edu.pop = 80;
+  g.p.edu.year = MV.sys.edu.yearsOf(g.p.edu) - 1;
+  g.p.age = 12;
+  MV.sys.edu.yearly(g);
+  assert.strictEqual(g.p.edu.stage, 'secundaria');
+  assert.ok(Math.abs(g.p.edu.pop - 60) <= 3, 'pop ' + g.p.edu.pop); // el año pesa un poco antes del traspaso
+  const h = student(MV, 38, 13);
+  h.p.edu.pop = 50;
+  S().restaff(h, 'repeat');
+  assert.strictEqual(h.p.edu.pop, 45);
+  S().restaff(h, 'expel');
+  assert.strictEqual(h.p.edu.pop, 35);
+  h.p.edu.pop = 80; h.p.stats.looks = 50; h.p.skills.carisma = 0;
+  S().restaff(h);
+  assert.strictEqual(h.p.edu.pop, 60);
+  delete h.p.edu.pop;
+  S().restaff(h, 'repeat');
+  assert.strictEqual(h.p.edu.pop, S().basePop(h.p));
+  h.p.edu.pop = 3;
+  S().restaff(h, 'expel');
+  assert.strictEqual(h.p.edu.pop, 0);
+});
+
+test('el tutor pesa', () => {
+  const run = (kind, f) => {
+    MV.rng.seed(41);
+    const g = student(MV, 41, 9);
+    g.p.edu.class.teacher.kind = kind; g.p.edu.perf = 50; g.p.edu.pop = 50; g.p.stress = g.p.stats.stress; g.p.yearActs = {};
+    f(g);
+    return g;
+  };
+  const yr = (k) => run(k, (g) => { S().yearly(g); });
+  assert.strictEqual(yr('cansado').p.edu.perf - yr('exigente').p.edu.perf, 3);
+  const st = (k) => { const g = run(k, (x) => { x.p.stats.stress = 30; }); const b = g.p.stats.stress; S().yearly(g); return g.p.stats.stress - b; };
+  assert.strictEqual(st('estricto') - st('cansado'), 2);
+  const study = (k) => run(k, (g) => { MV.rng.seed(99); MV.sys.edu.actions(g).find((a) => a.id === 'estudiar').run(g); }).p.edu.perf;
+  assert.strictEqual(study('exigente') - study('cansado'), 2);
+});
+
+test('las acciones mueven la barra', () => {
+  const act = (g, id) => MV.sys.edu.actions(g).find((a) => a.id === id);
+  // amigos que sale bien: +3
+  let g = student(MV, 43, 9);
+  g.p.stats.looks = 100; g.p.skills.carisma = 100; g.p.edu.pop = 50;
+  const txt = act(g, 'amigos').run(g);
+  assert.ok(!BAD_TEXT.test(txt));
+  assert.strictEqual(g.p.edu.pop, 53);
+  // con la barra baja cuesta más
+  const rate = (pop) => { let ok = 0; for (let s = 1; s <= 400; s++) { MV.rng.seed(s); const h = student(MV, s, 9); h.p.stats.looks = 0; h.p.skills.carisma = 0; h.p.edu.pop = pop; const before = Object.keys(h.people).length; act(h, 'amigos').run(h); if (Object.keys(h.people).length > before) ok++; } return ok; };
+  assert.ok(rate(60) - rate(30) >= 20, 'popularidad ≤ 30 resta 0,10');
+  // abusón: gana +10, pierde -5
+  let win = 0, lose = 0;
+  for (let s = 1; s <= 80 && (!win || !lose); s++) {
+    MV.rng.seed(s);
+    const h = student(MV, s, 9); h.p.flags.abuson = true; h.p.edu.pop = 50;
+    const r = act(h, 'abuson').run(h);
+    assert.ok(!BAD_TEXT.test(r));
+    if (!h.p.flags.abuson) { win++; assert.strictEqual(h.p.edu.pop, 60); } else { lose++; assert.strictEqual(h.p.edu.pop, 45); }
+  }
+  assert.ok(win && lose, 'vimos las dos salidas');
+  // trampa pillada: -4
+  let caught = 0, free = 0;
+  for (let s = 1; s <= 80 && (!caught || !free); s++) {
+    MV.rng.seed(s);
+    const h = student(MV, s, 12); h.p.edu.pop = 50; h.p.edu.perf = 50; h.p.edu.class.teacher.kind = 'cansado';
+    act(h, 'trampa').run(h);
+    if (h.p.edu.perf > 50) { free++; assert.strictEqual(h.p.edu.pop, 50); } else { caught++; assert.strictEqual(h.p.edu.pop, 46); }
+  }
+  assert.ok(caught && free, 'vimos las dos salidas');
+  // el tutor: nombra y cambia la relación
+  const seen = new Set();
+  for (let s = 1; s <= 60; s++) {
+    MV.rng.seed(s);
+    const h = student(MV, s, 12); const t = S().teacher(h);
+    const before = t.r.rel;
+    const r = act(h, 'profesor').run(h);
+    assert.ok(!BAD_TEXT.test(r) && r.includes(t.n.first), r);
+    if (/consejos/.test(r)) { seen.add('a'); assert.strictEqual(t.r.rel, before + 5); }
+    else if (/divorcio/.test(r)) { seen.add('b'); assert.strictEqual(t.r.rel, before - 3); }
+    else { seen.add('c'); assert.strictEqual(t.r.rel, before); }
+  }
+  assert.strictEqual(seen.size, 3);
+  // universidad: sin barra
+  const u = game(MV, 44, 19);
+  u.p.edu.done = ['primaria', 'secundaria'];
+  MV.sys.edu.enrollUni(u, Object.keys(MV.EDU.majors)[0], 'publica');
+  for (const id of ['amigos', 'trampa', 'fiesta_uni', 'profesor']) assert.ok(!BAD_TEXT.test(act(u, id).run(u)));
+  assert.strictEqual(u.p.edu.pop, undefined);
+});
+
+test('ser popular ayuda con quien te gusta', () => {
+  const rate = (pop) => {
+    let ok = 0;
+    for (let s = 1; s <= 400; s++) {
+      MV.rng.seed(s);
+      const g = student(MV, s, 15);
+      S().staff(g);
+      const c = S().mate(g, 'crush');
+      c.n.traits = []; g.p.edu.pop = pop;
+      const a = MV.sys.rels.actions(g, c.r, c.n).find((x) => x.id === 'coquetear');
+      MV.rng.seed(1000 + s);
+      const txt = a.run(g);
+      assert.ok(!BAD_TEXT.test(txt));
+      if (c.r.type === 'pareja') ok++;
+    }
+    return ok / 4;
+  };
+  const diff = rate(75) - rate(60);
+  assert.ok(diff >= 5 && diff <= 15, 'diferencia ' + diff);
+});
+
+test('en el centro de menores el curso se congela', () => {
+  const g = student(MV, 47, 14);
+  g.p.edu.pop = 55;
+  const pop = g.p.edu.pop, year = g.p.edu.year, ids = JSON.stringify(g.p.edu.class), stage = g.p.edu.stage;
+  for (let i = 0; i < 50 && !g.over; i++) {
+    g.p.prison = { years: 2 };
+    g.queue = [];
+    MV.ageUp(g);
+    assert.ok(!/"esc_/.test(JSON.stringify(g.queue)), 'sin eventos esc_');
+    g.queue = [];
+    if (g.over) break;
+    assert.strictEqual(g.p.edu.pop, pop);
+    assert.strictEqual(g.p.edu.year, year);
+    assert.strictEqual(g.p.edu.stage, stage);
+  }
+  g.p.prison = null;
+  assert.strictEqual(JSON.stringify(g.p.edu.class), ids);
+});

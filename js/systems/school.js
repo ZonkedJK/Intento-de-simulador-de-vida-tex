@@ -111,8 +111,43 @@
       e.class = null;
     },
 
-    /** Curso nuevo (repetir, cambiar de etapa). Aquí Tarea 5 suma el traspaso de popularidad. */
-    restaff(g) { school.cleanup(g); school.staff(g); }
+    /** Popularidad de partida según aspecto y carisma. */
+    basePop(p) { return U.clamp(Math.round(30 + p.stats.looks * 0.2 + p.skills.carisma * 0.3), 15, 75); },
+
+    /** Suma `d` a la barra de popularidad (0 a 100); sin barra, parte de la base. Devuelve el valor. */
+    pop(g, d) {
+      const e = g.p.edu;
+      e.pop = U.clamp(Math.round((e.pop == null ? school.basePop(g.p) : e.pop) + (d || 0)), 0, 100);
+      return e.pop;
+    },
+
+    /** Cierre de año dentro del curso: popularidad y carácter del tutor. */
+    yearly(g) {
+      const p = g.p, e = p.edu;
+      if (!school.active(p)) return;
+      school.staff(g);
+      const acts = p.yearActs || {};
+      let pop = school.pop(g, 0) + 2 * MV.sys.edu.clubsOf(p).length - ((acts.faltar || 0) >= 2 ? 4 : 0);
+      pop = pop + (50 - pop) * 0.1;
+      e.pop = U.clamp(Math.round(pop), 0, 100);
+      const t = school.teacher(g);
+      if (t) {
+        if (t.K.perf) e.perf = U.clamp(e.perf + t.K.perf, 0, 100);
+        if (t.K.stress) MV.fx.stat(g, 'stress', t.K.stress);
+      }
+    },
+
+    /**
+     * Curso nuevo. `kind` fija cómo pasa la barra: 'stage' (cambio de etapa, por defecto),
+     * 'repeat' (repetir: -5) o 'expel' (expulsión: -10). Sin barra, parte de la base.
+     */
+    restaff(g, kind) {
+      const e = g.p.edu, base = school.basePop(g.p);
+      let pop = base;
+      if (e.pop != null) pop = kind === 'repeat' ? e.pop - 5 : kind === 'expel' ? e.pop - 10 : Math.round((e.pop + base) / 2);
+      e.pop = U.clamp(pop, 0, 100);
+      school.cleanup(g); school.staff(g);
+    }
   };
 
   MV.sys.school = school;
