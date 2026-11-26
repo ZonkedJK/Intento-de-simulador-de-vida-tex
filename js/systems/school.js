@@ -177,7 +177,11 @@
       if (t && t.type === 'profe') { if (t.rel >= 80) t.type = 'amigo'; else MV.removeRel(g, t.id); }
       (c.mates || []).forEach((m) => {
         const r = MV.relOf(g, m.id);
-        if (r && r.type === 'curso') { if (r.rel >= 60) r.type = 'amigo'; else MV.removeRel(g, m.id); }
+        if (r && r.type === 'curso') {
+          if (r.rel >= 60) r.type = 'amigo';
+          else if ((r.mem || []).some((x) => x.v < 0 && !x.done)) r.type = 'enemigo'; // la víctima guarda el recuerdo
+          else MV.removeRel(g, m.id);
+        }
       });
       e.class = null;
     },

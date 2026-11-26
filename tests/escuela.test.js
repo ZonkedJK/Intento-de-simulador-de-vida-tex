@@ -616,3 +616,33 @@ test('ninguna acción de abusón describe violencia', () => {
     else for (const a of MV.sys.edu.actions(g)) if (['burla', 'broma_pesada', 'merienda'].includes(a.id)) { const v = victim(g); const t = a.run(g, v.n.id); assert.ok(!FORBID.test(t) && !BAD_TEXT.test(t), t); }
   }
 });
+
+test('el recuerdo de humillación no habla del trabajo', () => {
+  const g = game(MV, 5, 30);
+  for (const gender of ['m', 'f']) {
+    const { n } = person(MV, g, 'amigo', [], { gender });
+    const a = MV.sys.memory.said(g, n, { k: 'humillacion', a: 10, v: -2 });
+    const b = MV.sys.memory.said(g, n, { k: 'humillacion', a: 10, v: -2, d: 'x' });
+    for (const t of [a, b]) assert.ok(!/trabajo/.test(t) && !BAD_TEXT.test(t) && /ridículo/.test(t), t);
+  }
+});
+
+test('las víctimas pasan al siguiente curso como enemigos y guardan el recuerdo', () => {
+  MV.rng.seed(21);
+  const g = student(MV, 21, 9, 'primaria');
+  S().mates(g).forEach((x) => { x.n.traits = []; });
+  S()._newMate(g, 'payaso').traits = [];
+  const mates = S().mates(g).filter((x) => x.m.role !== 'amigo');
+  const [vic, cold, warm] = mates;
+  cold.r.rel = 40; warm.r.rel = 70;
+  const ch = MV.U.chance; MV.U.chance = () => false;
+  try { MV.sys.edu.actions(g).find((a) => a.id === 'burla').run(g, vic.n.id); } finally { MV.U.chance = ch; }
+  const rel = vic.r.rel;
+  assert.ok(vic.r.rel < 60);
+  S().cleanup(g);
+  assert.strictEqual(MV.relOf(g, vic.n.id).type, 'enemigo');
+  assert.strictEqual(MV.relOf(g, vic.n.id).rel, rel);
+  assert.ok(MV.relOf(g, vic.n.id).mem.some((m) => m.k === 'humillacion'));
+  assert.ok(!MV.relOf(g, cold.n.id), 'sin recuerdo malo se va');
+  assert.strictEqual(MV.relOf(g, warm.n.id).type, 'amigo');
+});

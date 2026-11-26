@@ -30,7 +30,7 @@
     infidelidad: { good: false, w: 3, did: (n, d) => (d ? `${lo(n)} engañaste con ${d}` : `${lo(n)} engañaste`) },
     ruptura: { good: false, w: 2, did: (n) => `${lo(n)} dejaste` },
     divorcio: { good: false, w: 3, did: () => 'le pediste el divorcio' },
-    humillacion: { good: false, w: 2, did: (n) => `${lo(n)} dejaste en ridículo en el trabajo` },
+    humillacion: { good: false, w: 2, did: (n) => `${lo(n)} dejaste en ridículo delante de todos` },
     revancha: { good: false, w: 2, did: () => 'le devolviste el golpe' }
   };
 })(window.MV = window.MV || {});
