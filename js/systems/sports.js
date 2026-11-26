@@ -334,12 +334,12 @@
       return `${U.cap(S.scout)} de ${ctx.club} te vio jugar ${S.team ? 'con tu equipo' : 'en un torneo'} y te ofrece ${U.money(ctx.salary)} al año como ${t}.`;
     },
     choices: [
-      { t: (g, ctx) => (ctx.uni ? '✍️ Firmar y dejar la universidad' : '✍️ Firmar el contrato'), eff: (g, ctx) => { if (ctx.uni && g.p.edu.stage) { g.p.edu.stage = null; g.p.edu.dropped = true; } return sports.sign(g, ctx); } },
+      { t: (g, ctx) => (ctx.uni ? '✍️ Firmar y dejar la universidad' : '✍️ Firmar el contrato'), eff: (g, ctx) => { if (ctx.uni && g.p.edu.stage) { g.p.edu.stage = null; g.p.edu.dropped = true; MV.sys.school.clearProf(g); } return sports.sign(g, ctx); } },
       { t: '🎓 Firmar y seguir estudiando a distancia', when: (g, ctx) => !!ctx.uni, eff: (g, ctx) => { MV.fx.stat(g, 'stress', 12); g.p.edu.perf = U.clamp(g.p.edu.perf - 15, 0, 100); return sports.sign(g, ctx) + ' Estudiarás en los viajes del equipo.'; } },
       { t: '💬 Pedir más dinero', eff: (g, ctx) => {
-        if (U.chance(0.3 + g.p.skills.carisma / 160)) { const o = Object.assign({}, ctx, { salary: Math.round(ctx.salary * U.float(1.2, 1.5)) }); MV.fx.skill(g, 'carisma', 2); if (o.uni && g.p.edu.stage) { g.p.edu.stage = null; g.p.edu.dropped = true; } return 'Negociaste como un tiburón. ' + sports.sign(g, o); }
+        if (U.chance(0.3 + g.p.skills.carisma / 160)) { const o = Object.assign({}, ctx, { salary: Math.round(ctx.salary * U.float(1.2, 1.5)) }); MV.fx.skill(g, 'carisma', 2); if (o.uni && g.p.edu.stage) { g.p.edu.stage = null; g.p.edu.dropped = true; MV.sys.school.clearProf(g); } return 'Negociaste como un tiburón. ' + sports.sign(g, o); }
         if (U.chance(0.4)) return `${ctx.club} retiró la oferta: "hay otros jugadores más baratos".`;
-        if (ctx.uni && g.p.edu.stage) { g.p.edu.stage = null; g.p.edu.dropped = true; }
+        if (ctx.uni && g.p.edu.stage) { g.p.edu.stage = null; g.p.edu.dropped = true; MV.sys.school.clearProf(g); }
         return 'No subieron la oferta, pero firmaste igual. ' + sports.sign(g, ctx);
       } },
       { t: '❌ Rechazar la oferta', eff: { happy: -3, msg: 'Rechazaste la oferta. Quizás haya otra... o quizás no.' } }

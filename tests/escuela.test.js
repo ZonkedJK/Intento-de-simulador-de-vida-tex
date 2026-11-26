@@ -1314,3 +1314,18 @@ test('los textos del docente', () => {
     }
   }
 });
+
+test('firmar un contrato y dejar la universidad borra prof', () => {
+  const sign = (re, label, val) => {
+    const { g, x } = comite(70);
+    MV.rng.seed(70);
+    MV.EV.push(g, 'reclutamiento', { sport: 'futbol', level: 'pro', club: 'Los Halcones', salary: 50000, uni: true }, true);
+    const v = MV.EV.view(g);
+    quiet(val, () => MV.EV.choose(g, labelIdx(v, re)));
+    assert.strictEqual(g.p.edu.stage, null, label + ' deja la universidad');
+    assert.ok(!MV.relOf(g, x.n.id).prof, label);
+  };
+  sign(/Firmar y dejar/, 'firmar', 0);
+  sign(/más dinero/, 'negociar con éxito', 1);
+  sign(/más dinero/, 'firmar igual tras negociar', 0);
+});
