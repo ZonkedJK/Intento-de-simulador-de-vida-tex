@@ -126,7 +126,7 @@
       const p = g.p, e = p.edu;
       if (!school.active(p)) return;
       school.staff(g);
-      const acts = p.yearActs || {};
+      const acts = p.lastActs || {};
       let pop = school.pop(g, 0) + 2 * MV.sys.edu.clubsOf(p).length - ((acts.faltar || 0) >= 2 ? 4 : 0);
       pop = pop + (50 - pop) * 0.1;
       e.pop = U.clamp(Math.round(pop), 0, 100);

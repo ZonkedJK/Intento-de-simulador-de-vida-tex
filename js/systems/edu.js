@@ -48,7 +48,7 @@
       }
       if (!e.stage) return;
       e.year++;
-      const acts = p.yearActs;
+      const acts = p.lastActs || {};
       const bonus = (acts.estudiar || 0) * 5 - (acts.faltar || 0) * 7 - (p.addic.drogas > 40 ? 10 : 0);
       e.perf = U.clamp(Math.round(e.perf * 0.5 + (S.smarts * 0.6 + 20 + U.int(-14, 14)) * 0.5 + bonus), 0, 100);
       if (MV.sys.school.active(p)) MV.sys.school.yearly(g);

@@ -9,6 +9,7 @@
     const p = g.p;
     g.year++;
     p.age++;
+    p.lastActs = p.yearActs || {}; // lo hecho en el año que termina, para los cierres anuales
     p.yearActs = {};
     g.log.push({ age: p.age, year: g.year, items: [] });
     MV.sys.world.yearly(g);

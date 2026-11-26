@@ -274,11 +274,11 @@ test('la barra empieza según tu aspecto y tu carisma', () => {
 
 test('lo que hace un año', () => {
   const g = student(MV, 33, 9);
-  g.p.edu.pop = 60; g.p.clubs = ['robotica', 'sport:futbol']; g.p.yearActs = {};
+  g.p.edu.pop = 60; g.p.clubs = ['robotica', 'sport:futbol']; g.p.lastActs = {};
   S().yearly(g);
   assert.strictEqual(g.p.edu.pop, 63);
   const h = student(MV, 34, 9);
-  h.p.edu.pop = 60; h.p.clubs = []; h.p.yearActs = { faltar: 2 };
+  h.p.edu.pop = 60; h.p.clubs = []; h.p.lastActs = { faltar: 2 };
   S().yearly(h);
   assert.strictEqual(h.p.edu.pop, 55);
   // fuera de la escuela, nada
@@ -294,11 +294,11 @@ test('la barra pasa al curso siguiente', () => {
   g.p.stats.looks = 50; g.p.skills.carisma = 0; // base 40
   assert.strictEqual(S().basePop(g.p), 40);
   g.p.edu.pop = 80;
-  g.p.edu.year = MV.sys.edu.yearsOf(g.p.edu) - 1;
-  g.p.age = 12;
-  MV.sys.edu.yearly(g);
-  assert.strictEqual(g.p.edu.stage, 'secundaria');
-  assert.ok(Math.abs(g.p.edu.pop - 60) <= 3, 'pop ' + g.p.edu.pop); // el año pesa un poco antes del traspaso
+  S().restaff(g, 'stage');
+  assert.strictEqual(g.p.edu.pop, 60);
+  g.p.edu.pop = 50;
+  S().restaff(g, 'repeat');
+  assert.strictEqual(g.p.edu.pop, 45);
   const h = student(MV, 38, 13);
   h.p.edu.pop = 50;
   S().restaff(h, 'repeat');
@@ -421,4 +421,33 @@ test('en el centro de menores el curso se congela', () => {
   }
   g.p.prison = null;
   assert.strictEqual(JSON.stringify(g.p.edu.class), ids);
+});
+
+test('faltar dos veces en el año baja la barra (por MV.ageUp)', () => {
+  const run = (times) => {
+    const g = student(MV, 51, 9);
+    g.p.edu.pop = 60; g.p.edu.perf = 80; g.p.clubs = [];
+    const f = MV.sys.edu.actions(g).find((a) => a.id === 'faltar');
+    for (let i = 0; i < times; i++) MV.doAction(g, f);
+    assert.strictEqual(g.p.yearActs.faltar, times, 'yearActs sigue contando');
+    MV.rng.seed(777);
+    MV.ageUp(g);
+    return g.p.edu.pop;
+  };
+  assert.strictEqual(run(1), 59); // 60 -> 10 % hacia 50
+  assert.strictEqual(run(2), 55); // 60 - 4 = 56 -> 55
+});
+
+test('estudiar durante el año sube el rendimiento que calcula edu.yearly', () => {
+  const run = (times) => {
+    const g = student(MV, 53, 9);
+    g.p.edu.perf = 50;
+    const f = MV.sys.edu.actions(g).find((a) => a.id === 'estudiar');
+    for (let i = 0; i < times; i++) MV.doAction(g, f);
+    g.p.edu.perf = 50; g.p.stats.smarts = 50; g.p.stats.stress = 20; g.p.addic.drogas = 0;
+    MV.rng.seed(778);
+    MV.ageUp(g);
+    return g.p.edu.perf;
+  };
+  assert.strictEqual(run(2) - run(0), 10);
 });
