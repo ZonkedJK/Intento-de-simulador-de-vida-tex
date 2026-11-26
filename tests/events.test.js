@@ -68,8 +68,8 @@ test('todas las opciones de los eventos aleatorios se pueden ejecutar', () => {
   const MV = load({ seed: 21 });
   let covered = 0, total = 0;
   const uncovered = [];
-  // `acoso` solo existe con un acosador: se prueba con su contexto en el test de los manuales.
-  MV.EV.list.filter((d) => d.choices && !d.manual && d.id !== 'acoso').forEach((d, di) => {
+  // `acoso` solo existe con un acosador y los `esc_*` con un curso: se prueban con su contexto en el test de los manuales.
+  MV.EV.list.filter((d) => d.choices && !d.manual && d.id !== 'acoso' && !/^esc_/.test(d.id)).forEach((d, di) => {
     total++;
     const ages = [d.age[0], Math.round((d.age[0] + Math.min(d.age[1], 100)) / 2), Math.min(d.age[1], 100)];
     let found = null;
@@ -146,6 +146,25 @@ test('los eventos manuales funcionan con su contexto', () => {
     assert.ok(res.msg && !BAD_TEXT.test(res.msg), `acoso#${i}: ${res.msg}`);
     assert.doesNotThrow(() => resolveQueue(MV, g), `encadenados de acoso#${i}`);
   }));
+  // Los eventos de la escuela, con un curso completo, en primaria y en secundaria
+  MV.EV.list.filter((d) => /^esc_/.test(d.id)).forEach((d) => [9, 15].forEach((age) => d.choices.forEach((c, i) => {
+    if (age < d.age[0]) return;
+    const g = richGame(MV, age, 'normal', 8000 + age * 7 + i);
+    MV.sys.school.staff(g);
+    if (!MV.sys.school.mate(g, 'abuson')) MV.sys.school._newMate(g, 'abuson');
+    g.p.edu.pop = d.id === 'esc_delegado' ? 80 : 50; g.p.edu.susp = 1; g.p.skills.arte = 70;
+    if (d.id === 'esc_crush' && !MV.EV.eligible(g, d)) return; // el curso no siempre tiene a alguien que te guste
+    const ctx = Object.assign(d.target ? { target: d.target(g) } : {}, d.ctx ? d.ctx(g) : {});
+    MV.EV.push(g, d.id, ctx, true);
+    const v = MV.EV.view(g);
+    assert.ok(v && !BAD_TEXT.test(v.text), `${d.id} a los ${age}`);
+    if (!v.choices.some((x) => x.i === i)) return;
+    let res;
+    assert.doesNotThrow(() => { res = MV.EV.choose(g, i); }, `${d.id}#${i}`);
+    assert.ok(res.msg && !BAD_TEXT.test(res.msg), `${d.id}#${i}: ${res.msg}`);
+    assert.ok(g.p.money >= 0);
+    assert.doesNotThrow(() => resolveQueue(MV, g), `encadenados de ${d.id}#${i}`);
+  })));
   // Eventos con persona objetivo
   ['boda', 'embarazo_sorpresa', 'infiel_descubierto'].forEach((id) => {
     MV.EV.byId[id].choices.forEach((c, i) => {

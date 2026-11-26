@@ -88,6 +88,7 @@
       }
       if (st === 'secundaria') {
         e.gpa = e.perf;
+        if (e.gpa >= 95) MV.ach.unlock(g, 'abanderado');
         if (!e.adult) e.popEgreso = MV.sys.school.pop(g, 0);
         MV.sys.school.cleanup(g);
         MV.fx.stat(g, 'happy', 8);

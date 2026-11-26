@@ -126,7 +126,7 @@
       { t: 'Prefiero mi consola', eff: { happy: 3, health: -1, skills: { programacion: 1 }, msg: 'Elegiste la consola. Tus pulgares están en forma olímpica.' } }
     ] });
   ev({ id: 'pelea_patio', age: [6, 12], when: H.school, icon: '🥊', scene: 'escuela', title: 'Provocación',
-    text: (g) => `Un compañero dice que tu ${U.pick(['madre', 'padre'])} tiene cara de sapo.`,
+    text: (g) => { const rv = MV.sys.school.active(g.p) && MV.sys.school.mate(g, 'rival'); return `${rv ? `${rv.n.first}, tu rival,` : 'Un compañero'} dice que tu ${U.pick(['madre', 'padre'])} tiene cara de sapo.`; },
     choices: [
       { t: 'Ignorarlo', eff: { karma: 1, msg: 'Lo ignoraste. Él se aburrió y molestó a otro.' } },
       { t: 'Responder con un insulto creativo', eff: { p: (g) => 0.4 + g.p.skills.carisma / 100, ok: { happy: 5, skills: { carisma: 3 }, msg: 'Tu respuesta fue tan buena que todo el patio hizo "uuuuh". Ganaste.' }, ko: { happy: -3, msg: 'Te trabaste a la mitad del insulto. Se rieron de ti.' } } },

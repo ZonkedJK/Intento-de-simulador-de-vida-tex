@@ -11,6 +11,19 @@
   };
   const roleRange = (role) => MV.CLASS_ROLES[role].rel;
 
+  /** Las tres formas de molestar a un compañero. */
+  const BULLY = {
+    burla: { icon: '😏', label: 'Burlarte de un compañero', sub: 'Popularidad, pero con tu karma', pop: 4, karma: -3, happy: 0, drop: 15, mem: 'humillacion',
+      say: (n) => `Te burlaste de ${n.first} delante de todo el curso. Hubo risas, y ${U.gw(n.gender, 'él', 'ella')} bajó la vista.`,
+      caught: (n, t) => `${t} te vio burlarte de ${n.first}.` },
+    broma_pesada: { icon: '🃏', label: 'Hacerle una broma pesada', sub: 'Popularidad, pero con tu karma', pop: 4, karma: -2, happy: 0, drop: 12, mem: 'broma',
+      say: (n) => `Le escondiste la mochila a ${n.first} y la dejaste en el techo del patio. Todos se rieron, menos ${U.gw(n.gender, 'él', 'ella')}.`,
+      caught: (n, t) => `${t} descubrió la broma a ${n.first}.` },
+    merienda: { icon: '🥪', label: 'Quitarle la merienda', sub: 'Solo en primaria', pop: 0, karma: -2, happy: 2, drop: 10, mem: 'humillacion', primaria: true,
+      say: (n) => `Le quitaste la merienda a ${n.first} y te la comiste tú. Se quedó sin recreo.`,
+      caught: (n, t) => `${t} te vio quitarle la merienda a ${n.first}.` }
+  };
+
   const school = {
     /** ¿Cursas primaria o secundaria comunes y estás libre? */
     active(p) {
@@ -115,58 +128,55 @@
       e.susp = 0;
     },
 
+    /**
+     * Molestar a un compañero (`how`: burla, broma_pesada o merienda). La usan la acción y el evento del testigo:
+     * relación, popularidad, karma, recuerdo, personalidad, suspensión y expulsión. Devuelve el texto.
+     */
+    tease(g, id, how) {
+      const p = g.p, e = p.edu, d = BULLY[how];
+      const x = live(g, id);
+      if (!d || !x || x.r.type !== 'curso') return 'Esa persona ya no está en tu curso.';
+      const { n, r } = x;
+      const sens = MV.sys.persona.has(n, 'sensible');
+      const t = school.teacher(g), K = (t && t.K) || {};
+      const before = r.rel;
+      r.rel = U.clamp(r.rel - d.drop * (sens ? 2 : 1), 0, 100);
+      const caught = U.chance(MV.SCHOOL.CATCH + (K.catch || 0) + (sens ? 0.15 : 0));
+      MV.fx.stat(g, 'karma', d.karma);
+      if (d.happy) MV.fx.stat(g, 'happy', d.happy);
+      if (d.pop) school.pop(g, caught ? 2 : d.pop);
+      let out = d.say(n);
+      if (sens) {
+        MV.sys.persona.fire();
+        out += ` ${n.first} se puso a llorar en clase y ${t ? U.gw(t.n.gender, 'el', 'la') + ' ' + t.n.job.toLowerCase() : 'el profesor'} tuvo que parar la lección.`;
+      }
+      const line = MV.sys.persona.adjust(g, r, n, how, before);
+      if (line) out += ' ' + line;
+      MV.sys.memory.remember(g, n.id, d.mem, null, sens ? 3 : undefined);
+      e.bullied = (e.bullied || 0) + 1;
+      e.lastBully = p.age;
+      if (e.bullied >= 3) p.flags.abusador = true;
+      if (caught) {
+        const who = t ? `${U.gw(t.n.gender, 'El', 'La')} ${t.n.job.toLowerCase()} ${t.n.first}` : 'El profesor';
+        school._suspend(g);
+        out += ` ${d.caught(n, who)} Te suspendieron: tus notas bajaron y en casa hubo un discurso largo.`;
+        if (e.susp >= MV.SCHOOL.EXPEL) {
+          school._expel(g);
+          out += ' Con tres suspensiones, te expulsaron y te cambiaron de escuela. Curso nuevo, tutor nuevo y la fama quedó atrás. No perdiste el año.';
+        }
+      }
+      return out;
+    },
+
     /** Molestar a un compañero: tres acciones, un uso al año cada una. Solo con curso. */
     actions(g) {
       const p = g.p, e = p.edu;
       if (!school.active(p) || !school.mates(g).length) return [];
       const opts = () => school.mates(g).filter((x) => x.m.role !== 'amigo').map((x) => ({ id: x.n.id, icon: '🎒', label: x.n.first, sub: x.m.role === 'comun' ? 'Compañero del curso' : U.gw(x.n.gender, MV.CLASS_ROLES[x.m.role].name.split('|')[0], MV.CLASS_ROLES[x.m.role].name.split('|')[1] || MV.CLASS_ROLES[x.m.role].name) }));
-      const defs = [
-        { id: 'burla', icon: '😏', label: 'Burlarte de un compañero', sub: 'Popularidad, pero con tu karma', pop: 4, karma: -3, happy: 0, drop: 15, mem: 'humillacion',
-          say: (n) => `Te burlaste de ${n.first} delante de todo el curso. Hubo risas, y ${U.gw(n.gender, 'él', 'ella')} bajó la vista.`,
-          caught: (n, t) => `${t} te vio burlarte de ${n.first}.` },
-        { id: 'broma_pesada', icon: '🃏', label: 'Hacerle una broma pesada', sub: 'Popularidad, pero con tu karma', pop: 4, karma: -2, happy: 0, drop: 12, mem: 'broma',
-          say: (n) => `Le escondiste la mochila a ${n.first} y la dejaste en el techo del patio. Todos se rieron, menos ${U.gw(n.gender, 'él', 'ella')}.`,
-          caught: (n, t) => `${t} descubrió la broma a ${n.first}.` },
-        { id: 'merienda', icon: '🥪', label: 'Quitarle la merienda', sub: 'Solo en primaria', pop: 0, karma: -2, happy: 2, drop: 10, mem: 'humillacion', primaria: true,
-          say: (n) => `Le quitaste la merienda a ${n.first} y te la comiste tú. Se quedó sin recreo.`,
-          caught: (n, t) => `${t} te vio quitarle la merienda a ${n.first}.` }
-      ];
-      return defs.filter((d) => !d.primaria || e.stage === 'primaria').map((d) => ({
-        id: d.id, icon: d.icon, label: d.label, sub: d.sub, limit: 1, opts,
-        run: (g, id) => {
-          const x = live(g, id);
-          if (!x || x.r.type !== 'curso') return 'Esa persona ya no está en tu curso.';
-          const { n, r } = x;
-          const sens = MV.sys.persona.has(n, 'sensible');
-          const t = school.teacher(g), K = (t && t.K) || {};
-          const before = r.rel;
-          r.rel = U.clamp(r.rel - d.drop * (sens ? 2 : 1), 0, 100);
-          const caught = U.chance(MV.SCHOOL.CATCH + (K.catch || 0) + (sens ? 0.15 : 0));
-          MV.fx.stat(g, 'karma', d.karma);
-          if (d.happy) MV.fx.stat(g, 'happy', d.happy);
-          if (d.pop) school.pop(g, caught ? 2 : d.pop);
-          let out = d.say(n);
-          if (sens) {
-            MV.sys.persona.fire();
-            out += ` ${n.first} se puso a llorar en clase y ${t ? U.gw(t.n.gender, 'el', 'la') + ' ' + t.n.job.toLowerCase() : 'el profesor'} tuvo que parar la lección.`;
-          }
-          const line = MV.sys.persona.adjust(g, r, n, d.id, before);
-          if (line) out += ' ' + line;
-          MV.sys.memory.remember(g, n.id, d.mem, null, sens ? 3 : undefined);
-          e.bullied = (e.bullied || 0) + 1;
-          if (e.bullied >= 3) p.flags.abusador = true;
-          if (caught) {
-            const who = t ? `${U.gw(t.n.gender, 'El', 'La')} ${t.n.job.toLowerCase()} ${t.n.first}` : 'El profesor';
-            school._suspend(g);
-            out += ` ${d.caught(n, who)} Te suspendieron: tus notas bajaron y en casa hubo un discurso largo.`;
-            if (e.susp >= MV.SCHOOL.EXPEL) {
-              school._expel(g);
-              out += ' Con tres suspensiones, te expulsaron y te cambiaron de escuela. Curso nuevo, tutor nuevo y la fama quedó atrás. No perdiste el año.';
-            }
-          }
-          return out;
-        }
-      }));
+      return Object.keys(BULLY).filter((k) => !BULLY[k].primaria || e.stage === 'primaria').map((k) => {
+        const d = BULLY[k];
+        return { id: k, icon: d.icon, label: d.label, sub: d.sub, limit: 1, opts, run: (g, id) => school.tease(g, id, k) };
+      });
     },
 
     /** Fin del curso: compañeros con relación 60+ y tutor con 80+ quedan como amigos; el resto sale de tu vida. */
@@ -193,6 +203,7 @@
     pop(g, d) {
       const e = g.p.edu;
       e.pop = U.clamp(Math.round((e.pop == null ? school.basePop(g.p) : e.pop) + (d || 0)), 0, 100);
+      if (e.pop >= 90 && e.stage === 'secundaria' && !e.adult && MV.ach) MV.ach.unlock(g, 'recreo');
       return e.pop;
     },
 
@@ -205,6 +216,7 @@
       let pop = school.pop(g, 0) + 2 * MV.sys.edu.clubsOf(p).length - ((acts.faltar || 0) >= 2 ? 4 : 0);
       pop = pop + (50 - pop) * 0.1;
       e.pop = U.clamp(Math.round(pop), 0, 100);
+      if (e.pop >= 90 && e.stage === 'secundaria' && MV.ach) MV.ach.unlock(g, 'recreo');
       const t = school.teacher(g);
       if (t) {
         if (t.K.perf) e.perf = U.clamp(e.perf + t.K.perf, 0, 100);

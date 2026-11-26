@@ -715,3 +715,360 @@ test('el texto dice tu promedio', () => {
     assert.ok(!BAD_TEXT.test(t), t);
   }
 });
+
+// — Tarea 8: eventos de la escuela y logros —
+const ESC = ['esc_delegado', 'esc_cumple', 'esc_grupo', 'esc_rival', 'esc_abuson', 'esc_testigo', 'esc_crush', 'esc_pelea_amigo', 'esc_talento', 'esc_citacion', 'esc_copia', 'esc_foto'];
+/** Un alumno con curso completo: abusón y alguien que te gusta (si tiene 14 o más). */
+function escScene(seed, age, pop) {
+  for (let s = seed; s < seed + 400; s++) {
+    MV.rng.seed(s);
+    const g = student(MV, s, age);
+    if (!S().mate(g, 'abuson')) S()._newMate(g, 'abuson');
+    if (age >= 14 && !S().mate(g, 'crush')) continue;
+    g.p.edu.pop = pop == null ? 50 : pop;
+    g.p.skills.carisma = 10;
+    return g;
+  }
+  throw new Error('sin escena');
+}
+const forceCtx = (g, d) => { const c = {}; if (d.target) c.target = d.target(g); if (d.ctx) Object.assign(c, d.ctx(g)); return c; };
+const showEv = (g, id) => { const d = MV.EV.byId[id]; MV.EV.push(g, id, forceCtx(g, d), true); return MV.EV.view(g); };
+const labelIdx = (v, re) => { const c = v.choices.find((x) => re.test(x.label)); assert.ok(c, 'opción ' + re + ' en ' + v.choices.map((x) => x.label).join(' | ')); return c.i; };
+const quiet = (val, fn) => { const ch = MV.U.chance; MV.U.chance = () => val; try { return fn(); } finally { MV.U.chance = ch; } };
+
+/** Cambia el género del jugador y de todo el curso; quien te gusta sigue gustándote. */
+function setGenders(g, pg, og) {
+  g.p.gender = pg;
+  S().mates(g).forEach((x) => {
+    x.n.gender = og;
+    if (x.m.role === 'crush') x.n.gender = g.p.orientation === 'bi' ? og : g.p.orientation === 'homo' ? pg : (pg === 'm' ? 'f' : 'm');
+  });
+  S().teacher(g).n.gender = og;
+}
+
+test('cada evento sale con su condición', () => {
+  const ok = (g, id) => assert.ok(MV.EV.eligible(g, MV.EV.byId[id]), id + ' debía salir');
+  const no = (g, id) => assert.strictEqual(MV.EV.eligible(g, MV.EV.byId[id]), null, id + ' no debía salir');
+  assert.deepStrictEqual(ESC.filter((id) => !MV.EV.byId[id]), []);
+  ESC.forEach((id) => assert.ok(MV.EV.byId[id].choices.length >= 3, id));
+  // delegado: secundaria y barra 70+
+  let g = escScene(1, 15, 70); ok(g, 'esc_delegado');
+  g.p.edu.pop = 69; no(g, 'esc_delegado');
+  g = escScene(1, 9, 90); no(g, 'esc_delegado');
+  // cumpleaños: 70+ o 30-
+  g = escScene(1, 12, 80); ok(g, 'esc_cumple'); g.p.edu.pop = 70; ok(g, 'esc_cumple');
+  g.p.edu.pop = 30; ok(g, 'esc_cumple'); g.p.edu.pop = 31; no(g, 'esc_cumple'); g.p.edu.pop = 69; no(g, 'esc_cumple');
+  // los que solo piden estar en la escuela
+  g = escScene(2, 15, 50);
+  ['esc_grupo', 'esc_rival', 'esc_abuson', 'esc_testigo', 'esc_pelea_amigo', 'esc_copia', 'esc_foto'].forEach((id) => ok(g, id));
+  g = escScene(2, 9, 50);
+  ['esc_grupo', 'esc_rival', 'esc_abuson', 'esc_testigo', 'esc_pelea_amigo', 'esc_copia'].forEach((id) => ok(g, id));
+  no(g, 'esc_foto'); no(g, 'esc_crush');
+  // abusón y testigo piden un abusón en el curso
+  const ab = S().mate(g, 'abuson'); ab.m.role = 'comun';
+  S().mates(g).filter((x) => x.m.role === 'payaso').forEach((x) => { x.m.role = 'comun'; });
+  no(g, 'esc_abuson'); no(g, 'esc_testigo');
+  // crush
+  g = escScene(3, 15, 50); ok(g, 'esc_crush');
+  g.p.edu.class.mates = g.p.edu.class.mates.filter((m) => m.role !== 'crush'); no(g, 'esc_crush');
+  // talento: taller o habilidad alta
+  g = escScene(4, 14, 50);
+  Object.keys(g.p.skills).forEach((k) => { g.p.skills[k] = 10; }); g.p.clubs = [];
+  no(g, 'esc_talento');
+  g.p.skills.arte = 70; ok(g, 'esc_talento');
+  g.p.skills.arte = 10; g.p.clubs = ['arte']; ok(g, 'esc_talento');
+  // citación: molestaste este año o el anterior, o una suspensión
+  g = escScene(5, 14, 50);
+  g.p.edu.susp = 0; delete g.p.edu.lastBully; no(g, 'esc_citacion');
+  g.p.edu.lastBully = g.p.age; ok(g, 'esc_citacion');
+  g.p.edu.lastBully = g.p.age - 1; ok(g, 'esc_citacion');
+  g.p.edu.lastBully = g.p.age - 2; no(g, 'esc_citacion');
+  g.p.edu.susp = 1; ok(g, 'esc_citacion');
+  // la acción de molestar deja la marca
+  g = escScene(6, 14, 50);
+  quiet(false, () => S().actions(g).find((a) => a.id === 'burla').run(g, S().mate(g, 'rival').n.id));
+  assert.strictEqual(g.p.edu.lastBully, g.p.age);
+  // fuera de la escuela y en la cárcel, ninguno
+  const adult = game(MV, 7, 30);
+  ESC.forEach((id) => no(adult, id));
+  g = escScene(8, 15, 80); g.p.edu.susp = 1; g.p.prison = { left: 3, total: 3, crime: 'Robo', behavior: 50, gang: false, since: 15 };
+  ESC.forEach((id) => no(g, id));
+  g = escScene(8, 15, 80); g.p.edu.adult = true;
+  ESC.forEach((id) => no(g, id));
+});
+
+test('esc_abuson pesa 3 con la barra baja y 1 si no', () => {
+  const g = escScene(9, 12, 30);
+  const d = MV.EV.byId.esc_abuson;
+  assert.strictEqual(MV.EV.weight(g, d), 3);
+  g.p.edu.pop = 29; assert.strictEqual(MV.EV.weight(g, d), 3);
+  g.p.edu.pop = 31; assert.strictEqual(MV.EV.weight(g, d), 1);
+  g.p.edu.pop = 90; assert.strictEqual(MV.EV.weight(g, d), 1);
+  ESC.filter((id) => id !== 'esc_abuson').forEach((id) => assert.strictEqual(MV.EV.weight(g, MV.EV.byId[id]), 1, id));
+  ESC.forEach((id) => assert.strictEqual(MV.EV.byId[id].cd, 6, id));
+});
+
+test('si la persona se va, su evento desaparece', () => {
+  for (const how of ['die', 'removeRel']) {
+    for (const [id, role, age] of [['esc_rival', 'rival', 12], ['esc_crush', 'crush', 15], ['esc_abuson', 'abuson', 12], ['esc_pelea_amigo', 'amigo', 12], ['esc_testigo', 'rival', 12]]) {
+      const g = escScene(11, age, 50);
+      const d = MV.EV.byId[id];
+      const ctx = MV.EV.eligible(g, d);
+      assert.ok(ctx, id);
+      const gone = id === 'esc_testigo' ? ctx.target : S().mate(g, role).n.id;
+      MV.EV.push(g, id, ctx, true);
+      assert.ok(MV.EV.view(g), 'antes se ve');
+      if (how === 'die') MV.sys.people.die(g, MV.person(g, gone), 'accidente'); else MV.removeRel(g, gone);
+      let v;
+      assert.doesNotThrow(() => { v = MV.EV.view(g); });
+      assert.ok(!v || v.id !== id, id + ' ya no debía verse');
+    }
+  }
+  // el tutor de la citación y del talento
+  for (const id of ['esc_citacion', 'esc_talento']) {
+    const g = escScene(12, 14, 50); g.p.edu.susp = 1; g.p.skills.arte = 80;
+    const ctx = MV.EV.eligible(g, MV.EV.byId[id]);
+    MV.EV.push(g, id, ctx, true);
+    MV.sys.people.die(g, S().teacher(g).n, 'accidente');
+    const v = MV.EV.view(g);
+    assert.ok(!v || v.id !== id);
+  }
+  // y si se acaba el curso
+  const g = escScene(13, 15, 50);
+  const ctx = MV.EV.eligible(g, MV.EV.byId.esc_rival);
+  MV.EV.push(g, 'esc_rival', ctx, true);
+  S().cleanup(g);
+  assert.ok(!MV.EV.view(g));
+});
+
+test('los textos de los eventos de la escuela', () => {
+  const checkText = (t, where) => { assert.ok(typeof t === 'string' && t.length, where); assert.ok(!BAD_TEXT.test(t), where + ': ' + t); };
+  let seen = 0;
+  for (const pg of ['m', 'f']) for (const og of ['m', 'f']) for (const bar of [15, 69, 85]) for (const age of [9, 15]) {
+    const g = escScene(20 + seen, age, bar);
+    setGenders(g, pg, og);
+    g.p.edu.susp = 1; g.p.skills.arte = 70;
+    for (const id of ESC) {
+      if (id === 'esc_crush' && age < 14) continue;
+      if (id === 'esc_foto' && age < 12) continue;
+      if (id === 'esc_delegado' && age < 12) continue;
+      g.queue = [];
+      const v = showEv(g, id);
+      assert.ok(v && v.id === id, id);
+      seen++;
+      const all = [v.title, v.text].concat(v.choices.map((c) => c.label + ' ' + (c.sub || '')));
+      all.forEach((t) => checkText(t, id));
+      if (bar < 70) all.forEach((t) => assert.ok(!/popular/i.test(t.replace(/no eres popular/gi, '')), id + ': ' + t));
+      // y los resultados de cada opción
+      v.choices.forEach((c) => {
+        for (const val of [true, false]) {
+          const h = escScene(20 + seen, age, bar);
+          setGenders(h, pg, og); h.p.skills.arte = 70; h.p.edu.susp = 1;
+          const w = showEv(h, id);
+          const ci = w.choices.find((x) => x.label === c.label);
+          if (!ci) continue;
+          const res = quiet(val, () => MV.EV.choose(h, ci.i));
+          checkText(res.msg, id + '#' + ci.i);
+          if (bar < 70) assert.ok(!/popular/i.test(res.msg.replace(/no eres popular/gi, '')), res.msg);
+          assert.ok(h.p.money >= 0, id + ' dejó el dinero negativo');
+        }
+      });
+    }
+  }
+  assert.ok(seen > 100);
+});
+
+test('todas las opciones de los eventos de la escuela funcionan', () => {
+  for (const id of ESC) {
+    const n = MV.EV.byId[id].choices.length;
+    for (let i = 0; i < n; i++) for (const bar of [20, 50, 85]) for (const val of [true, false]) for (const money of [0, 100]) {
+      const g = escScene(40 + i, 15, bar);
+      g.p.money = money; g.p.skills.arte = 70; g.p.edu.susp = 1;
+      const v = showEv(g, id);
+      if (!v.choices.some((x) => x.i === i)) continue;
+      let res;
+      assert.doesNotThrow(() => { res = quiet(val, () => MV.EV.choose(g, i)); }, `${id}#${i}`);
+      assert.ok(res.msg && !BAD_TEXT.test(res.msg), `${id}#${i}: ${res.msg}`);
+      assert.ok(g.p.money >= 0, `${id}#${i} dejó el dinero negativo`);
+      assert.ok(g.p.edu.pop >= 0 && g.p.edu.pop <= 100);
+    }
+  }
+});
+
+test('el delegado: +5 y el logro', () => {
+  const g = escScene(50, 15, 80);
+  const v = showEv(g, 'esc_delegado');
+  assert.ok(v.text.includes(S().mate(g, 'rival').n.first));
+  quiet(true, () => MV.EV.choose(g, labelIdx(v, /propuestas/i)));
+  assert.strictEqual(g.p.edu.pop, 85);
+  assert.ok(g.achLife.includes('delegado'));
+  const h = escScene(50, 15, 80);
+  const w = showEv(h, 'esc_delegado');
+  quiet(false, () => MV.EV.choose(h, labelIdx(w, /propuestas/i)));
+  assert.ok(!(h.achLife || []).includes('delegado'));
+  assert.ok(h.p.edu.pop <= 80);
+});
+
+test('el cumpleaños: invitado suma 3 y sin invitación no mueve la barra', () => {
+  const g = escScene(51, 12, 75);
+  const v = showEv(g, 'esc_cumple');
+  assert.ok(/invit/i.test(v.text));
+  MV.EV.choose(g, v.choices[0].i);
+  assert.strictEqual(g.p.edu.pop, 78);
+  const h = escScene(51, 12, 20);
+  const w = showEv(h, 'esc_cumple');
+  assert.ok(/no te invit/i.test(w.text), w.text);
+  assert.ok(w.choices.length >= 2);
+  w.choices.forEach((c) => {
+    const x = escScene(51, 12, 20);
+    const y = showEv(x, 'esc_cumple');
+    MV.EV.choose(x, y.choices.find((q) => q.label === c.label).i);
+    assert.strictEqual(x.p.edu.pop, 20);
+  });
+});
+
+test('el abusón te elige: marca al abusón por su id', () => {
+  const g = escScene(52, 9, 25);
+  const ab = S().mate(g, 'abuson');
+  const v = showEv(g, 'esc_abuson');
+  assert.ok(v.text.includes(ab.n.first));
+  assert.ok(v.choices.length === 4);
+  MV.EV.choose(g, labelIdx(v, /Ignorar/i));
+  assert.strictEqual(g.p.flags.abuson, ab.n.id);
+  const a = MV.sys.edu.actions(g).find((x) => x.id === 'abuson');
+  assert.ok(a);
+  assert.ok(quiet(true, () => a.run(g)).includes(ab.n.first));
+  const ok = escScene(52, 9, 25), vo = showEv(ok, 'esc_abuson');
+  quiet(true, () => MV.EV.choose(ok, labelIdx(vo, /Contárselo/i)));
+  assert.ok(!ok.p.flags.abuson);
+  const ko = escScene(52, 9, 25), vk = showEv(ko, 'esc_abuson');
+  const p0 = ko.p.edu.pop;
+  quiet(false, () => MV.EV.choose(ko, labelIdx(vk, /Contárselo/i)));
+  assert.strictEqual(ko.p.flags.abuson, S().mate(ko, 'abuson').n.id);
+  assert.ok(ko.p.edu.pop < p0);
+  const pl = escScene(52, 9, 50), vp = showEv(pl, 'esc_abuson');
+  quiet(true, () => MV.EV.choose(pl, labelIdx(vp, /Plantar/i)));
+  assert.ok(pl.p.edu.pop > 50);
+  const FORBID = /golpe|sangre|pegó|pegaste|herid|puñ|patada/i;
+  for (const val of [true, false]) for (let i = 0; i < 4; i++) {
+    const h = escScene(53 + i, 9, 25), w = showEv(h, 'esc_abuson');
+    const r = quiet(val, () => MV.EV.choose(h, i));
+    assert.ok(!FORBID.test(w.text + r.msg), r.msg);
+  }
+});
+
+test('ves al abusón molestar a otro: sumarte es molestar', () => {
+  const g = escScene(54, 12, 50);
+  const ab = S().mate(g, 'abuson');
+  const v = showEv(g, 'esc_testigo');
+  const t = MV.person(g, v.target.id);
+  assert.ok(v.text.includes(ab.n.first) && v.text.includes(t.first), v.text);
+  const r = MV.relOf(g, t.id), rel0 = r.rel, b0 = g.p.edu.bullied || 0;
+  quiet(false, () => MV.EV.choose(g, labelIdx(v, /Sumarte/i)));
+  assert.ok(r.rel < rel0);
+  assert.strictEqual(g.p.edu.bullied, b0 + 1);
+  assert.strictEqual(g.p.edu.lastBully, g.p.age);
+  assert.ok(r.mem.some((m) => m.k === 'humillacion'));
+  assert.ok(g.p.edu.pop > 50);
+  const h = escScene(54, 12, 50), w = showEv(h, 'esc_testigo');
+  quiet(true, () => MV.EV.choose(h, labelIdx(w, /Sumarte/i)));
+  assert.strictEqual(h.p.edu.susp, 1);
+  const k = escScene(54, 12, 50), x = showEv(k, 'esc_testigo');
+  quiet(true, () => MV.EV.choose(k, labelIdx(x, /Defender/i)));
+  assert.ok(!k.p.edu.bullied);
+  assert.strictEqual(typeof S().tease, 'function');
+});
+
+test('quien te gusta te escribe y puede ser tu pareja', () => {
+  const g = escScene(55, 15, 50);
+  const c = S().mate(g, 'crush');
+  const v = showEv(g, 'esc_crush');
+  assert.ok(v.text.includes(c.n.first));
+  assert.ok(!/sex|beso|desnud|cuerpo/i.test(v.text + v.choices.map((x) => x.label).join(' ')));
+  quiet(true, () => MV.EV.choose(g, labelIdx(v, /salir/i)));
+  assert.ok(MV.partner(g) && MV.partner(g).n.id === c.n.id);
+  const h = escScene(55, 15, 50), w = showEv(h, 'esc_crush');
+  quiet(false, () => MV.EV.choose(h, labelIdx(w, /salir/i)));
+  assert.ok(!MV.partner(h));
+  for (let i = 0; i < w.choices.length; i++) {
+    const x = escScene(55, 15, 50), y = showEv(x, 'esc_crush');
+    if (!y.choices.some((q) => q.i === i)) continue;
+    MV.EV.choose(x, i);
+    assert.ok(x.p.money >= 0);
+  }
+  const p = escScene(55, 15, 50); MV.addRel(p, MV.newNPC(p, { age: 15 }), 'pareja', 60);
+  assert.strictEqual(MV.EV.eligible(p, MV.EV.byId.esc_crush), null);
+});
+
+test('la foto vergonzosa, la copia y la pelea con el mejor amigo', () => {
+  let g = escScene(56, 15, 50); g.p.skills.carisma = 10;
+  let v = showEv(g, 'esc_foto');
+  assert.ok(/dorm/i.test(v.text), v.text);
+  MV.EV.choose(g, labelIdx(v, /Reírte/i));
+  assert.strictEqual(g.p.edu.pop, 42);
+  g = escScene(56, 15, 50); g.p.skills.carisma = 80;
+  v = showEv(g, 'esc_foto'); MV.EV.choose(g, labelIdx(v, /Reírte/i));
+  assert.strictEqual(g.p.edu.pop, 46);
+  g = escScene(56, 15, 50); v = showEv(g, 'esc_foto'); MV.EV.choose(g, labelIdx(v, /Ignorar/i));
+  assert.strictEqual(g.p.edu.pop, 42);
+  g = escScene(57, 15, 50); const k0 = g.p.karma;
+  v = showEv(g, 'esc_copia'); MV.EV.choose(g, labelIdx(v, /Acusar/i));
+  assert.strictEqual(g.p.edu.pop, 44);
+  assert.strictEqual(g.p.karma, k0 + 1);
+  g = escScene(58, 15, 50); const am = S().mate(g, 'amigo');
+  v = showEv(g, 'esc_pelea_amigo');
+  assert.ok(v.text.includes(am.n.first));
+  MV.EV.choose(g, labelIdx(v, /Romper/i));
+  assert.ok(am.r.rel < 40);
+  assert.notStrictEqual(am.m.role, 'amigo');
+  g = escScene(58, 15, 50); const a2 = S().mate(g, 'amigo'); a2.r.rel = 50;
+  v = showEv(g, 'esc_pelea_amigo'); MV.EV.choose(g, labelIdx(v, /perd[oó]n/i));
+  assert.ok(a2.r.rel > 50);
+});
+
+test('los logros de la escuela', () => {
+  ['delegado', 'abanderado', 'recreo'].forEach((id) => assert.ok(MV.ach.def(id) && MV.ach.def(id).name && MV.ach.def(id).icon && MV.ach.def(id).desc, id));
+  assert.strictEqual(MV.ach.def('delegado').name, 'Delegado del curso');
+  assert.strictEqual(MV.ach.def('recreo').name, 'Rey o reina del recreo');
+  let g = egresar(60, 95, false); MV.sys.edu.graduate(g);
+  assert.ok(g.achLife.includes('abanderado'));
+  g = egresar(61, 94, false); MV.sys.edu.graduate(g);
+  assert.ok(!(g.achLife || []).includes('abanderado'));
+  g = student(MV, 62, 15);
+  g.p.edu.pop = 88; S().pop(g, 1); assert.ok(!(g.achLife || []).includes('recreo'));
+  S().pop(g, 2); assert.ok(g.achLife.includes('recreo'));
+  g = student(MV, 63, 9); g.p.edu.pop = 80; S().pop(g, 15);
+  assert.ok(!(g.achLife || []).includes('recreo'), 'en primaria no');
+  g = student(MV, 64, 15); g.p.edu.pop = 95; MV.ach.check(g);
+  assert.ok(g.achLife.includes('recreo'));
+});
+
+test('el viejo pelea_patio nombra al rival y nerd_amigo usa al curso', () => {
+  const g = student(MV, 70, 9); g.queue = [];
+  const rv = S().mate(g, 'rival');
+  MV.EV.push(g, 'pelea_patio', {}, true);
+  const v = MV.EV.view(g);
+  assert.ok(v.text.includes(rv.n.first), v.text);
+  assert.ok(!BAD_TEXT.test(v.text));
+  v.choices.forEach((c) => { const h = student(MV, 70, 9); MV.EV.push(h, 'pelea_patio', {}, true); assert.doesNotThrow(() => MV.EV.choose(h, c.i)); });
+  const s = student(MV, 71, 9); s.p.edu.class = null; s.queue = [];
+  MV.EV.push(s, 'pelea_patio', {}, true);
+  assert.ok(/^Un compañero/.test(MV.EV.view(s).text));
+  const n = student(MV, 72, 15); n.queue = [];
+  if (!S().mates(n).some((x) => x.m.role === 'payaso' || x.m.role === 'comun')) S()._newMate(n, 'payaso');
+  const d = MV.EV.byId.nerd_amigo, ctx = MV.EV.eligible(n, d);
+  assert.ok(ctx && ctx.mate);
+  MV.EV.push(n, 'nerd_amigo', ctx, true);
+  const nv = MV.EV.view(n);
+  assert.ok(nv.text.includes(MV.person(n, ctx.mate).first), nv.text);
+  const people = Object.keys(n.people).length, rel0 = MV.relOf(n, ctx.mate).rel;
+  MV.EV.choose(n, 0);
+  assert.strictEqual(Object.keys(n.people).length, people, 'no crea gente nueva');
+  assert.ok(MV.relOf(n, ctx.mate).rel > rel0);
+  const o = student(MV, 73, 15); o.p.edu.class = null; o.queue = [];
+  const oc = MV.EV.eligible(o, d);
+  MV.EV.push(o, 'nerd_amigo', oc, true);
+  const pp = Object.keys(o.people).length;
+  MV.EV.choose(o, 0);
+  assert.strictEqual(Object.keys(o.people).length, pp + 1);
+});

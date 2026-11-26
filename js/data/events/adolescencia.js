@@ -193,9 +193,17 @@
   ev({ id: 'diario_leido', age: [13, 17], when: (g) => parents(g).length > 0, icon: '📔', text: 'Descubriste que tu madre leyó tu diario íntimo. Ella descubrió que la llamas "la dictadora".', auto: { happy: -4, then: (g) => bumpParents(g, -5) } });
   ev({ id: 'voz_cambio', age: [12, 15], once: true, icon: '🎙️', text: 'Tu voz cambió de golpe a la mitad de una presentación oral. Sonó como un pato en una licuadora.', auto: { happy: -2, looks: 1 } });
   ev({ id: 'nerd_amigo', age: [13, 17], when: H.school, icon: '🤓', title: 'Proyecto en grupo',
-    text: 'Te toca hacer un proyecto con la persona más rara de la clase.',
+    ctx: (g) => { const x = MV.sys.school.active(g.p) && U.pick(MV.sys.school.mates(g).filter((y) => y.m.role === 'comun' || y.m.role === 'payaso')); return x ? { mate: x.n.id } : {}; },
+    text: (g, ctx) => {
+      const x = ctx.mate && MV.sys.school.mates(g).find((y) => y.n.id === ctx.mate);
+      if (!x) return 'Te toca hacer un proyecto con la persona más rara de la clase.';
+      return `Te toca hacer un proyecto con ${x.n.first}, ${x.m.role === 'payaso' ? U.gw(x.n.gender, 'el payaso del curso', 'la payasa del curso') : U.gw(x.n.gender, 'un compañero', 'una compañera')} que dicen que es la persona más rara de la clase.`;
+    },
     choices: [
-      { t: 'Darle una oportunidad', eff: (g) => { const n = MV.newNPC(g, { age: g.p.age, country: g.p.country, money: 0, job: 'Estudiante', smarts: U.int(75, 100) }); MV.addRel(g, n, 'amigo', U.int(55, 80)); fx.stat(g, 'smarts', 2); g.p.edu.perf = U.clamp(g.p.edu.perf + 6, 0, 100); return `Resulta que ${n.first} es genial. Sacaron la mejor nota y ahora son inseparables.`; } },
+      { t: 'Darle una oportunidad', eff: (g, ctx) => {
+        const x = ctx.mate && MV.sys.school.mates(g).find((y) => y.n.id === ctx.mate);
+        if (x) { x.r.rel = U.clamp(x.r.rel + 15, 0, 100); fx.stat(g, 'smarts', 2); g.p.edu.perf = U.clamp(g.p.edu.perf + 6, 0, 100); return `Resulta que ${x.n.first} es genial. Sacaron la mejor nota y ahora son inseparables.`; }
+        const n = MV.newNPC(g, { age: g.p.age, country: g.p.country, money: 0, job: 'Estudiante', smarts: U.int(75, 100) }); MV.addRel(g, n, 'amigo', U.int(55, 80)); fx.stat(g, 'smarts', 2); g.p.edu.perf = U.clamp(g.p.edu.perf + 6, 0, 100); return `Resulta que ${n.first} es genial. Sacaron la mejor nota y ahora son inseparables.`; } },
       { t: 'Dejar que haga todo', eff: { karma: -2, then: (g) => { g.p.edu.perf = U.clamp(g.p.edu.perf + 4, 0, 100); return 'Dejaste que hiciera todo y pusiste tu nombre. Sacaron 10. Te sientes un poco basura.'; } } },
       { t: 'Pedir cambio de grupo', eff: { happy: -1, msg: 'Pediste cambio de grupo. Te tocó con alguien peor.' } }
     ] });
