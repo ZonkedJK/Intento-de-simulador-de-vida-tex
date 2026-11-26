@@ -646,3 +646,72 @@ test('las víctimas pasan al siguiente curso como enemigos y guardan el recuerdo
   assert.ok(!MV.relOf(g, cold.n.id), 'sin recuerdo malo se va');
   assert.strictEqual(MV.relOf(g, warm.n.id).type, 'amigo');
 });
+
+function egresar(seed, perf, adult) {
+  const g = game(MV, seed, 17);
+  const p = g.p;
+  p.edu.done = ['primaria']; p.edu.stage = 'secundaria'; p.edu.year = 5; p.edu.perf = perf;
+  if (adult) p.edu.adult = true; else MV.sys.edu.start(g, 'secundaria');
+  p.edu.stage = 'secundaria'; p.edu.perf = perf;
+  g.queue = [];
+  return g;
+}
+
+test('se guarda el promedio de egreso', () => {
+  const g = egresar(31, 89, false);
+  g.p.edu.pop = 64;
+  MV.sys.edu.graduate(g);
+  assert.strictEqual(g.p.edu.gpa, 89);
+  assert.strictEqual(g.p.edu.popEgreso, 64);
+  const n = egresar(32, 70, true);
+  MV.sys.edu.graduate(n);
+  assert.strictEqual(n.p.edu.gpa, 70);
+  assert.strictEqual(n.p.edu.popEgreso, undefined);
+});
+
+test('el promedio suma en el examen', () => {
+  const E = MV.sys.edu;
+  const mk = (gpa) => { const p = { edu: {} }; if (gpa !== undefined) p.edu.gpa = gpa; return p; };
+  assert.strictEqual(E.examBonus(mk(89)), 9);
+  assert.strictEqual(E.examBonus(mk(33)), -5);
+  assert.strictEqual(E.examBonus(mk()), 0);
+  assert.strictEqual(E.examBonus(mk(55)), 0);
+});
+
+test('beca por promedio', () => {
+  const E = MV.sys.edu;
+  const mk = (smarts, gpa) => ({ stats: { smarts }, edu: gpa == null ? {} : { gpa } });
+  assert.strictEqual(E.canBeca(mk(50, 84)), true);
+  assert.ok(Math.abs(E.becaChance(mk(50, 84)) - 0.3) < 1e-9);
+  assert.strictEqual(E.canBeca(mk(69, 83)), false);
+  assert.strictEqual(E.becaChance(mk(105, 100)), 0.95);
+  const g = game(MV, 40, 18);
+  g.p.stats.smarts = 50; g.p.edu.gpa = 90;
+  MV.EV.push(g, 'pagar_universidad', { major: 'medicina', mname: 'Medicina' }, true);
+  const v = MV.EV.view(g);
+  assert.ok(v.choices.some((c) => /Solicitar una beca/.test(c.label)));
+  const h = game(MV, 41, 18);
+  h.p.stats.smarts = 50; h.p.edu.gpa = 60;
+  MV.EV.push(h, 'pagar_universidad', { major: 'medicina', mname: 'Medicina' }, true);
+  assert.ok(!MV.EV.view(h).choices.some((c) => /Solicitar una beca/.test(c.label)));
+});
+
+test('el texto dice tu promedio', () => {
+  for (const gpa of [60, 84, 95]) {
+    const g = game(MV, 50, 18);
+    g.p.edu.gpa = gpa; g.p.stats.smarts = 60;
+    MV.EV.push(g, 'fin_secundaria', { grade: MV.grade(gpa) }, true);
+    const t = MV.EV.view(g).text;
+    assert.ok(t.includes(MV.grade(gpa)), t);
+    assert.ok(!BAD_TEXT.test(t), t);
+    assert.strictEqual(/beca/.test(t), gpa >= 84, t);
+  }
+  for (const [gpa, re] of [[89, /suma 9 puntos/], [33, /resta 5/], [55, /^(?!.*promedio te)/]]) {
+    const g = game(MV, 51, 18);
+    g.p.edu.gpa = gpa;
+    MV.EV.push(g, 'pagar_universidad', { major: 'medicina', mname: 'Medicina' }, true);
+    const t = MV.EV.view(g).text;
+    assert.match(t, re);
+    assert.ok(!BAD_TEXT.test(t), t);
+  }
+});

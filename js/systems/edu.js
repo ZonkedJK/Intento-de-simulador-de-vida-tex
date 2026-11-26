@@ -67,6 +67,14 @@
       }
     },
 
+    /** Puntos que el promedio de egreso suma (o resta) en el examen de la pública. */
+    examBonus(p) { return p.edu.gpa == null ? 0 : Math.round((p.edu.gpa - 55) / 4); },
+    canBeca(p) { return p.stats.smarts >= 70 || (p.edu.gpa != null && p.edu.gpa >= 84); },
+    becaChance(p) {
+      const gpa = p.edu.gpa;
+      return Math.min(0.95, Math.max((p.stats.smarts - 60) / 45, gpa != null ? (gpa - 75) / 30 : 0));
+    },
+
     graduate(g) {
       const p = g.p, e = p.edu;
       const st = e.stage, grade = MV.grade(e.perf);
@@ -79,6 +87,8 @@
         return;
       }
       if (st === 'secundaria') {
+        e.gpa = e.perf;
+        if (!e.adult) e.popEgreso = MV.sys.school.pop(g, 0);
         MV.sys.school.cleanup(g);
         MV.fx.stat(g, 'happy', 8);
         if (e.adult) {
@@ -337,7 +347,9 @@
   MV.ev({
     id: 'fin_secundaria', manual: true, prison: 'any', icon: '🎓', scene: 'escuela', title: 'Terminaste la secundaria',
     text: (g, ctx) => {
+      const gpa = g.p.edu.gpa;
       let t = `Promedio final: ${ctx.grade || '?'}. Todo el mundo te pregunta qué vas a hacer con tu vida.`;
+      if (gpa != null && gpa >= 84) t += ' Con ese promedio te alcanza para pedir una beca por mérito.';
       if (ctx.offer) { const S = MV.SPORTS[ctx.offer.sport]; t += ` Además, ${S.scout} de ${ctx.offer.club} te vio en ${S.club.toLowerCase()} y te ofrece un contrato profesional de ${U.money(ctx.offer.salary)} al año.`; }
       return t + ' ¿Qué decides?';
     },
@@ -366,13 +378,15 @@
     id: 'pagar_universidad', manual: true, prison: 'any', icon: '💸', scene: 'universidad', title: '¿Cómo vas a pagar {mname}?',
     text: (g, ctx) => {
       const M = E.majors[ctx.major];
-      return `La privada cuesta ${U.money(M.cost)} al año durante ${M.years} años. La pública es gratis pero exige un examen (dificultad ${M.smarts}).`;
+      const b = edu.examBonus(g.p);
+      const nota = b > 0 ? ` Tu promedio te suma ${b} ${b === 1 ? 'punto' : 'puntos'} en el examen.` : b < 0 ? ` Tu promedio te resta ${-b} ${b === -1 ? 'punto' : 'puntos'} en el examen.` : '';
+      return `La privada cuesta ${U.money(M.cost)} al año durante ${M.years} años. La pública es gratis pero exige un examen (dificultad ${M.smarts}).${nota}`;
     },
     choices: [
       { t: '🏛️ Universidad pública (rendir examen)', when: (g, ctx) => !ctx.failed,
         eff: (g, ctx) => {
           const M = E.majors[ctx.major];
-          if (g.p.stats.smarts + U.int(-15, 15) + (g.p.yearActs.estudiar || 0) * 3 >= M.smarts) return edu.enrollUni(g, ctx.major, 'publica');
+          if (g.p.stats.smarts + U.int(-15, 15) + (g.p.yearActs.estudiar || 0) * 3 + edu.examBonus(g.p) >= M.smarts) return edu.enrollUni(g, ctx.major, 'publica');
           MV.EV.push(g, 'pagar_universidad', Object.assign({}, ctx, { failed: true }), true);
           MV.fx.stat(g, 'happy', -6);
           return 'Reprobaste el examen de ingreso. Quedan otras opciones...';
@@ -382,9 +396,9 @@
       { t: '🏦 Privada: préstamo estudiantil', eff: (g, ctx) => edu.enrollUni(g, ctx.major, 'prestamo') },
       { t: '💵 Privada: pagar con mi dinero', when: (g, ctx) => g.p.money >= E.majors[ctx.major].cost,
         eff: (g, ctx) => edu.enrollUni(g, ctx.major, 'propio') },
-      { t: '🏅 Solicitar una beca', when: (g, ctx) => g.p.stats.smarts >= 70 && !ctx.noBeca,
+      { t: '🏅 Solicitar una beca', when: (g, ctx) => edu.canBeca(g.p) && !ctx.noBeca,
         eff: (g, ctx) => {
-          if (U.chance((g.p.stats.smarts - 60) / 45)) return edu.enrollUni(g, ctx.major, 'beca');
+          if (U.chance(edu.becaChance(g.p))) return edu.enrollUni(g, ctx.major, 'beca');
           MV.EV.push(g, 'pagar_universidad', Object.assign({}, ctx, { noBeca: true }), true);
           return 'No te dieron la beca. Se la dieron al sobrino del rector.';
         } },
