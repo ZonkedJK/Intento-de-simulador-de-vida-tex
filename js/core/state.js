@@ -39,10 +39,10 @@
   const REL_LABEL = {
     padre: ['Padre', 'Madre'], hermano: ['Hermano', 'Hermana'], abuelo: ['Abuelo', 'Abuela'],
     pareja: ['Novio', 'Novia'], conyuge: ['Esposo', 'Esposa'], ex: ['Ex', 'Ex'],
-    hijo: ['Hijo', 'Hija'], nieto: ['Nieto', 'Nieta'], amigo: ['Amigo', 'Amiga'], enemigo: ['Enemigo', 'Enemiga'], acosador: ['Acosador', 'Acosadora'],
+    hijo: ['Hijo', 'Hija'], nieto: ['Nieto', 'Nieta'], amigo: ['Amigo', 'Amiga'], curso: ['Compañero de curso', 'Compañera de curso'], profe: ['Profesor', 'Profesora'], enemigo: ['Enemigo', 'Enemiga'], acosador: ['Acosador', 'Acosadora'],
     amante: ['Amante', 'Amante'], companero: ['Compañero', 'Compañera'], jefe: ['Jefe', 'Jefa'], mascota: ['Mascota', 'Mascota']
   };
-  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'nieto', 'hermano', 'abuelo', 'mascota', 'amigo', 'companero', 'jefe', 'acosador', 'enemigo', 'ex'];
+  MV.REL_ORDER = ['conyuge', 'pareja', 'amante', 'padre', 'hijo', 'nieto', 'hermano', 'abuelo', 'mascota', 'amigo', 'curso', 'profe', 'companero', 'jefe', 'acosador', 'enemigo', 'ex'];
   MV.FAMILY = ['padre', 'hermano', 'abuelo', 'hijo', 'nieto'];
 
   MV.relLabel = function (type, person) {

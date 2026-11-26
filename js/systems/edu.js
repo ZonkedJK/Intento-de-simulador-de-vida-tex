@@ -33,6 +33,7 @@
       e.payer = o.payer || 'publica'; e.adult = !!o.adult;
       e.perf = U.clamp(Math.round(g.p.stats.smarts * 0.6 + 20), 10, 90);
       e.cost = o.cost || 0;
+      if ((stage === 'primaria' || stage === 'secundaria') && !e.adult) MV.sys.school.restaff(g);
     },
 
     yearly(g) {
@@ -60,6 +61,7 @@
         e.year--;
         MV.log(g, 'Repetiste de año. Tus nuevos compañeros te miran como a un abuelo.', '🔁', 'bad');
         MV.fx.stat(g, 'happy', -6);
+        MV.sys.school.restaff(g);
       }
     },
 
@@ -70,10 +72,12 @@
       e.stage = null;
       if (st === 'primaria') {
         MV.log(g, `Terminaste la primaria con promedio ${grade}. Ahora, la secundaria.`, '🎒', 'good');
+        MV.sys.school.cleanup(g);
         edu.start(g, 'secundaria');
         return;
       }
       if (st === 'secundaria') {
+        MV.sys.school.cleanup(g);
         MV.fx.stat(g, 'happy', 8);
         if (e.adult) {
           MV.EV.info(g, { title: '¡Lo lograste!', text: `Terminaste la secundaria en la escuela nocturna con promedio ${grade}. Nunca es tarde.`, icon: '🎓', scene: 'escuela' });
@@ -115,6 +119,7 @@
       const e = g.p.edu;
       const name = edu.stageName(e);
       e.stage = null; e.dropped = true;
+      MV.sys.school.cleanup(g);
       MV.ach.unlock(g, 'abandono');
       return `Abandonaste ${name}. ${U.pick(['Libertad.', 'Tu madre no te habla.', 'Grandes genios también lo hicieron. Algunos.'])}`;
     },

@@ -17,6 +17,7 @@
     canRomance(g, n, r) {
       const p = g.p;
       if (!n || !n.alive || n.species !== 'humano') return false;
+      if (r && r.type === 'profe') return false;
       if (r && (MV.FAMILY.includes(r.type) || ROMANTIC.includes(r.type))) return false;
       if (p.age < 14 || n.age < 14) return false;
       const minor = p.age < 18 || n.age < 18;
@@ -322,7 +323,7 @@
         if (t === 'conyuge') A({ id: 'divorcio', icon: '⚖️', label: 'Pedir el divorcio', sub: 'Te puede costar caro', limit: 1, confirm: '¿Pedir el divorcio?', run: (g) => rels.divorce(g, n) });
         else A({ id: 'romper', icon: '💔', label: 'Terminar la relación', sub: '', limit: 1, confirm: '¿Terminar la relación?', run: (g) => rels.breakUp(g, n) });
       }
-      if (['amigo', 'companero', 'ex', 'enemigo'].includes(t) && rels.canRomance(g, n, r)) A({ id: 'coquetear', icon: '😏', label: t === 'ex' ? 'Intentar volver' : 'Coquetear', sub: 'Podría salir bien...', limit: 1,
+      if (['amigo', 'curso', 'companero', 'ex', 'enemigo'].includes(t) && rels.canRomance(g, n, r)) A({ id: 'coquetear', icon: '😏', label: t === 'ex' ? 'Intentar volver' : 'Coquetear', sub: 'Podría salir bien...', limit: 1,
         run: (g) => {
           let ch = U.clamp(r.rel / 140 + (p.stats.looks - n.looks) / 250 + p.skills.carisma / 300 + (t === 'ex' ? -0.1 : 0) + (t === 'enemigo' ? -0.3 : 0), 0.05, 0.85);
           if (MV.sys.persona.has(n, 'tímido')) {

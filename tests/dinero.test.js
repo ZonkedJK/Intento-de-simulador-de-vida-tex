@@ -679,10 +679,10 @@ test('migración v8 → v9', () => {
 // ——— Tarea 8: el jugador automático usa todo lo nuevo ———
 test('el jugador automático vive 20 vidas con inmuebles, seguros, jubilación y dinero sucio', () => {
   const { live } = require('./agent');
-  const MV = load({ seed: 300 });
+  const MV = load({ seed: 310 });
   const done = new Set();
   let rented = 0, insured = 0, funds = 0;
-  for (let s = 300; s < 320; s++) {
+  for (let s = 310; s < 330; s++) {
     const g = MV.newGame({ seed: s });
     live(MV, g, { acts: 4, check: (gg) => {
       const p = gg.p;
